@@ -17,7 +17,7 @@ Implementar o `storage-service.ts` responsável por validar e fazer upload de fo
 
 ## Subtarefas
 
-- [ ] 4.1 Criar bucket `photos` no Supabase Storage com acesso público de leitura
+- [ ] 4.1 Criar bucket `couple-photos` no Supabase Storage com acesso público de leitura
 - [ ] 4.2 Criar `src/plugins/multipart-plugin.ts` que registra `@fastify/multipart` com `limits: { fileSize: 5 * 1024 * 1024 }` e `throwFileSizeLimit: true`
 - [ ] 4.3 Registrar o multipart plugin em `src/app.ts`
 - [ ] 4.4 Implementar `src/services/storage-service.ts`

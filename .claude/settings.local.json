@@ -11,7 +11,9 @@
       "Bash(cat:*)",
       "Bash(rm -rf D:/temp/ws-vscode/ourlovemap/backend/__mocks__ && cd D:/temp/ws-vscode/ourlovemap/backend && npm run build 2>&1)",
       "mcp__playwright__browser_navigate",
-      "Bash(cd D:/temp/ws-vscode/ourlovemap/backend && npx playwright install chrome 2>&1 | tail -5)"
+      "Bash(cd D:/temp/ws-vscode/ourlovemap/backend && npx playwright install chrome 2>&1 | tail -5)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs"
     ]
   }
 }
