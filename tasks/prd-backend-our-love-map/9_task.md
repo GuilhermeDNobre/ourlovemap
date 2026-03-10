@@ -16,23 +16,23 @@ Implementar o `qr-code-service.ts` que gera o QR Code da página pública do map
 
 ## Subtarefas
 
-- [ ] 9.1 Implementar `src/services/qr-code-service.ts`
+- [x] 9.1 Implementar `src/services/qr-code-service.ts`
   - `generateQrCode(token: string): Promise<Buffer>`
   - Construir URL: `${process.env.OURLOVEMAP_BASE_URL}/access?token=${token}`
   - Gerar PNG com `qrcode.toBuffer(url)`
   - Converter para JPG com `sharp(pngBuffer).jpeg({ quality: 90 }).toBuffer()`
   - Retornar o buffer JPG
-- [ ] 9.2 Implementar `src/services/email-service.ts`
+- [x] 9.2 Implementar `src/services/email-service.ts`
   - `sendDeliveryEmail({ coupleName, token, qrCodeBuffer }: SendDeliveryEmailParams, email: string): Promise<void>`
   - Construir o link: `${process.env.OURLOVEMAP_BASE_URL}/access?token=${token}`
   - Enviar via Resend com:
     - Subject: `Seu Mapa do Amor está pronto, ${coupleName}! 💌`
     - Body HTML com mensagem afetiva, link clicável e QR Code inline como base64 (`<img src="data:image/jpeg;base64,...">`)
     - Ou anexar o JPG via `attachments` do Resend (preferir se a API suportar)
-- [ ] 9.3 Integrar `qr-code-service` e `email-service` no `payment-service.processWebhookEvent`:
+- [x] 9.3 Integrar `qr-code-service` e `email-service` no `payment-service.processWebhookEvent`:
   - Após `map-service.activateMap`, chamar `generateQrCode` e depois `sendDeliveryEmail`
   - Envolver o bloco de email em try/catch: logar erro mas não relançar
-- [ ] 9.4 Escrever testes unitários para `qr-code-service.ts` e `email-service.ts`
+- [x] 9.4 Escrever testes unitários para `qr-code-service.ts` e `email-service.ts`
 
 ## Detalhes de Implementação
 
@@ -60,14 +60,14 @@ try {
 
 ## Testes da Tarefa
 
-- [ ] `test/services/qr-code-service.test.ts` (com mock do `qrcode` e `sharp`):
+- [x] `test/services/qr-code-service.test.ts` (com mock do `qrcode` e `sharp`):
   - `generateQrCode("abc12")` → Buffer retornado
   - URL passada para `qrcode.toBuffer` contém o token correto
   - `sharp` é chamado com o buffer PNG para conversão JPG
-- [ ] `test/services/email-service.test.ts` (com mock do Resend):
+- [x] `test/services/email-service.test.ts` (com mock do Resend):
   - `sendDeliveryEmail` chama `resend.emails.send` com subject correto
   - HTML do email contém o `coupleName` e o link com token
-- [ ] `test/services/payment-service.test.ts` (complementar):
+- [x] `test/services/payment-service.test.ts` (complementar):
   - `processWebhookEvent` com `approved` → `sendDeliveryEmail` chamado
   - `processWebhookEvent` com `approved` + falha no email → `activateMap` ainda bem-sucedido, erro logado
 

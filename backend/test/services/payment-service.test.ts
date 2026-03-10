@@ -13,6 +13,14 @@ jest.mock('../../src/services/map-service.js', () => ({
   updatePaymentData: jest.fn(),
 }));
 
+jest.mock('../../src/services/qr-code-service.js', () => ({
+  generateQrCode: jest.fn(),
+}));
+
+jest.mock('../../src/services/email-service.js', () => ({
+  sendDeliveryEmail: jest.fn(),
+}));
+
 import { Payment } from 'mercadopago';
 import {
   createPixPayment,
@@ -26,6 +34,8 @@ import {
   setPaymentFailed,
   updatePaymentData,
 } from '../../src/services/map-service.js';
+import { generateQrCode } from '../../src/services/qr-code-service.js';
+import { sendDeliveryEmail } from '../../src/services/email-service.js';
 
 const mockCreate = jest.fn();
 const mockGet = jest.fn();
@@ -123,7 +133,9 @@ describe('processWebhookEvent', () => {
     const supabase = buildMockSupabase();
     mockGet.mockResolvedValue({ status: 'approved' });
     (getMapByPaymentId as jest.Mock).mockResolvedValue({ id: 'map-1', paymentId: 'pay-123' });
-    (activateMap as jest.Mock).mockResolvedValue(undefined);
+    (activateMap as jest.Mock).mockResolvedValue({ id: 'map-1', token: 'tok01', coupleName: 'Carol e André', email: 'carol@example.com' });
+    (generateQrCode as jest.Mock).mockResolvedValue(Buffer.from('jpg'));
+    (sendDeliveryEmail as jest.Mock).mockResolvedValue(undefined);
     const event: MercadoPagoEvent = { data: { id: 'pay-123' } };
 
     await processWebhookEvent(event, supabase, buildMockLog());
@@ -184,5 +196,76 @@ describe('processWebhookEvent', () => {
 
     expect(activateMap).not.toHaveBeenCalled();
     expect(setPaymentFailed).not.toHaveBeenCalled();
+  });
+
+  it('should call sendDeliveryEmail with correct params after approved payment', async () => {
+    const supabase = buildMockSupabase();
+    const qrBuffer = Buffer.from('jpg-data');
+    mockGet.mockResolvedValue({ status: 'approved' });
+    (getMapByPaymentId as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', paymentId: 'pay-123' });
+    (activateMap as jest.Mock).mockResolvedValue({
+      id: 'map-1',
+      token: 'tok01',
+      coupleName: 'Carol e André',
+      email: 'carol@example.com',
+    });
+    (generateQrCode as jest.Mock).mockResolvedValue(qrBuffer);
+    (sendDeliveryEmail as jest.Mock).mockResolvedValue(undefined);
+    const event: MercadoPagoEvent = { data: { id: 'pay-123' } };
+
+    await processWebhookEvent(event, supabase, buildMockLog());
+
+    expect(generateQrCode).toHaveBeenCalledWith('tok01');
+    expect(sendDeliveryEmail).toHaveBeenCalledWith(
+      { coupleName: 'Carol e André', token: 'tok01', qrCodeBuffer: qrBuffer },
+      'carol@example.com',
+    );
+  });
+
+  it('should log error but not throw when email delivery fails', async () => {
+    const supabase = buildMockSupabase();
+    mockGet.mockResolvedValue({ status: 'approved' });
+    (getMapByPaymentId as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', paymentId: 'pay-123' });
+    (activateMap as jest.Mock).mockResolvedValue({
+      id: 'map-1',
+      token: 'tok01',
+      coupleName: 'Carol e André',
+      email: 'carol@example.com',
+    });
+    (generateQrCode as jest.Mock).mockResolvedValue(Buffer.from('jpg'));
+    (sendDeliveryEmail as jest.Mock).mockRejectedValue(new Error('Resend unavailable'));
+    const log = buildMockLog();
+    const event: MercadoPagoEvent = { data: { id: 'pay-123' } };
+
+    await expect(processWebhookEvent(event, supabase, log)).resolves.toBeUndefined();
+
+    expect(activateMap).toHaveBeenCalledWith('map-1', supabase);
+    expect(log.error as jest.Mock).toHaveBeenCalledWith(
+      expect.objectContaining({ mapId: 'map-1' }),
+      'Failed to send delivery email',
+    );
+  });
+
+  it('should log error but not throw when qr code generation fails', async () => {
+    const supabase = buildMockSupabase();
+    mockGet.mockResolvedValue({ status: 'approved' });
+    (getMapByPaymentId as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', paymentId: 'pay-123' });
+    (activateMap as jest.Mock).mockResolvedValue({
+      id: 'map-1',
+      token: 'tok01',
+      coupleName: 'Carol e André',
+      email: 'carol@example.com',
+    });
+    (generateQrCode as jest.Mock).mockRejectedValue(new Error('QR generation failed'));
+    const log = buildMockLog();
+    const event: MercadoPagoEvent = { data: { id: 'pay-123' } };
+
+    await expect(processWebhookEvent(event, supabase, log)).resolves.toBeUndefined();
+
+    expect(activateMap).toHaveBeenCalledWith('map-1', supabase);
+    expect(log.error as jest.Mock).toHaveBeenCalledWith(
+      expect.objectContaining({ mapId: 'map-1' }),
+      'Failed to send delivery email',
+    );
   });
 });

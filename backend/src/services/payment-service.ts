@@ -8,6 +8,8 @@ import {
   updatePaymentData,
   type Plan,
 } from './map-service.js';
+import { generateQrCode } from './qr-code-service.js';
+import { sendDeliveryEmail } from './email-service.js';
 
 const PLAN_PRICES: Record<Plan, number> = {
   basic: 19.90,
@@ -78,7 +80,16 @@ export async function processWebhookEvent(
   const map = await getMapByPaymentId(event.data.id, supabase);
   if (!map) return;
   if (paymentStatus === 'approved' && map.status !== 'active') {
-    await activateMap(map.id, supabase);
+    const activatedMap = await activateMap(map.id, supabase);
+    try {
+      const qrBuffer = await generateQrCode(activatedMap.token!);
+      await sendDeliveryEmail(
+        { coupleName: activatedMap.coupleName, token: activatedMap.token!, qrCodeBuffer: qrBuffer },
+        activatedMap.email,
+      );
+    } catch (error) {
+      log.error({ mapId: map.id, error }, 'Failed to send delivery email');
+    }
   } else if (paymentStatus !== 'approved') {
     await setPaymentFailed(map.id, supabase);
   }
