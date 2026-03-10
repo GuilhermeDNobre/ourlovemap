@@ -15,11 +15,11 @@ Criar as tabelas `maps` e `locations` no Supabase e implementar o plugin Fastify
 
 ## Subtarefas
 
-- [ ] 2.1 Criar arquivo `./backend/migrations/001_create_maps.sql` com o schema completo da tabela `maps` (todos os campos da techspec.md, incluindo `payment_id`, `pix_qr_code`, `pix_code`, `payment_expires_at`, `youtube_end_time`)
-- [ ] 2.2 Criar arquivo `./backend/migrations/002_create_locations.sql` com o schema completo da tabela `locations` e a foreign key para `maps`
+- [x] 2.1 Criar arquivo `./backend/migrations/001_create_maps.sql` com o schema completo da tabela `maps` (todos os campos da techspec.md, incluindo `payment_id`, `pix_qr_code`, `pix_code`, `payment_expires_at`, `youtube_end_time`)
+- [x] 2.2 Criar arquivo `./backend/migrations/002_create_locations.sql` com o schema completo da tabela `locations` e a foreign key para `maps`
 - [ ] 2.3 Executar as migrations no projeto Supabase (via SQL Editor no dashboard ou CLI)
-- [ ] 2.4 Criar `src/plugins/supabase-plugin.ts` que inicializa `createClient(url, key)` e registra via `fastify.decorate('supabase', client)`
-- [ ] 2.5 Registrar o plugin em `src/app.ts` antes de qualquer rota
+- [x] 2.4 Criar `src/plugins/supabase-plugin.ts` que inicializa `createClient(url, key)` e registra via `fastify.decorate('supabase', client)`
+- [x] 2.5 Registrar o plugin em `src/app.ts` antes de qualquer rota
 
 ## Detalhes de Implementação
 

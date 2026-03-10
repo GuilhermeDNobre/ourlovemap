@@ -1,4 +1,4 @@
-import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 
 jest.mock('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => ({ from: jest.fn() })),
@@ -6,31 +6,30 @@ jest.mock('@supabase/supabase-js', () => ({
 
 import { buildApp } from '../helpers/build-app';
 
-describe('GET /health', () => {
+describe('buildApp with supabase plugin', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
     process.env = { ...originalEnv };
     process.env.SUPABASE_URL = 'https://test.supabase.co';
     process.env.SUPABASE_SERVICE_KEY = 'test-service-key';
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
     process.env = originalEnv;
   });
 
-  it('should return 200 with status ok', async () => {
-    // Arrange
+  it('should initialize without throwing exceptions', async () => {
     const app = buildApp();
 
-    // Act
-    const response = await app.inject({
-      method: 'GET',
-      url: '/health',
-    });
+    await expect(app.ready()).resolves.toBeDefined();
+  });
 
-    // Assert
-    expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ status: 'ok' });
+  it('should expose fastify.supabase decorator after initialization', async () => {
+    const app = buildApp();
+    await app.ready();
+
+    expect(app.supabase).toBeDefined();
   });
 });

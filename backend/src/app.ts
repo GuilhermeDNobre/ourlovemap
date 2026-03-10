@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import type { FastifyInstance, FastifyServerOptions } from 'fastify';
+import supabasePlugin from './plugins/supabase-plugin.js';
 import healthRoutes from './routes/health-routes.js';
 
 export function buildApp(options: FastifyServerOptions = { logger: true }): FastifyInstance {
@@ -14,6 +15,7 @@ export function buildApp(options: FastifyServerOptions = { logger: true }): Fast
     });
   });
 
+  fastify.register(supabasePlugin);
   fastify.register(healthRoutes);
 
   return fastify;
