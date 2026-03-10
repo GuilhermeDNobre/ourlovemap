@@ -13,7 +13,9 @@
       "mcp__playwright__browser_navigate",
       "Bash(cd D:/temp/ws-vscode/ourlovemap/backend && npx playwright install chrome 2>&1 | tail -5)",
       "mcp__context7__resolve-library-id",
-      "mcp__context7__query-docs"
+      "mcp__context7__query-docs",
+      "Bash(find /d/temp/ws-vscode/ourlovemap -name \"*task*\" -type f 2>/dev/null | head -30)",
+      "Bash(find /d/temp/ws-vscode/ourlovemap/tasks -name \"techspec*\" -o -name \"prd*\" 2>/dev/null | grep -v node_modules | head -20)"
     ]
   }
 }

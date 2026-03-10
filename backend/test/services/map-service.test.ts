@@ -4,8 +4,12 @@ import {
   activateMap,
   setPaymentFailed,
   getMapByToken,
+  getMapByPaymentId,
+  getPaymentStatus,
+  updatePaymentData,
   type CreateMapData,
   type Plan,
+  type PaymentData,
 } from '../../src/services/map-service.js';
 
 type BuilderResult = { data: unknown; error: unknown };
@@ -267,5 +271,107 @@ describe('setPaymentFailed', () => {
     await setPaymentFailed('map-1', supabase);
 
     expect(capturedUpdate.args?.status).toBe('payment_failed');
+  });
+});
+
+describe('getMapByPaymentId', () => {
+  it('should return map when paymentId exists', async () => {
+    const mapRow = buildBaseMapRow({ payment_id: 'pay-123', status: 'pending_payment' });
+    const supabase = {
+      from: jest.fn().mockImplementation(() => makeBuilder({ data: mapRow, error: null })),
+    } as unknown as SupabaseClient;
+
+    const result = await getMapByPaymentId('pay-123', supabase);
+
+    expect(result).not.toBeNull();
+    expect(result?.paymentId).toBe('pay-123');
+    expect(result?.status).toBe('pending_payment');
+  });
+
+  it('should return null when paymentId does not exist', async () => {
+    const supabase = {
+      from: jest.fn().mockImplementation(() =>
+        makeBuilder({ data: null, error: { message: 'No rows found' } }),
+      ),
+    } as unknown as SupabaseClient;
+
+    const result = await getMapByPaymentId('nonexistent', supabase);
+
+    expect(result).toBeNull();
+  });
+});
+
+describe('getPaymentStatus', () => {
+  it('should return payment status for valid mapId', async () => {
+    const paymentStatusRow = {
+      status: 'pending_payment',
+      pix_qr_code: 'qr-code-data',
+      pix_code: 'pix-code-data',
+      payment_expires_at: '2026-03-11T00:00:00Z',
+    };
+    const supabase = {
+      from: jest.fn().mockImplementation(() => makeBuilder({ data: paymentStatusRow, error: null })),
+    } as unknown as SupabaseClient;
+
+    const result = await getPaymentStatus('map-1', supabase);
+
+    expect(result.status).toBe('pending_payment');
+    expect(result.pixQrCode).toBe('qr-code-data');
+    expect(result.pixCode).toBe('pix-code-data');
+    expect(result.paymentExpiresAt).toBe('2026-03-11T00:00:00Z');
+  });
+
+  it('should throw when supabase returns an error', async () => {
+    const supabase = {
+      from: jest.fn().mockImplementation(() =>
+        makeBuilder({ data: null, error: { message: 'Map not found' } }),
+      ),
+    } as unknown as SupabaseClient;
+
+    await expect(getPaymentStatus('nonexistent', supabase)).rejects.toThrow('Map not found');
+  });
+});
+
+describe('updatePaymentData', () => {
+  it('should update payment fields with correct values', async () => {
+    const capturedUpdate = { args: null as Record<string, unknown> | null };
+    const builder = makeBuilder({ data: null, error: null });
+    builder.update.mockImplementation((args: Record<string, unknown>) => {
+      capturedUpdate.args = args;
+      return builder;
+    });
+    const supabase = {
+      from: jest.fn().mockImplementation(() => builder),
+    } as unknown as SupabaseClient;
+    const expiresAt = new Date('2026-03-11T00:00:00Z');
+    const paymentData: PaymentData = {
+      paymentId: 'pay-456',
+      pixQrCode: 'qr-code-data',
+      pixCode: 'pix-code-data',
+      paymentExpiresAt: expiresAt,
+    };
+
+    await updatePaymentData('map-1', paymentData, supabase);
+
+    expect(capturedUpdate.args?.payment_id).toBe('pay-456');
+    expect(capturedUpdate.args?.pix_qr_code).toBe('qr-code-data');
+    expect(capturedUpdate.args?.pix_code).toBe('pix-code-data');
+    expect(capturedUpdate.args?.payment_expires_at).toBe(expiresAt.toISOString());
+  });
+
+  it('should throw when supabase returns an error', async () => {
+    const builder = makeBuilder({ data: null, error: { message: 'Update failed' } });
+    builder.update.mockReturnValue(builder);
+    const supabase = {
+      from: jest.fn().mockImplementation(() => builder),
+    } as unknown as SupabaseClient;
+    const paymentData: PaymentData = {
+      paymentId: 'pay-456',
+      pixQrCode: 'qr-code-data',
+      pixCode: 'pix-code-data',
+      paymentExpiresAt: new Date(),
+    };
+
+    await expect(updatePaymentData('map-1', paymentData, supabase)).rejects.toThrow('Update failed');
   });
 });
