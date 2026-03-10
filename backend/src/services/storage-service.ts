@@ -1,6 +1,5 @@
 import { randomUUID } from 'crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { MultipartFile } from '@fastify/multipart';
 import type { FastifyBaseLogger } from 'fastify';
 
 const ACCEPTED_MIME_TYPES: Record<string, string> = {
@@ -12,8 +11,13 @@ const ACCEPTED_MIME_TYPES: Record<string, string> = {
 
 const STORAGE_BUCKET = 'couple-photos';
 
+export interface UploadableFile {
+  mimetype: string;
+  toBuffer: () => Promise<Buffer>;
+}
+
 interface UploadPhotoParams {
-  file: MultipartFile;
+  file: UploadableFile;
   mapId: string;
   supabase: SupabaseClient;
   log: FastifyBaseLogger;
