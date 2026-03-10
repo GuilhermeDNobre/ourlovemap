@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import type { FastifyInstance, FastifyRequest, FastifyBaseLogger } from 'fastify';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { uploadPhoto, type UploadableFile } from '../services/storage-service.js';
-import { createMap, type LocationInput, type Plan } from '../services/map-service.js';
+import { createMap, getMapById, getPaymentStatus, type LocationInput, type Plan } from '../services/map-service.js';
 import { createPixPayment } from '../services/payment-service.js';
 
 const VALID_PLANS = new Set<string>(['basic', 'premium']);
@@ -120,7 +120,46 @@ async function buildLocations(
   );
 }
 
+function registerRetryPaymentRoute(fastify: FastifyInstance): void {
+  fastify.post('/maps/:id/retry-payment', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const map = await getMapById(id, fastify.supabase);
+    if (!map) return reply.code(404).send({ error: 'Map not found' });
+    if (map.status !== 'payment_failed') {
+      return reply.code(422).send({ error: 'Map is not in payment_failed status' });
+    }
+    try {
+      const pix = await createPixPayment(
+        { mapId: map.id, plan: map.plan, email: map.email },
+        fastify.supabase,
+      );
+      return reply.send({
+        pixQrCode: pix.pixQrCode,
+        pixCode: pix.pixCode,
+        paymentExpiresAt: pix.paymentExpiresAt,
+      });
+    } catch (error) {
+      request.log.error({ mapId: map.id, error: error instanceof Error ? error.message : error }, 'PIX retry payment failed');
+      const err = new Error('Payment creation failed') as Error & { statusCode: number };
+      err.statusCode = 422;
+      throw err;
+    }
+  });
+}
+
+function registerPaymentStatusRoute(fastify: FastifyInstance): void {
+  fastify.get('/maps/:id/payment-status', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const map = await getMapById(id, fastify.supabase);
+    if (!map) return reply.code(404).send({ error: 'Map not found' });
+    const paymentStatus = await getPaymentStatus(id, fastify.supabase);
+    return reply.send(paymentStatus);
+  });
+}
+
 export default async function mapRoutes(fastify: FastifyInstance): Promise<void> {
+  registerRetryPaymentRoute(fastify);
+  registerPaymentStatusRoute(fastify);
   fastify.post('/maps', async (request, reply) => {
     const { fields, locationFields, files } = await parseMultipartParts(request);
     const validationError = validateRequiredFields(fields);

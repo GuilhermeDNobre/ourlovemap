@@ -4,6 +4,7 @@ import {
   activateMap,
   setPaymentFailed,
   getMapByToken,
+  getMapById,
   getMapByPaymentId,
   getPaymentStatus,
   updatePaymentData,
@@ -373,5 +374,32 @@ describe('updatePaymentData', () => {
     };
 
     await expect(updatePaymentData('map-1', paymentData, supabase)).rejects.toThrow('Update failed');
+  });
+});
+
+describe('getMapById', () => {
+  it('should return map when id exists', async () => {
+    const mapRow = buildBaseMapRow({ id: 'map-1' });
+    const supabase = {
+      from: jest.fn().mockImplementation(() => makeBuilder({ data: mapRow, error: null })),
+    } as unknown as SupabaseClient;
+
+    const result = await getMapById('map-1', supabase);
+
+    expect(result).not.toBeNull();
+    expect(result?.id).toBe('map-1');
+    expect(result?.status).toBe('pending_payment');
+  });
+
+  it('should return null when map does not exist', async () => {
+    const supabase = {
+      from: jest.fn().mockImplementation(() =>
+        makeBuilder({ data: null, error: { message: 'No rows found' } }),
+      ),
+    } as unknown as SupabaseClient;
+
+    const result = await getMapById('nonexistent', supabase);
+
+    expect(result).toBeNull();
   });
 });

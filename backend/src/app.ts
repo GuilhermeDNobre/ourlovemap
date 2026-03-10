@@ -4,6 +4,7 @@ import supabasePlugin from './plugins/supabase-plugin.js';
 import multipartPlugin from './plugins/multipart-plugin.js';
 import healthRoutes from './routes/health-routes.js';
 import mapRoutes from './routes/map-routes.js';
+import paymentRoutes from './routes/payment-routes.js';
 
 export function buildApp(options: FastifyServerOptions = { logger: true }): FastifyInstance {
   const fastify = Fastify(options);
@@ -24,6 +25,7 @@ export function buildApp(options: FastifyServerOptions = { logger: true }): Fast
   fastify.register(multipartPlugin);
   fastify.register(healthRoutes);
   fastify.register(mapRoutes, { prefix: '/api' });
+  fastify.register(paymentRoutes, { prefix: '/api' });
 
   return fastify;
 }

@@ -163,6 +163,16 @@ export async function getMapByToken(token: string, supabase: SupabaseClient): Pr
   return toMapRecord(data);
 }
 
+export async function getMapById(id: string, supabase: SupabaseClient): Promise<MapRecord | null> {
+  const { data, error } = await supabase
+    .from('maps')
+    .select()
+    .eq('id', id)
+    .single();
+  if (error || !data) return null;
+  return toMapRecord(data);
+}
+
 export async function getMapByPaymentId(paymentId: string, supabase: SupabaseClient): Promise<MapRecord | null> {
   const { data, error } = await supabase
     .from('maps')

@@ -8,6 +8,8 @@ jest.mock('../../src/services/storage-service.js', () => ({
 
 jest.mock('../../src/services/map-service.js', () => ({
   createMap: jest.fn(),
+  getMapById: jest.fn(),
+  getPaymentStatus: jest.fn(),
 }));
 
 jest.mock('../../src/services/payment-service.js', () => ({
@@ -16,7 +18,7 @@ jest.mock('../../src/services/payment-service.js', () => ({
 
 import { buildApp } from '../helpers/build-app';
 import { uploadPhoto } from '../../src/services/storage-service.js';
-import { createMap } from '../../src/services/map-service.js';
+import { createMap, getMapById, getPaymentStatus } from '../../src/services/map-service.js';
 import { createPixPayment } from '../../src/services/payment-service.js';
 
 const BOUNDARY = 'test-boundary-abc123';
@@ -259,5 +261,84 @@ describe('POST /api/maps', () => {
     });
 
     expect(response.statusCode).toBe(422);
+  });
+});
+
+describe('POST /api/maps/:id/retry-payment', () => {
+  it('should return 200 with new PIX data when map is in payment_failed status', async () => {
+    const app = buildApp();
+    (getMapById as jest.Mock).mockResolvedValue({
+      id: 'map-1', status: 'payment_failed', plan: 'basic', email: 'carol@example.com',
+    });
+    (createPixPayment as jest.Mock).mockResolvedValue({
+      paymentId: 'pay-2',
+      pixQrCode: 'new-base64-qr',
+      pixCode: 'new-pix-code',
+      paymentExpiresAt: new Date('2026-03-10T02:00:00Z'),
+    });
+
+    const response = await app.inject({ method: 'POST', url: '/api/maps/map-1/retry-payment' });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.pixQrCode).toBe('new-base64-qr');
+    expect(body.pixCode).toBe('new-pix-code');
+    expect(body.paymentExpiresAt).toBeDefined();
+    expect(createPixPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ mapId: 'map-1', plan: 'basic', email: 'carol@example.com' }),
+      expect.anything(),
+    );
+  });
+
+  it('should return 422 when map status is active', async () => {
+    const app = buildApp();
+    (getMapById as jest.Mock).mockResolvedValue({
+      id: 'map-1', status: 'active', plan: 'basic', email: 'carol@example.com',
+    });
+
+    const response = await app.inject({ method: 'POST', url: '/api/maps/map-1/retry-payment' });
+
+    expect(response.statusCode).toBe(422);
+    expect(createPixPayment).not.toHaveBeenCalled();
+  });
+
+  it('should return 404 when map does not exist', async () => {
+    const app = buildApp();
+    (getMapById as jest.Mock).mockResolvedValue(null);
+
+    const response = await app.inject({ method: 'POST', url: '/api/maps/nonexistent/retry-payment' });
+
+    expect(response.statusCode).toBe(404);
+  });
+});
+
+describe('GET /api/maps/:id/payment-status', () => {
+  it('should return 200 with all payment status fields', async () => {
+    const app = buildApp();
+    (getMapById as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment' });
+    (getPaymentStatus as jest.Mock).mockResolvedValue({
+      status: 'pending_payment',
+      pixQrCode: 'base64-qr',
+      pixCode: 'pix-code',
+      paymentExpiresAt: '2026-03-10T01:00:00Z',
+    });
+
+    const response = await app.inject({ method: 'GET', url: '/api/maps/map-1/payment-status' });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.status).toBe('pending_payment');
+    expect(body.pixQrCode).toBe('base64-qr');
+    expect(body.pixCode).toBe('pix-code');
+    expect(body.paymentExpiresAt).toBe('2026-03-10T01:00:00Z');
+  });
+
+  it('should return 404 when map does not exist', async () => {
+    const app = buildApp();
+    (getMapById as jest.Mock).mockResolvedValue(null);
+
+    const response = await app.inject({ method: 'GET', url: '/api/maps/nonexistent/payment-status' });
+
+    expect(response.statusCode).toBe(404);
   });
 });

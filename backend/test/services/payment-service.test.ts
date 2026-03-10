@@ -173,4 +173,16 @@ describe('processWebhookEvent', () => {
       'Webhook event ignored',
     );
   });
+
+  it('should not call activateMap or setPaymentFailed when map is already active (idempotency)', async () => {
+    const supabase = buildMockSupabase();
+    mockGet.mockResolvedValue({ status: 'approved' });
+    (getMapByPaymentId as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'active', paymentId: 'pay-123' });
+    const event: MercadoPagoEvent = { data: { id: 'pay-123' } };
+
+    await processWebhookEvent(event, supabase, buildMockLog());
+
+    expect(activateMap).not.toHaveBeenCalled();
+    expect(setPaymentFailed).not.toHaveBeenCalled();
+  });
 });

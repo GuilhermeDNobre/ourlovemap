@@ -77,9 +77,9 @@ export async function processWebhookEvent(
   }
   const map = await getMapByPaymentId(event.data.id, supabase);
   if (!map) return;
-  if (paymentStatus === 'approved') {
+  if (paymentStatus === 'approved' && map.status !== 'active') {
     await activateMap(map.id, supabase);
-  } else {
+  } else if (paymentStatus !== 'approved') {
     await setPaymentFailed(map.id, supabase);
   }
 }

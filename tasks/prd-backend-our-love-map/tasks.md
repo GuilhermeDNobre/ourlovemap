@@ -9,6 +9,6 @@
 - [x] 5.0 Map service (CRUD de mapas e localizações)
 - [x] 6.0 Payment service (PIX via Mercado Pago)
 - [x] 7.0 Endpoint POST /api/maps
-- [ ] 8.0 Webhook, retry e polling de pagamento
+- [x] 8.0 Webhook, retry e polling de pagamento
 - [ ] 9.0 QR Code da página e email de entrega
 - [ ] 10.0 Endpoint público GET /api/maps/by-token + observabilidade
