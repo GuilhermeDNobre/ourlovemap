@@ -74,14 +74,14 @@ Enviado via Resend após aprovação do pagamento.
 
 ---
 
-### 4. Página Pública (`GET /api/maps/by-token?token=<token>`)
+### 4. Página Pública (`GET /api/maps/:slug`)
 
-Fornece os dados do mapa para o frontend renderizar a página pública. O token é o único identificador de acesso — não é necessário slug na URL.
+Fornece os dados do mapa para o frontend renderizar a página pública.
 
 **Requisitos funcionais:**
 
 - RF-20: Exigir o parâmetro `token` na query string.
-- RF-21: Retornar 401 se o token estiver ausente ou não corresponder a nenhum mapa.
+- RF-21: Retornar 401 se o token estiver ausente ou não corresponder ao slug.
 - RF-22: Verificar o status do mapa: apenas mapas com status `active` devem ser acessíveis.
 - RF-23: Para mapas com status `expired`: retornar 403 com mensagem informando a expiração e sugerindo o upgrade para o plano premium.
 - RF-24: Verificar `expires_at`: se a data atual for posterior ao `expires_at` e o plano for `basic`, atualizar o status para `expired` e aplicar RF-23.

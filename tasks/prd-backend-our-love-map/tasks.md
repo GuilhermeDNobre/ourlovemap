@@ -2,7 +2,7 @@
 
 ## Tarefas
 
-- [ ] 1.0 Setup do projeto backend
+- [x] 1.0 Setup do projeto backend
 - [ ] 2.0 Banco de dados e plugin Supabase
 - [ ] 3.0 Utilitários core (slug, token, HMAC)
 - [ ] 4.0 Storage service (upload de fotos)

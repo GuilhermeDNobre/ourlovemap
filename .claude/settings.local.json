@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(claude mcp:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npm install:*)",
+      "Bash(npm test:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(node:*)",
+      "Bash(cat:*)"
     ]
   }
 }
