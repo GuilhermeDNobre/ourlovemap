@@ -49,7 +49,7 @@ A funcionalidade em que você trabalhará é identificada por este slug:
 - Template para a lista de tarefas: `./templates/tasks-template.md`
 - Lista de tarefas: `./tasks/prd-[nome-funcionalidade]/tasks.md`
 - Template para cada tarefa individual: `./templates/task-template.md`
-- Tarefas individuais: `./tasks/prd-[nome-funcionalidade]/[num]_task.md`
+- Tarefas individuais: `./tasks/prd-[nome-funcionalidade]/tasks/[num]_task.md`
 
 ### Formato do Resumo de Tarefas (tasks.md)
 

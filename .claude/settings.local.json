@@ -18,7 +18,8 @@
       "Bash(find /d/temp/ws-vscode/ourlovemap/tasks -name \"techspec*\" -o -name \"prd*\" 2>/dev/null | grep -v node_modules | head -20)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:www.infinitepay.io)",
-      "WebFetch(domain:ajuda.infinitepay.io)"
+      "WebFetch(domain:ajuda.infinitepay.io)",
+      "Bash(cd \"D:/temp/ws-vscode/ourlovemap/tasks/prd-backend-our-love-map\" && mkdir -p tasks reviews && mv *_task.md tasks/ && mv *_task_review.md reviews/)"
     ]
   }
 }

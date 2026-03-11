@@ -23,27 +23,27 @@ beforeEach(() => {
   mockToBuffer.mockResolvedValue(mockJpgBuffer);
   mockJpeg.mockReturnValue({ toBuffer: mockToBuffer });
   mockSharp.mockReturnValue({ jpeg: mockJpeg });
-  process.env.OURLOVEMAP_BASE_URL = 'https://ourlovemap.com';
+  process.env.OURLOVEMAP_BASE_URL = 'https://ourlovemap.com.br';
 });
 
 describe('generateQrCode', () => {
   it('should return a Buffer', async () => {
-    const result = await generateQrCode('abc12');
+    const result = await generateQrCode({ slug: 'carol-e-andre', token: 'abc12' });
 
     expect(result).toBeInstanceOf(Buffer);
     expect(result).toBe(mockJpgBuffer);
   });
 
-  it('should pass URL with correct token to qrcode.toBuffer', async () => {
-    await generateQrCode('abc12');
+  it('should pass URL with slug and token to qrcode.toBuffer', async () => {
+    await generateQrCode({ slug: 'carol-e-andre', token: 'abc12' });
 
     expect(mockQrcodeToBuffer).toHaveBeenCalledWith(
-      'https://ourlovemap.com/access?token=abc12',
+      'https://ourlovemap.com.br/carol-e-andre?token=abc12',
     );
   });
 
   it('should call sharp with the PNG buffer for JPEG conversion', async () => {
-    await generateQrCode('abc12');
+    await generateQrCode({ slug: 'carol-e-andre', token: 'abc12' });
 
     expect(mockSharp).toHaveBeenCalledWith(mockPngBuffer);
     expect(mockJpeg).toHaveBeenCalledWith({ quality: 90 });

@@ -133,7 +133,7 @@ describe('processWebhookEvent', () => {
   it('should call activateMap and return wasActivated true when map is pending_payment', async () => {
     const supabase = buildMockSupabase();
     (getMapByOrderNsu as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', plan: 'basic', coupleName: 'Carol e André', email: 'carol@example.com' });
-    (activateMap as jest.Mock).mockResolvedValue({ id: 'map-1', token: 'tok01', coupleName: 'Carol e André', email: 'carol@example.com' });
+    (activateMap as jest.Mock).mockResolvedValue({ id: 'map-1', slug: 'carol-e-andre', token: 'tok01', coupleName: 'Carol e André', email: 'carol@example.com' });
     (generateQrCode as jest.Mock).mockResolvedValue(Buffer.from('jpg'));
     (sendDeliveryEmail as jest.Mock).mockResolvedValue(undefined);
 
@@ -179,15 +179,15 @@ describe('processWebhookEvent', () => {
     const supabase = buildMockSupabase();
     const qrBuffer = Buffer.from('jpg-data');
     (getMapByOrderNsu as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', plan: 'basic' });
-    (activateMap as jest.Mock).mockResolvedValue({ id: 'map-1', token: 'tok01', coupleName: 'Carol e André', email: 'carol@example.com' });
+    (activateMap as jest.Mock).mockResolvedValue({ id: 'map-1', slug: 'carol-e-andre', token: 'tok01', coupleName: 'Carol e André', email: 'carol@example.com' });
     (generateQrCode as jest.Mock).mockResolvedValue(qrBuffer);
     (sendDeliveryEmail as jest.Mock).mockResolvedValue(undefined);
 
     await processWebhookEvent(buildWebhookEvent(), supabase, buildMockLog());
 
-    expect(generateQrCode).toHaveBeenCalledWith('tok01');
+    expect(generateQrCode).toHaveBeenCalledWith({ slug: 'carol-e-andre', token: 'tok01' });
     expect(sendDeliveryEmail).toHaveBeenCalledWith(
-      { coupleName: 'Carol e André', token: 'tok01', qrCodeBuffer: qrBuffer },
+      { coupleName: 'Carol e André', slug: 'carol-e-andre', token: 'tok01', qrCodeBuffer: qrBuffer },
       'carol@example.com',
     );
   });
@@ -195,7 +195,7 @@ describe('processWebhookEvent', () => {
   it('should log error but not throw when email delivery fails', async () => {
     const supabase = buildMockSupabase();
     (getMapByOrderNsu as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', plan: 'basic' });
-    (activateMap as jest.Mock).mockResolvedValue({ id: 'map-1', token: 'tok01', coupleName: 'Carol e André', email: 'carol@example.com' });
+    (activateMap as jest.Mock).mockResolvedValue({ id: 'map-1', slug: 'carol-e-andre', token: 'tok01', coupleName: 'Carol e André', email: 'carol@example.com' });
     (generateQrCode as jest.Mock).mockResolvedValue(Buffer.from('jpg'));
     (sendDeliveryEmail as jest.Mock).mockRejectedValue(new Error('Resend unavailable'));
     const log = buildMockLog();
@@ -212,7 +212,7 @@ describe('processWebhookEvent', () => {
   it('should log error but not throw when qr code generation fails', async () => {
     const supabase = buildMockSupabase();
     (getMapByOrderNsu as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', plan: 'basic' });
-    (activateMap as jest.Mock).mockResolvedValue({ id: 'map-1', token: 'tok01', coupleName: 'Carol e André', email: 'carol@example.com' });
+    (activateMap as jest.Mock).mockResolvedValue({ id: 'map-1', slug: 'carol-e-andre', token: 'tok01', coupleName: 'Carol e André', email: 'carol@example.com' });
     (generateQrCode as jest.Mock).mockRejectedValue(new Error('QR generation failed'));
     const log = buildMockLog();
 

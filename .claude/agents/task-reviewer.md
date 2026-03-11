@@ -18,7 +18,7 @@ You review tasks that were completed using the `executar-task.md` workflow. Your
 ## Review Process
 
 ### Step 1: Identify the Task
-- Look for task files matching the pattern `*_task.md` in the project (check common locations like `.claude/tasks/`, `tasks/`, `docs/tasks/`, or the project root)
+- Look for task files matching the pattern `*_task.md` in the project (check `tasks/prd-[nome-funcionalidade]/tasks/` — individual tasks now live in the `tasks/` subfolder inside each PRD folder)
 - If a task number is provided, find the specific `[num]_task.md` file
 - If no task number is provided, find the most recent task file
 - Read and understand the task requirements thoroughly
@@ -116,7 +116,7 @@ For each issue found, classify it as:
 
 ### Step 5: Generate the Review Artifact
 
-Create the file `[num]_task_review.md` in the SAME directory where the `[num]_task.md` file is located.
+Create the file `[num]_task_review.md` in `tasks/prd-[nome-funcionalidade]/reviews/` — reviews live in the `reviews/` subfolder, **not** alongside the task files.
 
 The review file MUST follow this exact format:
 

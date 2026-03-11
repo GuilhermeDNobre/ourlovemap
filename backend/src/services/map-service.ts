@@ -3,7 +3,7 @@ import { generateSlug } from '../utils/slug.js';
 import { generateToken } from '../utils/token.js';
 
 export type MapStatus = 'pending_payment' | 'active' | 'expired' | 'payment_failed';
-export type Plan = 'basic' | 'premium';
+export type Plan = 'basic' | 'premium' | 'test';
 
 export interface LocationInput {
   title: string;
@@ -75,6 +75,7 @@ const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 const PLAN_LOCATION_LIMITS: Record<Plan, number> = {
   basic: 3,
   premium: 7,
+  test: 2
 };
 
 const BASIC_PLAN_EXPIRY_DAYS = 7;
@@ -95,7 +96,7 @@ export async function createMap(data: CreateMapData, supabase: SupabaseClient): 
     plan: data.plan,
     relationship_start_date: data.relationshipStartDate,
     status: 'pending_payment',
-    youtube_video_id: data.youtubeVideoId ?? null,
+    youtube_video_link: data.youtubeVideoId ?? null,
     youtube_start_time: data.youtubeStartTime ?? null,
     youtube_end_time: data.youtubeEndTime ?? null,
   };
@@ -246,7 +247,7 @@ function toMapRecord(row: Record<string, unknown>): MapRecord {
     relationshipStartDate: row.relationship_start_date as string,
     token: row.token as string | null,
     status: row.status as MapStatus,
-    youtubeVideoId: row.youtube_video_id as string | null,
+    youtubeVideoId: row.youtube_video_link as string | null,
     youtubeStartTime: row.youtube_start_time as number | null,
     youtubeEndTime: row.youtube_end_time as number | null,
     paymentId: row.payment_id as string | null,

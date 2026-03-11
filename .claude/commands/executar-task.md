@@ -11,7 +11,8 @@ Você é um assistente IA responsável por implementar as tarefas de forma corre
 
 - PRD: `./tasks/prd-[nome-funcionalidade]/prd.md`
 - Tech Spec: `./tasks/prd-[nome-funcionalidade]/techspec.md`
-- Tasks: `./tasks/prd-[nome-funcionalidade]/tasks.md`
+- Tasks (checklist): `./tasks/prd-[nome-funcionalidade]/tasks.md`
+- Tarefa individual: `./tasks/prd-[nome-funcionalidade]/tasks/[num]_task.md`
 - Regras do Projeto: @.claude/rules
 
 ## Etapas para Executar

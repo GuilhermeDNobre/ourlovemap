@@ -11,7 +11,7 @@ import {
 } from '../services/map-service.js';
 import { createCheckoutPayment } from '../services/payment-service.js';
 
-const VALID_PLANS = new Set<string>(['basic', 'premium']);
+const VALID_PLANS = new Set<string>(['basic', 'premium', 'test']);
 const REQUIRED_FIELDS = ['couple_name', 'buyer_name', 'buyer_phone', 'email', 'plan', 'relationship_start_date'] as const;
 const PLAN_LOCATION_LIMITS: Record<string, number> = { basic: 3, premium: 7 };
 const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
@@ -238,7 +238,7 @@ export default async function mapRoutes(fastify: FastifyInstance): Promise<void>
         '',
         '**Content-Type:** `multipart/form-data`',
         '',
-        '**Required fields:** `couple_name`, `email`, `plan` (`basic` or `premium`), `relationship_start_date`',
+        '**Required fields:** `couple_name`, `email`, `phone number`, `full name`, `plan` (`basic` or `premium`), `relationship_start_date`',
         '**Location fields** — indexed bracket notation: `locations[N][title]`, `locations[N][latitude]`, `locations[N][longitude]`, `locations[N][order]`',
       ].join('\n'),
       response: {

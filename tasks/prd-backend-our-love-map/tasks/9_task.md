@@ -7,7 +7,7 @@
 Implementar o `qr-code-service.ts` que gera o QR Code da página pública do mapa (diferente do QR Code PIX do pagamento) e o `email-service.ts` que envia o email de entrega com o QR Code ao casal após a aprovação do pagamento. O envio de email deve ser fire-and-forget: uma falha no email não deve bloquear a ativação do mapa.
 
 <requirements>
-- QR Code gerado em formato JPG apontando para `https://ourlovemap.com/access?token=<token>`
+- QR Code gerado em formato JPG apontando para `https://ourlovemap.com.br/<slug>?token=<token>`
 - URL base lida da variável de ambiente `OURLOVEMAP_BASE_URL`
 - Email enviado via Resend com: nome do casal, mensagem afetiva, link de acesso e QR Code como imagem JPG anexa
 - Falha no envio de email deve ser logada como `error` mas não deve lançar exceção para o caller
@@ -17,14 +17,14 @@ Implementar o `qr-code-service.ts` que gera o QR Code da página pública do map
 ## Subtarefas
 
 - [x] 9.1 Implementar `src/services/qr-code-service.ts`
-  - `generateQrCode(token: string): Promise<Buffer>`
-  - Construir URL: `${process.env.OURLOVEMAP_BASE_URL}/access?token=${token}`
+  - `generateQrCode({ slug, token }: GenerateQrCodeParams): Promise<Buffer>`
+  - Construir URL: `${process.env.OURLOVEMAP_BASE_URL}/${slug}?token=${token}`
   - Gerar PNG com `qrcode.toBuffer(url)`
   - Converter para JPG com `sharp(pngBuffer).jpeg({ quality: 90 }).toBuffer()`
   - Retornar o buffer JPG
 - [x] 9.2 Implementar `src/services/email-service.ts`
-  - `sendDeliveryEmail({ coupleName, token, qrCodeBuffer }: SendDeliveryEmailParams, email: string): Promise<void>`
-  - Construir o link: `${process.env.OURLOVEMAP_BASE_URL}/access?token=${token}`
+  - `sendDeliveryEmail({ coupleName, slug, token, qrCodeBuffer }: SendDeliveryEmailParams, email: string): Promise<void>`
+  - Construir o link: `${process.env.OURLOVEMAP_BASE_URL}/${slug}?token=${token}`
   - Enviar via Resend com:
     - Subject: `Seu Mapa do Amor está pronto, ${coupleName}! 💌`
     - Body HTML com mensagem afetiva, link clicável e QR Code inline como base64 (`<img src="data:image/jpeg;base64,...">`)
@@ -43,8 +43,8 @@ O QR Code gerado nesta tarefa é o **QR Code da página pública** (para o casal
 Exemplo de tratamento fire-and-forget no payment-service:
 ```typescript
 try {
-  const qrBuffer = await generateQrCode(map.token)
-  await sendDeliveryEmail({ coupleName: map.couple_name, token: map.token, qrCodeBuffer: qrBuffer }, map.email)
+  const qrBuffer = await generateQrCode({ slug: map.slug, token: map.token })
+  await sendDeliveryEmail({ coupleName: map.coupleName, slug: map.slug, token: map.token, qrCodeBuffer: qrBuffer }, map.email)
 } catch (error) {
   fastify.log.error({ mapId, error }, 'Failed to send delivery email')
 }
@@ -53,22 +53,25 @@ try {
 ## Critérios de Sucesso
 
 - `generateQrCode` retorna um Buffer válido em formato JPG (verificável via `sharp(buffer).metadata()`)
-- URL embutida no QR Code aponta para `OURLOVEMAP_BASE_URL/access?token=<token>`
-- `sendDeliveryEmail` chama Resend com os campos corretos (subject, HTML com nome do casal, link, QR Code)
+- URL embutida no QR Code aponta para `OURLOVEMAP_BASE_URL/<slug>?token=<token>`
+- `sendDeliveryEmail` chama Resend com os campos corretos (subject, HTML com nome do casal, link, QR Code, campo `text`, `replyTo`)
 - Falha no Resend → erro logado, nenhuma exceção propagada para o webhook handler
 - `npm test` passa com todos os cenários cobertos
 
 ## Testes da Tarefa
 
 - [x] `test/services/qr-code-service.test.ts` (com mock do `qrcode` e `sharp`):
-  - `generateQrCode("abc12")` → Buffer retornado
-  - URL passada para `qrcode.toBuffer` contém o token correto
+  - `generateQrCode({ slug, token })` → Buffer retornado
+  - URL passada para `qrcode.toBuffer` contém slug e token no formato correto
   - `sharp` é chamado com o buffer PNG para conversão JPG
 - [x] `test/services/email-service.test.ts` (com mock do Resend):
   - `sendDeliveryEmail` chama `resend.emails.send` com subject correto
-  - HTML do email contém o `coupleName` e o link com token
+  - HTML do email contém o `coupleName` e o link `/<slug>?token=`
+  - Versão `text` do email contém `coupleName` e link
+  - Remetente `from` é `product@ourlovemap.com.br` e `replyTo` é `support@ourlovemap.com.br`
+  - QR Code anexado como `qrcode.jpg`
 - [x] `test/services/payment-service.test.ts` (complementar):
-  - `processWebhookEvent` com `approved` → `sendDeliveryEmail` chamado
+  - `processWebhookEvent` com `approved` → `sendDeliveryEmail` chamado com `slug` e `token`
   - `processWebhookEvent` com `approved` + falha no email → `activateMap` ainda bem-sucedido, erro logado
 
 <critical>SEMPRE CRIE E EXECUTE OS TESTES DA TAREFA ANTES DE CONSIDERÁ-LA FINALIZADA</critical>

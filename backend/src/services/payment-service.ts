@@ -16,6 +16,7 @@ const INFINITEPAY_CHECKOUT_URL = 'https://api.infinitepay.io/invoices/public/che
 const PLAN_PRICES_CENTS: Record<Plan, number> = {
   basic: 1990,
   premium: 2990,
+  test: 100,
 };
 
 export interface CreateCheckoutPaymentParams {
@@ -61,7 +62,7 @@ export async function createCheckoutPayment(
         },
       ],
       webhook_url: webhookUrl,
-      customer: { name: params.buyerName, email: params.email, phone: params.buyerPhone },
+      customer: { name: params.buyerName, email: params.email, phone_number: params.buyerPhone },
     });
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -100,9 +101,9 @@ export async function processWebhookEvent(
     return { wasActivated: true, plan: map.plan, mapId: map.id };
   }
   try {
-    const qrBuffer = await generateQrCode(activatedMap.token);
+    const qrBuffer = await generateQrCode({ slug: activatedMap.slug, token: activatedMap.token });
     await sendDeliveryEmail(
-      { coupleName: activatedMap.coupleName, token: activatedMap.token, qrCodeBuffer: qrBuffer },
+      { coupleName: activatedMap.coupleName, slug: activatedMap.slug, token: activatedMap.token, qrCodeBuffer: qrBuffer },
       activatedMap.email,
     );
   } catch (error) {
