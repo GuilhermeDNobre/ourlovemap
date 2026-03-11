@@ -4,7 +4,7 @@
 
 ## Visão Geral
 
-Implementar a rota `POST /api/maps` que orquestra a criação completa de um mapa: recebe o formulário com dados e fotos (multipart), valida, salva no banco, faz upload das fotos no Storage e inicia o pagamento PIX. Retorna ao frontend os dados necessários para exibir o QR Code de pagamento.
+Implementar a rota `POST /api/maps` que orquestra a criação completa de um mapa: recebe o formulário com dados e fotos (multipart), valida, salva no banco, faz upload das fotos no Storage e inicia o checkout InfinitePay. Retorna ao frontend a URL de checkout para exibir o botão/link de pagamento.
 
 <requirements>
 - Aceitar `multipart/form-data` com campos de texto e arquivos de foto
@@ -14,10 +14,10 @@ Implementar a rota `POST /api/maps` que orquestra a criação completa de um map
 - Validar cada foto: tamanho ≤ 5MB, tipo aceito (jpeg, png, webp)
 - Fazer upload das fotos para o Supabase Storage
 - Criar o mapa e as localizações no banco
-- Criar o pagamento PIX no Mercado Pago
-- Retornar: `mapId`, `pixQrCode`, `pixCode`, `paymentExpiresAt`
+- Criar o checkout InfinitePay
+- Retornar: `mapId`, `checkoutUrl`
 - Retornar 400 para erros de validação com mensagem descritiva
-- Retornar 422 se criação do PIX falhar
+- Retornar 422 se criação do checkout falhar
 </requirements>
 
 ## Subtarefas
@@ -29,8 +29,8 @@ Implementar a rota `POST /api/maps` que orquestra a criação completa de um map
   - Validar campos obrigatórios; retornar 400 se ausentes
   - Chamar `storage-service.uploadPhoto` para cada localização
   - Chamar `map-service.createMap` com os dados montados
-  - Chamar `payment-service.createPixPayment` com `plan` e `email`
-  - Retornar 200 com `{ mapId, pixQrCode, pixCode, paymentExpiresAt }`
+  - Chamar `payment-service.createCheckoutPayment` com `plan` e `email`
+  - Retornar 200 com `{ mapId, checkoutUrl }`
 - [ ] 7.3 Escrever testes de integração para `POST /api/maps`
 
 ## Detalhes de Implementação
@@ -45,7 +45,7 @@ Usar early returns para validações antes de chamar os serviços.
 
 ## Critérios de Sucesso
 
-- Requisição válida com plano `basic` e 3 localizações → status 200 com dados do PIX
+- Requisição válida com plano `basic` e 3 localizações → status 200 com `mapId` e `checkoutUrl`
 - Requisição com 4 localizações no plano `basic` → status 422
 - Foto com tamanho > 5MB → status 400
 - Foto com tipo inválido → status 400
@@ -56,13 +56,13 @@ Usar early returns para validações antes de chamar os serviços.
 ## Testes da Tarefa
 
 - [ ] `test/routes/map-routes.test.ts` (usando `buildApp()` + `fastify.inject()`, com mocks dos serviços):
-  - `POST /api/maps` válido → 200 com `mapId`, `pixQrCode`, `pixCode`, `paymentExpiresAt`
+  - `POST /api/maps` válido → 200 com `mapId` e `checkoutUrl`
   - Sem `couple_name` → 400
   - Sem `email` → 400
   - Plano inválido → 400
   - 4 localizações no plano `basic` → 422
   - Foto com tipo inválido → 400
-  - Falha no Mercado Pago → 422
+  - Falha no InfinitePay → 422
 
 <critical>SEMPRE CRIE E EXECUTE OS TESTES DA TAREFA ANTES DE CONSIDERÁ-LA FINALIZADA</critical>
 

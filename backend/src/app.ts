@@ -1,18 +1,37 @@
+import * as Sentry from '@sentry/node';
 import Fastify from 'fastify';
 import type { FastifyInstance, FastifyServerOptions } from 'fastify';
 import supabasePlugin from './plugins/supabase-plugin.js';
 import multipartPlugin from './plugins/multipart-plugin.js';
+import posthogPlugin from './plugins/posthog-plugin.js';
+import swaggerPlugin from './plugins/swagger-plugin.js';
 import healthRoutes from './routes/health-routes.js';
 import mapRoutes from './routes/map-routes.js';
+import mapPaymentRoutes from './routes/map-payment-routes.js';
 import paymentRoutes from './routes/payment-routes.js';
 
 export function buildApp(options: FastifyServerOptions = { logger: true }): FastifyInstance {
-  const fastify = Fastify(options);
+  if (process.env.SENTRY_DSN) {
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      environment: process.env.NODE_ENV ?? 'development',
+    });
+  }
+
+  const fastify = Fastify({
+    ...options,
+    ajv: {
+      customOptions: {
+        strictSchema: false,
+      },
+    },
+  });
 
   fastify.setErrorHandler((error, _request, reply) => {
     const statusCode = (error as Error & { statusCode?: number }).statusCode ?? 500;
     const message = error instanceof Error ? error.message : String(error);
     if (statusCode >= 500) {
+      Sentry.captureException(error);
       fastify.log.error({ error: message }, 'Unhandled error');
     }
     reply.code(statusCode).send({
@@ -21,10 +40,13 @@ export function buildApp(options: FastifyServerOptions = { logger: true }): Fast
     });
   });
 
+  fastify.register(swaggerPlugin);
   fastify.register(supabasePlugin);
   fastify.register(multipartPlugin);
+  fastify.register(posthogPlugin);
   fastify.register(healthRoutes);
   fastify.register(mapRoutes, { prefix: '/api' });
+  fastify.register(mapPaymentRoutes, { prefix: '/api' });
   fastify.register(paymentRoutes, { prefix: '/api' });
 
   return fastify;

@@ -9,9 +9,7 @@
 
 ## Resumo
 
-A implementação entrega todos os requisitos funcionais da tarefa: o webhook do Mercado Pago com validação HMAC, o retry de pagamento e o polling de status. A lógica de idempotência está correta, o fluxo de status codes HTTP está adequado e os 85 testes passam sem erros, incluindo os 11 cenários especificados na tarefa. O TypeScript compila sem erros (`tsc --noEmit`).
-
-Foram identificadas questões estruturais importantes: as funções auxiliares `handleRetryPayment` e `handlePaymentStatus` violam o contrato de efeito colateral definido nos padrões (fazem mutação — registram rotas — em vez de retornar valores), o arquivo `payment-routes.ts` carece de logging nos fluxos processados, e o teste de idempotência do webhook está no arquivo de serviços mas ausente como cenário de rota no `payment-routes.test.ts` (embora o cenário de rota exista e passe). Nenhuma dessas questões quebra funcionalidade, mas impactam legibilidade e manutenibilidade.
+A Tarefa 8.0 implementou com sucesso as tres rotas do ciclo de vida do pagamento: `POST /api/payments/webhook`, `POST /api/maps/:id/retry-payment` e `GET /api/maps/:id/payment-status`. Todos os 109 testes passam e o TypeScript compila sem erros. A logica central esta correta, os criterios de sucesso definidos na tarefa foram atendidos e o codigo segue os padroes do projeto de forma geral. Foram identificadas algumas observacoes estruturais e uma vulnerabilidade de seguranca leve que merecem atencao.
 
 ---
 
@@ -19,15 +17,11 @@ Foram identificadas questões estruturais importantes: as funções auxiliares `
 
 | Arquivo | Status | Problemas |
 |---------|--------|-----------|
-| `src/routes/payment-routes.ts` | ⚠️ Issues | 3 |
-| `src/routes/map-routes.ts` | ⚠️ Issues | 3 |
-| `src/services/map-service.ts` | ✅ OK | 0 |
-| `src/services/payment-service.ts` | ✅ OK | 0 |
-| `src/app.ts` | ✅ OK | 0 |
-| `test/routes/payment-routes.test.ts` | ⚠️ Issues | 1 |
-| `test/routes/map-routes.test.ts` | ✅ OK | 0 |
-| `test/services/map-service.test.ts` | ✅ OK | 0 |
-| `test/services/payment-service.test.ts` | ✅ OK | 0 |
+| `backend/src/routes/payment-routes.ts` | Observacoes | 2 |
+| `backend/src/routes/map-routes.ts` | Observacoes | 3 |
+| `backend/src/services/payment-service.ts` | Observacoes | 1 |
+| `backend/test/routes/payment-routes.test.ts` | OK | 0 |
+| `backend/test/routes/map-routes.test.ts` | Observacoes | 1 |
 
 ---
 
@@ -35,189 +29,173 @@ Foram identificadas questões estruturais importantes: as funções auxiliares `
 
 ### Criticos
 
-Nenhum problema crítico encontrado.
+Nenhum problema critico encontrado.
 
 ---
 
 ### Principais
 
-**[PRINCIPAL-1] `payment-routes.ts` linhas 11-24 — Ausência de logging nos fluxos processados**
+#### P1 — `map-routes.ts` ultrapassa o limite de 300 linhas por arquivo
 
-O handler do webhook não registra nenhum evento de sucesso ao processar um pagamento aprovado ou rejeitado. A regra `logging.md` exige `request.log` em handlers de rota para eventos relevantes. O único log existente está dentro de `processWebhookEvent` (nível `warn` para status ignorados), mas a rota em si não registra nem a entrada do webhook validado nem o resultado do processamento.
+**Arquivo:** `backend/src/routes/map-routes.ts`
+**Situacao:** 373 linhas no total
 
-```typescript
-// payment-routes.ts — situação atual
-await processWebhookEvent(event, fastify.supabase, request.log);
-return reply.send({ received: true });
+O padrao `code-standards.md` limita arquivos a 300 linhas. O arquivo cresceu ao absorver `registerByTokenRoute`, `registerRetryPaymentRoute` e `registerPaymentStatusRoute` em adicao ao handler `POST /api/maps`. Cada funcao de registro tem entre 20 e 80 linhas, o que torna o arquivo dificil de navegar.
 
-// Sugestão
-request.log.info({ paymentId: dataId, action: body.action }, 'Webhook event processed');
-await processWebhookEvent(event, fastify.supabase, request.log);
-return reply.send({ received: true });
-```
-
----
-
-**[PRINCIPAL-2] `map-routes.ts` linhas 123-148 e 150-158 — Funções auxiliares com efeitos colaterais misturados**
-
-As funções `handleRetryPayment` e `handlePaymentStatus` recebem `fastify` como parâmetro e chamam `fastify.post()` / `fastify.get()` internamente, ou seja, sua única responsabilidade é o efeito colateral de registrar rotas — não retornam dados nem são consultas. Isso viola o padrão "mutation OR query, never both" quando lidas junto à função exportada `mapRoutes`, que as chama com `await`. A assinatura sugere que retornam algo (`Promise<void>`), mas a real intenção é apenas mutação de estado do servidor.
-
-A solução mais limpa seria registrar as rotas diretamente dentro de `mapRoutes`, sem extrair em funções intermediárias que apenas delegam para a instância Fastify:
+Sugestao: extrair as rotas de gerenciamento de pagamento para um arquivo dedicado.
 
 ```typescript
-// Sugestão: inlining direto em mapRoutes para clareza
-export default async function mapRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.post('/maps/:id/retry-payment', async (request, reply) => { /* ... */ });
-  fastify.get('/maps/:id/payment-status', async (request, reply) => { /* ... */ });
-  fastify.post('/maps', async (request, reply) => { /* ... */ });
+// backend/src/routes/map-payment-routes.ts
+export default async function mapPaymentRoutes(fastify: FastifyInstance): Promise<void> {
+  registerRetryPaymentRoute(fastify);
+  registerPaymentStatusRoute(fastify);
 }
 ```
 
-Se a extração for mantida por razões de organização, os nomes `handleRetryPayment` e `handlePaymentStatus` deveriam refletir que são funções de registro, por exemplo: `registerRetryPaymentRoute`.
-
 ---
 
-**[PRINCIPAL-3] `map-routes.ts` linhas 131-147 — Tratamento de erro no retry cria exceção com `statusCode` 422 onde o padrão existente usa 422 apenas para negócio**
+#### P2 — `isValidWebhookSecret` permite autenticacao com segredo vazio quando env nao esta configurada
 
-O bloco `catch` em `handleRetryPayment` captura falhas de `createPixPayment` e relança com `statusCode: 422`. O mesmo padrão existe em `POST /api/maps` e é consistente — no entanto, a `http.md` define 422 como "erro de negócio" e uma falha de API externa (Mercado Pago indisponível) seria mais adequadamente um 500 ou 503. Isso é uma inconsistência de semântica HTTP que já existia na tarefa 7 e foi replicada aqui.
+**Arquivo:** `backend/src/routes/payment-routes.ts`
+**Linhas:** 5-12
+
+Quando `INFINITEPAY_WEBHOOK_SECRET` nao esta definida no ambiente, `process.env.INFINITEPAY_WEBHOOK_SECRET ?? ''` resulta em uma string vazia. Nesse cenario, uma requisicao enviando `?secret=` (query string vazia) passaria na validacao via `timingSafeEqual`, pois dois buffers vazios sao identicos.
+
+A spec da tarefa recomendava verificar `receivedSecret.length !== expected.length` antes de chamar `timingSafeEqual`. A implementacao optou por um `try/catch` — que resolve o crash para strings de tamanhos diferentes corretamente — mas nao aborda o caso do segredo vazio.
+
+Verificado via Node.js: `crypto.timingSafeEqual(Buffer.from(''), Buffer.from(''))` retorna `true`.
+
+Sugestao:
 
 ```typescript
-// Situação atual — ambas as rotas tratam falha de API externa como 422
-const err = new Error('Payment creation failed') as Error & { statusCode: number };
-err.statusCode = 422;
-throw err;
-
-// Alternativa mais semanticamente correta
-err.statusCode = 503; // Service Unavailable — MP está fora
-throw err;
+function isValidWebhookSecret(received: string): boolean {
+  const expected = process.env.INFINITEPAY_WEBHOOK_SECRET ?? '';
+  if (!expected || received.length !== expected.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
+}
 ```
-
-Este problema foi herdado da tarefa anterior e não é responsabilidade exclusiva desta tarefa, mas foi replicado sem questionamento.
 
 ---
 
 ### Menores
 
-**[MENOR-1] `payment-routes.ts` linha 18 — Verificação de tópico desconhecido não loga**
+#### M1 — `GET /api/maps/:id/payment-status` realiza duas consultas ao banco desnecessariamente
 
-Quando o webhook recebe uma ação diferente de `payment.updated`, a rota retorna 200 silenciosamente sem nenhum log. A `logging.md` recomenda `warn` para situações inesperadas não fatais. A tarefa especifica que eventos de tópicos desconhecidos devem ser ignorados, mas o logging seria valioso em produção:
+**Arquivo:** `backend/src/routes/map-routes.ts`
+**Linhas:** 292-296
+
+O handler chama `getMapById` para verificar existencia do mapa e em seguida `getPaymentStatus` para buscar `status` e `checkoutUrl`. Ambas as funcoes consultam a tabela `maps`. O `MapRecord` retornado por `getMapById` ja inclui `status` e `checkoutUrl`, tornando a segunda chamada redundante.
 
 ```typescript
-if (body?.action !== 'payment.updated' || !dataId) {
-  request.log.warn({ action: body?.action }, 'Webhook action ignored');
-  return reply.send({ received: true });
+// Alternativa que elimina a segunda consulta:
+async (request, reply) => {
+  const { id } = request.params as { id: string };
+  const map = await getMapById(id, fastify.supabase);
+  if (!map) return reply.code(404).send({ error: 'Map not found' });
+  return reply.send({ status: map.status, checkoutUrl: map.checkoutUrl });
 }
 ```
 
 ---
 
-**[MENOR-2] `payment-routes.ts` linha 12 — Cast com `as` em vez de validação de schema**
+#### M2 — `retry-payment` nao rejeita mapa com status `expired`
 
-O body é tipado como `WebhookBody` via `as`, ignorando o schema de validação do Fastify (TypeBox/JSON Schema). Isso funciona mas deixa a validação implícita. Para consistência com `http.md` que recomenda schemas de validação nas rotas:
+**Arquivo:** `backend/src/routes/map-routes.ts`
+**Linha:** 250
+
+O handler verifica apenas `map.status === 'active'` para retornar 422. Um mapa com status `expired` passa pela verificacao e uma nova tentativa de checkout e criada para um mapa que nao pode ser reativado via retry. A logica esperada seria rejeitar tambem o status `expired`.
 
 ```typescript
-// Sugestão: adicionar schema básico na rota
-fastify.post('/payments/webhook', {
-  schema: {
-    body: {
-      type: 'object',
-      properties: {
-        action: { type: 'string' },
-        data: { type: 'object', properties: { id: { type: 'string' } } },
-      },
-    },
-  },
-}, async (request, reply) => {
-  const body = request.body as WebhookBody;
-  // ...
+// Sugestao:
+if (map.status === 'active' || map.status === 'expired') {
+  return reply.code(422).send({ error: 'Map cannot be retried in current status' });
+}
+```
+
+---
+
+#### M3 — Segredo do webhook exposto na URL registrada no InfinitePay
+
+**Arquivo:** `backend/src/services/payment-service.ts`
+**Linha:** 48
+
+```typescript
+const webhookUrl = `${process.env.OURLOVEMAP_API_URL}/api/payments/webhook?secret=${process.env.INFINITEPAY_WEBHOOK_SECRET}`;
+```
+
+O segredo e transmitido como query string e sera armazenado nos registros do InfinitePay e potencialmente nos logs do Axios em caso de erro. Esta abordagem e comum para webhooks simples, mas e importante garantir que o `webhookUrl` nunca apareca em logs proprios da aplicacao.
+
+Verificado: o `webhookUrl` nao e logado diretamente no codigo atual. Porem, em caso de erro do Axios, o objeto `error.config.url` pode expor a URL completa se for logado sem tratamento.
+
+Sugestao — mascarar a URL antes de logar erros do Axios:
+
+```typescript
+const maskedUrl = webhookUrl.replace(/secret=[^&]+/, 'secret=***');
+log.error({ webhookUrl: maskedUrl }, 'Checkout request failed');
+```
+
+---
+
+#### M4 — Teste do `retry-payment` nao cobre o cenario de mapa `expired`
+
+**Arquivo:** `backend/test/routes/map-routes.test.ts`
+
+O bloco `describe('POST /api/maps/:id/retry-payment')` cobre `payment_failed`, `pending_payment`, `active` e `inexistente`, mas nao cobre `expired`. Se a correcao do M2 for implementada, o teste abaixo deve ser adicionado.
+
+```typescript
+it('should return 422 when map status is expired', async () => {
+  const app = buildApp();
+  (getMapById as jest.Mock).mockResolvedValue({
+    id: 'map-1', status: 'expired', plan: 'basic', email: 'carol@example.com',
+  });
+
+  const response = await app.inject({ method: 'POST', url: '/api/maps/map-1/retry-payment' });
+
+  expect(response.statusCode).toBe(422);
+  expect(createCheckoutPayment).not.toHaveBeenCalled();
 });
-```
-
----
-
-**[MENOR-3] `test/routes/payment-routes.test.ts` — Teste de idempotência não verifica ausência de `setPaymentFailed`**
-
-O teste "should return 200 and not call activateMap again when map is already active" (linha 152) verifica que `activateMap` não é chamado, mas não verifica que `setPaymentFailed` também não é chamado. A lógica em `processWebhookEvent` para `approved` + mapa `active` pula o bloco `else if`, então `setPaymentFailed` também não seria chamado — verificar isso tornaria o teste mais completo e resistente a regressões:
-
-```typescript
-expect(response.statusCode).toBe(200);
-expect(activateMap).not.toHaveBeenCalled();
-expect(setPaymentFailed).not.toHaveBeenCalled(); // ausente
-```
-
----
-
-**[MENOR-4] `map-routes.ts` linhas 162-163 — `await` desnecessário em funções que apenas registram rotas**
-
-`handleRetryPayment` e `handlePaymentStatus` retornam `Promise<void>` mas não contêm nenhuma operação assíncrona — apenas chamam métodos síncronos de `fastify`. O `await` em `mapRoutes` é desnecessário:
-
-```typescript
-// Situação atual
-await handleRetryPayment(fastify);
-await handlePaymentStatus(fastify);
-
-// Fastify registra rotas de forma síncrona; não há await necessário
-handleRetryPayment(fastify);
-handlePaymentStatus(fastify);
 ```
 
 ---
 
 ## Destaques Positivos
 
-- **Idempotência implementada corretamente**: A verificação `map.status !== 'active'` em `processWebhookEvent` garante que `activateMap` não seja chamado duas vezes para o mesmo pagamento, conforme exigido pela tarefa.
-
-- **Validação HMAC robusta**: O uso de `timingSafeEqual` em `hmac.ts` previne timing attacks; o retorno imediato 401 antes de qualquer processamento está correto e seguro.
-
-- **Cobertura de testes completa**: Todos os 11 cenários especificados na tarefa estão presentes e passam. O padrão AAA está bem aplicado, os testes são independentes e usam `buildApp()` corretamente com `fastify.inject()`.
-
-- **Logging de warn no processamento de eventos**: `processWebhookEvent` usa `log.warn` com objeto estruturado para eventos ignorados, conforme `logging.md`.
-
-- **Tipagem forte**: Nenhum uso de `any`. `WebhookBody` com campos opcionais e `MercadoPagoEvent` com tipagem explícita. O `processWebhookEvent` recebe `FastifyBaseLogger` diretamente, desacoplando o serviço da instância Fastify.
-
-- **Separação de responsabilidades**: O webhook delega todo o processamento para `payment-service.processWebhookEvent`, mantendo a rota enxuta. A lógica de negócio fica no serviço.
-
-- **Nomenclatura de funções**: `getMapById`, `getPaymentStatus`, `processWebhookEvent` iniciam com verbo e são autoexplicativas.
-
-- **Registro de `paymentRoutes` em `app.ts`**: O plugin foi registrado com o prefixo `/api` correto, consistente com os demais.
+- **Idempotencia do webhook implementada corretamente:** o `processWebhookEvent` verifica `map.status === 'active'` antes de chamar `activateMap`, garantindo que reprocessamentos nao causem efeitos colaterais.
+- **`timingSafeEqual` com `try/catch`:** a protecao contra timing attacks foi implementada com tratamento defensivo correto para strings de tamanhos diferentes, evitando excecao de runtime.
+- **Separacao de responsabilidades nas rotas:** o uso de `registerRetryPaymentRoute`, `registerPaymentStatusRoute` e `registerByTokenRoute` como funcoes distintas melhora a legibilidade e a localizacao do codigo.
+- **Uso correto do Pino:** todo o logging usa `request.log` ou `fastify.log` com contexto estruturado. Nenhum `console.log` foi encontrado nos arquivos revisados.
+- **Tratamento de erro do PostHog isolado:** o bloco `try/catch` em torno de `fastify.posthog?.capture` garante que falhas de observabilidade nao impactem o fluxo principal do webhook.
+- **Testes abrangentes do webhook:** os quatro cenarios criticos da spec (token valido, token invalido, mapa ja ativo, `order_nsu` inexistente) foram implementados e passam.
+- **Sem uso de `any`:** toda a tipagem esta explicita, incluindo as interfaces `InfinitePayWebhookEvent`, `WebhookProcessResult` e `CheckoutPaymentResult`.
+- **Estrutura de testes AAA:** todos os testes seguem o padrao Arrange-Act-Assert com nomes descritivos iniciando com `should`.
+- **Schema OpenAPI nas rotas novas:** `registerRetryPaymentRoute` e `registerPaymentStatusRoute` incluem schemas completos com `tags`, `summary`, `description`, `params` e `response`, mantendo a documentacao automatica consistente.
 
 ---
 
-## Conformidade com Padrões
+## Conformidade com os Padroes
 
-| Padrão | Status |
+| Padrao | Status |
 |--------|--------|
-| Code Standards | ⚠️ |
-| TypeScript/Node.js | ✅ |
-| REST/HTTP | ⚠️ |
-| Logging | ⚠️ |
+| Code Standards | Arquivo map-routes.ts acima de 300 linhas |
+| TypeScript/Node.js | Sem `any`, `const` preferido, `async/await` usado |
+| REST/HTTP | Verbos, recursos em plural, status HTTP corretos |
+| Logging | Pino via `request.log`, sem `console`, sem dados sensiveis diretos |
 | React | N/A |
-| Testes | ✅ |
-
-**Code Standards**: Violação no padrão de efeitos colaterais (`handleRetryPayment` / `handlePaymentStatus`), `await` desnecessário.
-
-**REST/HTTP**: Ausência de schema de validação no body do webhook; semântica do 422 para falha de API externa.
-
-**Logging**: Ausência de `request.log` para eventos processados com sucesso no webhook; evento de tópico desconhecido não logado.
+| Testes | Cenario `expired` no retry-payment nao coberto |
 
 ---
 
-## Recomendações
+## Recomendacoes
 
-1. **Adicionar `request.log.info` no handler do webhook** para rastrear webhooks processados em produção — essencial para debugging de problemas de pagamento.
-
-2. **Adicionar `request.log.warn` para ações ignoradas** (`body?.action !== 'payment.updated'`) — sem isso, webhooks de outros tópicos chegam silenciosamente.
-
-3. **Refatorar `handleRetryPayment` e `handlePaymentStatus`** para registrar as rotas diretamente dentro de `mapRoutes`, eliminando funções auxiliares com efeitos colaterais opacos, ou renomear para `registerRetryPaymentRoute` para deixar a intenção explícita.
-
-4. **Remover o `await` desnecessário** nas chamadas para as funções de registro de rota.
-
-5. **Complementar o teste de idempotência** com `expect(setPaymentFailed).not.toHaveBeenCalled()`.
-
-6. **Avaliar se o status 422 é apropriado** para falhas de API externa no retry (herdado de tarefa anterior) — 503 seria semanticamente mais correto para "Mercado Pago indisponível".
+1. **(P2 — Seguranca)** Adicionar a guarda `if (!expected)` em `isValidWebhookSecret` para impedir autenticacao com segredo vazio quando a variavel de ambiente nao estiver configurada. Prioridade alta antes de qualquer deploy sem a env var definida.
+2. **(P1 — Manutencao)** Extrair as rotas de gerenciamento de pagamento de `map-routes.ts` para um arquivo separado `map-payment-routes.ts`, trazendo o arquivo para dentro do limite de 300 linhas.
+3. **(M2 — Comportamento)** Tratar o status `expired` como invalido para retry no handler `POST /api/maps/:id/retry-payment`, retornando 422.
+4. **(M4 — Cobertura)** Adicionar o teste correspondente ao cenario `expired` no `map-routes.test.ts` apos a correcao do M2.
+5. **(M1 — Performance)** Eliminar a segunda consulta ao banco em `GET /api/maps/:id/payment-status` reutilizando os campos do `MapRecord` ja carregado por `getMapById`.
+6. **(M3 — Seguranca defensiva)** Mascarar o segredo ao logar erros do Axios em `createCheckoutPayment` para prevenir exposicao acidental do `INFINITEPAY_WEBHOOK_SECRET` em logs de erro.
 
 ---
 
 ## Veredicto
 
-A implementação está funcional, segura e cobre todos os requisitos da tarefa com testes abrangentes. Os problemas encontrados são estruturais e de padrões de código, sem impacto em funcionalidade ou segurança. O código pode avançar para a próxima tarefa com as melhorias de logging e refatoração das funções auxiliares sendo endereçadas em oportunidade futura ou na próxima revisão.
+O nucleo da implementacao esta correto e todos os criterios de sucesso da tarefa foram atendidos. Os testes cobrem os cenarios principais especificados e o TypeScript compila sem erros. O codigo pode seguir para producao com as observacoes registradas, sendo prioritaria a correcao de P2 (segredo vazio) antes de um deploy onde `INFINITEPAY_WEBHOOK_SECRET` possa nao estar configurada, e P1 (tamanho do arquivo) para preservar a manutenibilidade do codebase a longo prazo.

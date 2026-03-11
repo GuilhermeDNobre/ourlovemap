@@ -19,17 +19,17 @@ Implementar o endpoint público `GET /api/maps/by-token?token=<token>` que valid
 
 ## Subtarefas
 
-- [ ] 10.1 Implementar `GET /api/maps/by-token` em `src/routes/map-routes.ts`:
+- [x] 10.1 Implementar `GET /api/maps/by-token` em `src/routes/map-routes.ts`:
   - Ler `token` da query string; retornar 401 se ausente
   - Chamar `map-service.getMapByToken`; retornar 401 se `null`
   - Se status `expired` → retornar 403 com `{ error: "map_expired", message: "Seu acesso expirou. Faça upgrade para o plano Premium e mantenha seu mapa para sempre." }`
   - Se status não for `active` → retornar 403
   - Retornar 200 com dados públicos (ver estrutura na techspec.md)
-- [ ] 10.2 Integrar Sentry:
+- [x] 10.2 Integrar Sentry:
   - Instalar e inicializar `@sentry/node` em `src/app.ts` antes de qualquer registro
   - Capturar exceções no `setErrorHandler` via `Sentry.captureException(error)`
   - Capturar falhas de integrações externas nos serviços (Supabase, MP, Resend) nos blocos catch
-- [ ] 10.3 Integrar PostHog:
+- [x] 10.3 Integrar PostHog:
   - Criar `src/plugins/posthog-plugin.ts` que inicializa `PostHog` e decora `fastify.posthog`
   - Adicionar `fastify.posthog.capture` nos pontos corretos:
     - `map-service.createMap` → `map_created` com `{ plan }`
@@ -37,7 +37,7 @@ Implementar o endpoint público `GET /api/maps/by-token?token=<token>` que valid
     - `payment-service.processWebhookEvent` status `rejected`/`cancelled` → `payment_failed`
     - `GET /api/maps/by-token` mapa expirado → `map_expired_accessed`
   - Sempre envolver chamadas PostHog em try/catch sem relançar
-- [ ] 10.4 Escrever testes de integração para `GET /api/maps/by-token`
+- [x] 10.4 Escrever testes de integração para `GET /api/maps/by-token`
 
 ## Detalhes de Implementação
 
@@ -61,7 +61,7 @@ Dados nunca devem ser logados em produção: email, `couple_name`, dados do PIX.
 
 ## Testes da Tarefa
 
-- [ ] `test/routes/map-routes.test.ts` (complementar):
+- [x] `test/routes/map-routes.test.ts` (complementar):
   - `GET /api/maps/by-token?token=valid` → 200 com dados completos
   - `GET /api/maps/by-token` sem query param → 401
   - Token inexistente → 401

@@ -1,51 +1,45 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { FastifyBaseLogger } from 'fastify';
 
-jest.mock('mercadopago', () => ({
-  MercadoPagoConfig: jest.fn().mockImplementation(() => ({})),
-  Payment: jest.fn(),
-}));
-
+jest.mock('axios');
 jest.mock('../../src/services/map-service.js', () => ({
-  getMapByPaymentId: jest.fn(),
+  getMapByOrderNsu: jest.fn(),
   activateMap: jest.fn(),
-  setPaymentFailed: jest.fn(),
   updatePaymentData: jest.fn(),
 }));
-
 jest.mock('../../src/services/qr-code-service.js', () => ({
   generateQrCode: jest.fn(),
 }));
-
 jest.mock('../../src/services/email-service.js', () => ({
   sendDeliveryEmail: jest.fn(),
 }));
+jest.mock('@sentry/node', () => ({
+  captureException: jest.fn(),
+}));
 
-import { Payment } from 'mercadopago';
+import axios from 'axios';
 import {
-  createPixPayment,
+  createCheckoutPayment,
   processWebhookEvent,
-  type CreatePixPaymentParams,
-  type MercadoPagoEvent,
+  type CreateCheckoutPaymentParams,
+  type InfinitePayWebhookEvent,
+  type WebhookProcessResult,
 } from '../../src/services/payment-service.js';
 import {
-  getMapByPaymentId,
+  getMapByOrderNsu,
   activateMap,
-  setPaymentFailed,
   updatePaymentData,
 } from '../../src/services/map-service.js';
 import { generateQrCode } from '../../src/services/qr-code-service.js';
 import { sendDeliveryEmail } from '../../src/services/email-service.js';
 
-const mockCreate = jest.fn();
-const mockGet = jest.fn();
+const mockedAxiosPost = axios.post as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  (Payment as jest.Mock).mockImplementation(() => ({
-    create: mockCreate,
-    get: mockGet,
-  }));
+  process.env.INFINITEPAY_HANDLE = 'myhandle';
+  process.env.INFINITEPAY_WEBHOOK_SECRET = 'my-secret';
+  process.env.OURLOVEMAP_API_URL = 'https://api.ourlovemap.com';
 });
 
 function buildMockSupabase(): SupabaseClient {
@@ -63,157 +57,133 @@ function buildMockLog(): FastifyBaseLogger {
   } as unknown as FastifyBaseLogger;
 }
 
-function buildPixResponse() {
+function buildWebhookEvent(overrides: Partial<InfinitePayWebhookEvent> = {}): InfinitePayWebhookEvent {
   return {
-    id: 12345,
-    point_of_interaction: {
-      transaction_data: {
-        qr_code_base64: 'base64-qr-code',
-        qr_code: 'pix-copy-paste-code',
-      },
-    },
+    invoice_slug: 'inv-abc',
+    amount: 1990,
+    paid_amount: 1990,
+    installments: 1,
+    capture_method: 'pix',
+    transaction_nsu: 'txn-001',
+    order_nsu: 'map-1',
+    receipt_url: 'https://receipt.example.com',
+    items: [{ quantity: 1, price: 1990, description: 'Our Love Map — plano basic' }],
+    ...overrides,
   };
 }
 
-describe('createPixPayment', () => {
-  it('should create PIX with amount 19.90 for basic plan and return correct fields', async () => {
-    mockCreate.mockResolvedValue(buildPixResponse());
+describe('createCheckoutPayment', () => {
+  it('should call InfinitePay API with correct price in cents for basic plan and return checkoutUrl', async () => {
+    mockedAxiosPost.mockResolvedValue({ data: { url: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc' } });
     (updatePaymentData as jest.Mock).mockResolvedValue(undefined);
-    const params: CreatePixPaymentParams = { mapId: 'map-1', plan: 'basic', email: 'carol@example.com' };
-    const before = Date.now();
+    const params: CreateCheckoutPaymentParams = { mapId: 'map-1', plan: 'basic', email: 'carol@example.com' };
 
-    const result = await createPixPayment(params, buildMockSupabase());
+    const result = await createCheckoutPayment(params, buildMockSupabase());
 
-    const after = Date.now();
-    expect(mockCreate).toHaveBeenCalledWith(
+    expect(mockedAxiosPost).toHaveBeenCalledWith(
+      'https://api.infinitepay.io/invoices/public/checkout/links',
       expect.objectContaining({
-        body: expect.objectContaining({
-          transaction_amount: 19.90,
-          payment_method_id: 'pix',
-          payer: { email: 'carol@example.com' },
-          external_reference: 'map-1',
-          description: 'Our Love Map',
-        }),
+        handle: 'myhandle',
+        order_nsu: 'map-1',
+        items: [expect.objectContaining({ price: 1990, quantity: 1 })],
       }),
     );
-    expect(result.paymentId).toBe('12345');
-    expect(result.pixQrCode).toBe('base64-qr-code');
-    expect(result.pixCode).toBe('pix-copy-paste-code');
-    expect(result.paymentExpiresAt).toBeInstanceOf(Date);
-    const expectedMin = before + 15 * 60 * 1000;
-    const expectedMax = after + 15 * 60 * 1000;
-    expect(result.paymentExpiresAt.getTime()).toBeGreaterThanOrEqual(expectedMin);
-    expect(result.paymentExpiresAt.getTime()).toBeLessThanOrEqual(expectedMax);
+    expect(result.checkoutUrl).toBe('https://checkout.infinitepay.com.br/myhandle?lenc=abc');
   });
 
-  it('should create PIX with amount 29.90 for premium plan', async () => {
-    mockCreate.mockResolvedValue(buildPixResponse());
+  it('should call InfinitePay API with 2990 cents for premium plan', async () => {
+    mockedAxiosPost.mockResolvedValue({ data: { url: 'https://checkout.infinitepay.com.br/myhandle?lenc=xyz' } });
     (updatePaymentData as jest.Mock).mockResolvedValue(undefined);
-    const params: CreatePixPaymentParams = { mapId: 'map-2', plan: 'premium', email: 'carol@example.com' };
+    const params: CreateCheckoutPaymentParams = { mapId: 'map-2', plan: 'premium', email: 'carol@example.com' };
 
-    await createPixPayment(params, buildMockSupabase());
+    await createCheckoutPayment(params, buildMockSupabase());
 
-    expect(mockCreate).toHaveBeenCalledWith(
+    expect(mockedAxiosPost).toHaveBeenCalledWith(
+      expect.any(String),
       expect.objectContaining({
-        body: expect.objectContaining({ transaction_amount: 29.90 }),
+        items: [expect.objectContaining({ price: 2990 })],
       }),
     );
   });
 
-  it('should rethrow error when MP payment creation fails', async () => {
-    mockCreate.mockRejectedValue(new Error('MP API unavailable'));
-    const params: CreatePixPaymentParams = { mapId: 'map-1', plan: 'basic', email: 'carol@example.com' };
+  it('should embed webhook_url with secret in the request body', async () => {
+    mockedAxiosPost.mockResolvedValue({ data: { url: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc' } });
+    (updatePaymentData as jest.Mock).mockResolvedValue(undefined);
+    const params: CreateCheckoutPaymentParams = { mapId: 'map-1', plan: 'basic', email: 'carol@example.com' };
 
-    await expect(createPixPayment(params, buildMockSupabase())).rejects.toThrow('MP API unavailable');
+    await createCheckoutPayment(params, buildMockSupabase());
+
+    expect(mockedAxiosPost).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        webhook_url: 'https://api.ourlovemap.com/api/payments/webhook?secret=my-secret',
+      }),
+    );
+  });
+
+  it('should rethrow error when InfinitePay API call fails', async () => {
+    mockedAxiosPost.mockRejectedValue(new Error('InfinitePay API unavailable'));
+    const params: CreateCheckoutPaymentParams = { mapId: 'map-1', plan: 'basic', email: 'carol@example.com' };
+
+    await expect(createCheckoutPayment(params, buildMockSupabase())).rejects.toThrow('InfinitePay API unavailable');
   });
 });
 
 describe('processWebhookEvent', () => {
-  it('should call activateMap when payment status is approved', async () => {
+  it('should call activateMap and return wasActivated true when map is pending_payment', async () => {
     const supabase = buildMockSupabase();
-    mockGet.mockResolvedValue({ status: 'approved' });
-    (getMapByPaymentId as jest.Mock).mockResolvedValue({ id: 'map-1', paymentId: 'pay-123' });
+    (getMapByOrderNsu as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', plan: 'basic', coupleName: 'Carol e André', email: 'carol@example.com' });
     (activateMap as jest.Mock).mockResolvedValue({ id: 'map-1', token: 'tok01', coupleName: 'Carol e André', email: 'carol@example.com' });
     (generateQrCode as jest.Mock).mockResolvedValue(Buffer.from('jpg'));
     (sendDeliveryEmail as jest.Mock).mockResolvedValue(undefined);
-    const event: MercadoPagoEvent = { data: { id: 'pay-123' } };
 
-    await processWebhookEvent(event, supabase, buildMockLog());
+    const result: WebhookProcessResult = await processWebhookEvent(buildWebhookEvent(), supabase, buildMockLog());
 
     expect(activateMap).toHaveBeenCalledWith('map-1', supabase);
-    expect(setPaymentFailed).not.toHaveBeenCalled();
+    expect(result.wasActivated).toBe(true);
+    expect(result.plan).toBe('basic');
+    expect(result.mapId).toBe('map-1');
   });
 
-  it('should call setPaymentFailed when payment status is rejected', async () => {
+  it('should not call activateMap and return wasActivated false when map is already active (idempotency)', async () => {
     const supabase = buildMockSupabase();
-    mockGet.mockResolvedValue({ status: 'rejected' });
-    (getMapByPaymentId as jest.Mock).mockResolvedValue({ id: 'map-1', paymentId: 'pay-123' });
-    (setPaymentFailed as jest.Mock).mockResolvedValue(undefined);
-    const event: MercadoPagoEvent = { data: { id: 'pay-123' } };
-
-    await processWebhookEvent(event, supabase, buildMockLog());
-
-    expect(setPaymentFailed).toHaveBeenCalledWith('map-1', supabase);
-    expect(activateMap).not.toHaveBeenCalled();
-  });
-
-  it('should call setPaymentFailed when payment status is cancelled', async () => {
-    const supabase = buildMockSupabase();
-    mockGet.mockResolvedValue({ status: 'cancelled' });
-    (getMapByPaymentId as jest.Mock).mockResolvedValue({ id: 'map-1', paymentId: 'pay-123' });
-    (setPaymentFailed as jest.Mock).mockResolvedValue(undefined);
-    const event: MercadoPagoEvent = { data: { id: 'pay-123' } };
-
-    await processWebhookEvent(event, supabase, buildMockLog());
-
-    expect(setPaymentFailed).toHaveBeenCalledWith('map-1', supabase);
-    expect(activateMap).not.toHaveBeenCalled();
-  });
-
-  it('should not call activateMap or setPaymentFailed and should log warn for unknown status', async () => {
-    const supabase = buildMockSupabase();
-    mockGet.mockResolvedValue({ status: 'in_process' });
+    (getMapByOrderNsu as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'active', plan: 'basic' });
     const log = buildMockLog();
-    const event: MercadoPagoEvent = { data: { id: 'pay-123' } };
 
-    await processWebhookEvent(event, supabase, log);
+    const result: WebhookProcessResult = await processWebhookEvent(buildWebhookEvent(), supabase, log);
 
     expect(activateMap).not.toHaveBeenCalled();
-    expect(setPaymentFailed).not.toHaveBeenCalled();
+    expect(result.wasActivated).toBe(false);
     expect(log.warn as jest.Mock).toHaveBeenCalledWith(
-      expect.objectContaining({ paymentStatus: 'in_process', paymentId: 'pay-123' }),
-      'Webhook event ignored',
+      expect.objectContaining({ mapId: 'map-1' }),
+      'Webhook event ignored: map already active',
     );
   });
 
-  it('should not call activateMap or setPaymentFailed when map is already active (idempotency)', async () => {
+  it('should log warn and return wasActivated false when map is not found', async () => {
     const supabase = buildMockSupabase();
-    mockGet.mockResolvedValue({ status: 'approved' });
-    (getMapByPaymentId as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'active', paymentId: 'pay-123' });
-    const event: MercadoPagoEvent = { data: { id: 'pay-123' } };
+    (getMapByOrderNsu as jest.Mock).mockResolvedValue(null);
+    const log = buildMockLog();
 
-    await processWebhookEvent(event, supabase, buildMockLog());
+    const result: WebhookProcessResult = await processWebhookEvent(buildWebhookEvent({ order_nsu: 'unknown-map' }), supabase, log);
 
     expect(activateMap).not.toHaveBeenCalled();
-    expect(setPaymentFailed).not.toHaveBeenCalled();
+    expect(result.wasActivated).toBe(false);
+    expect(log.warn as jest.Mock).toHaveBeenCalledWith(
+      expect.objectContaining({ orderNsu: 'unknown-map' }),
+      'Map not found for webhook event',
+    );
   });
 
-  it('should call sendDeliveryEmail with correct params after approved payment', async () => {
+  it('should call sendDeliveryEmail with correct params after activation', async () => {
     const supabase = buildMockSupabase();
     const qrBuffer = Buffer.from('jpg-data');
-    mockGet.mockResolvedValue({ status: 'approved' });
-    (getMapByPaymentId as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', paymentId: 'pay-123' });
-    (activateMap as jest.Mock).mockResolvedValue({
-      id: 'map-1',
-      token: 'tok01',
-      coupleName: 'Carol e André',
-      email: 'carol@example.com',
-    });
+    (getMapByOrderNsu as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', plan: 'basic' });
+    (activateMap as jest.Mock).mockResolvedValue({ id: 'map-1', token: 'tok01', coupleName: 'Carol e André', email: 'carol@example.com' });
     (generateQrCode as jest.Mock).mockResolvedValue(qrBuffer);
     (sendDeliveryEmail as jest.Mock).mockResolvedValue(undefined);
-    const event: MercadoPagoEvent = { data: { id: 'pay-123' } };
 
-    await processWebhookEvent(event, supabase, buildMockLog());
+    await processWebhookEvent(buildWebhookEvent(), supabase, buildMockLog());
 
     expect(generateQrCode).toHaveBeenCalledWith('tok01');
     expect(sendDeliveryEmail).toHaveBeenCalledWith(
@@ -224,20 +194,13 @@ describe('processWebhookEvent', () => {
 
   it('should log error but not throw when email delivery fails', async () => {
     const supabase = buildMockSupabase();
-    mockGet.mockResolvedValue({ status: 'approved' });
-    (getMapByPaymentId as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', paymentId: 'pay-123' });
-    (activateMap as jest.Mock).mockResolvedValue({
-      id: 'map-1',
-      token: 'tok01',
-      coupleName: 'Carol e André',
-      email: 'carol@example.com',
-    });
+    (getMapByOrderNsu as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', plan: 'basic' });
+    (activateMap as jest.Mock).mockResolvedValue({ id: 'map-1', token: 'tok01', coupleName: 'Carol e André', email: 'carol@example.com' });
     (generateQrCode as jest.Mock).mockResolvedValue(Buffer.from('jpg'));
     (sendDeliveryEmail as jest.Mock).mockRejectedValue(new Error('Resend unavailable'));
     const log = buildMockLog();
-    const event: MercadoPagoEvent = { data: { id: 'pay-123' } };
 
-    await expect(processWebhookEvent(event, supabase, log)).resolves.toBeUndefined();
+    await expect(processWebhookEvent(buildWebhookEvent(), supabase, log)).resolves.toMatchObject({ wasActivated: true });
 
     expect(activateMap).toHaveBeenCalledWith('map-1', supabase);
     expect(log.error as jest.Mock).toHaveBeenCalledWith(
@@ -248,19 +211,12 @@ describe('processWebhookEvent', () => {
 
   it('should log error but not throw when qr code generation fails', async () => {
     const supabase = buildMockSupabase();
-    mockGet.mockResolvedValue({ status: 'approved' });
-    (getMapByPaymentId as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', paymentId: 'pay-123' });
-    (activateMap as jest.Mock).mockResolvedValue({
-      id: 'map-1',
-      token: 'tok01',
-      coupleName: 'Carol e André',
-      email: 'carol@example.com',
-    });
+    (getMapByOrderNsu as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', plan: 'basic' });
+    (activateMap as jest.Mock).mockResolvedValue({ id: 'map-1', token: 'tok01', coupleName: 'Carol e André', email: 'carol@example.com' });
     (generateQrCode as jest.Mock).mockRejectedValue(new Error('QR generation failed'));
     const log = buildMockLog();
-    const event: MercadoPagoEvent = { data: { id: 'pay-123' } };
 
-    await expect(processWebhookEvent(event, supabase, log)).resolves.toBeUndefined();
+    await expect(processWebhookEvent(buildWebhookEvent(), supabase, log)).resolves.toMatchObject({ wasActivated: true });
 
     expect(activateMap).toHaveBeenCalledWith('map-1', supabase);
     expect(log.error as jest.Mock).toHaveBeenCalledWith(

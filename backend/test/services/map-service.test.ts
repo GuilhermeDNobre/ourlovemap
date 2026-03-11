@@ -5,7 +5,7 @@ import {
   setPaymentFailed,
   getMapByToken,
   getMapById,
-  getMapByPaymentId,
+  getMapByOrderNsu,
   getPaymentStatus,
   updatePaymentData,
   type CreateMapData,
@@ -49,9 +49,7 @@ function buildBaseMapRow(overrides: Record<string, unknown> = {}): Record<string
     youtube_start_time: null,
     youtube_end_time: null,
     payment_id: null,
-    pix_qr_code: null,
-    pix_code: null,
-    payment_expires_at: null,
+    checkout_url: null,
     expires_at: null,
     created_at: '2026-03-10T00:00:00Z',
     ...overrides,
@@ -275,17 +273,17 @@ describe('setPaymentFailed', () => {
   });
 });
 
-describe('getMapByPaymentId', () => {
-  it('should return map when paymentId exists', async () => {
-    const mapRow = buildBaseMapRow({ payment_id: 'pay-123', status: 'pending_payment' });
+describe('getMapByOrderNsu', () => {
+  it('should return map when order nsu (mapId) exists', async () => {
+    const mapRow = buildBaseMapRow({ id: 'map-123', status: 'pending_payment' });
     const supabase = {
       from: jest.fn().mockImplementation(() => makeBuilder({ data: mapRow, error: null })),
     } as unknown as SupabaseClient;
 
-    const result = await getMapByPaymentId('pay-123', supabase);
+    const result = await getMapByOrderNsu('map-123', supabase);
 
     expect(result).not.toBeNull();
-    expect(result?.paymentId).toBe('pay-123');
+    expect(result?.id).toBe('map-123');
     expect(result?.status).toBe('pending_payment');
   });
 
@@ -296,19 +294,17 @@ describe('getMapByPaymentId', () => {
       ),
     } as unknown as SupabaseClient;
 
-    const result = await getMapByPaymentId('nonexistent', supabase);
+    const result = await getMapByOrderNsu('nonexistent', supabase);
 
     expect(result).toBeNull();
   });
 });
 
 describe('getPaymentStatus', () => {
-  it('should return payment status for valid mapId', async () => {
+  it('should return payment status and checkoutUrl for valid mapId', async () => {
     const paymentStatusRow = {
       status: 'pending_payment',
-      pix_qr_code: 'qr-code-data',
-      pix_code: 'pix-code-data',
-      payment_expires_at: '2026-03-11T00:00:00Z',
+      checkout_url: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc',
     };
     const supabase = {
       from: jest.fn().mockImplementation(() => makeBuilder({ data: paymentStatusRow, error: null })),
@@ -317,9 +313,7 @@ describe('getPaymentStatus', () => {
     const result = await getPaymentStatus('map-1', supabase);
 
     expect(result.status).toBe('pending_payment');
-    expect(result.pixQrCode).toBe('qr-code-data');
-    expect(result.pixCode).toBe('pix-code-data');
-    expect(result.paymentExpiresAt).toBe('2026-03-11T00:00:00Z');
+    expect(result.checkoutUrl).toBe('https://checkout.infinitepay.com.br/myhandle?lenc=abc');
   });
 
   it('should throw when supabase returns an error', async () => {
@@ -334,7 +328,7 @@ describe('getPaymentStatus', () => {
 });
 
 describe('updatePaymentData', () => {
-  it('should update payment fields with correct values', async () => {
+  it('should update checkout_url with correct value', async () => {
     const capturedUpdate = { args: null as Record<string, unknown> | null };
     const builder = makeBuilder({ data: null, error: null });
     builder.update.mockImplementation((args: Record<string, unknown>) => {
@@ -344,20 +338,13 @@ describe('updatePaymentData', () => {
     const supabase = {
       from: jest.fn().mockImplementation(() => builder),
     } as unknown as SupabaseClient;
-    const expiresAt = new Date('2026-03-11T00:00:00Z');
     const paymentData: PaymentData = {
-      paymentId: 'pay-456',
-      pixQrCode: 'qr-code-data',
-      pixCode: 'pix-code-data',
-      paymentExpiresAt: expiresAt,
+      checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc',
     };
 
     await updatePaymentData('map-1', paymentData, supabase);
 
-    expect(capturedUpdate.args?.payment_id).toBe('pay-456');
-    expect(capturedUpdate.args?.pix_qr_code).toBe('qr-code-data');
-    expect(capturedUpdate.args?.pix_code).toBe('pix-code-data');
-    expect(capturedUpdate.args?.payment_expires_at).toBe(expiresAt.toISOString());
+    expect(capturedUpdate.args?.checkout_url).toBe('https://checkout.infinitepay.com.br/myhandle?lenc=abc');
   });
 
   it('should throw when supabase returns an error', async () => {
@@ -367,10 +354,7 @@ describe('updatePaymentData', () => {
       from: jest.fn().mockImplementation(() => builder),
     } as unknown as SupabaseClient;
     const paymentData: PaymentData = {
-      paymentId: 'pay-456',
-      pixQrCode: 'qr-code-data',
-      pixCode: 'pix-code-data',
-      paymentExpiresAt: new Date(),
+      checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc',
     };
 
     await expect(updatePaymentData('map-1', paymentData, supabase)).rejects.toThrow('Update failed');

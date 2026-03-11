@@ -16,6 +16,7 @@ export interface LocationInput {
 }
 
 export interface CreateMapData {
+  id?: string;
   coupleName: string;
   email: string;
   plan: Plan;
@@ -39,9 +40,7 @@ export interface MapRecord {
   youtubeStartTime: number | null;
   youtubeEndTime: number | null;
   paymentId: string | null;
-  pixQrCode: string | null;
-  pixCode: string | null;
-  paymentExpiresAt: string | null;
+  checkoutUrl: string | null;
   expiresAt: string | null;
   createdAt: string;
 }
@@ -60,17 +59,14 @@ export interface Location {
 
 export interface MapPaymentStatus {
   status: MapStatus;
-  pixQrCode: string | null;
-  pixCode: string | null;
-  paymentExpiresAt: string | null;
+  checkoutUrl: string | null;
 }
 
 export interface PaymentData {
-  paymentId: string;
-  pixQrCode: string;
-  pixCode: string;
-  paymentExpiresAt: Date;
+  checkoutUrl: string;
 }
+
+const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 const PLAN_LOCATION_LIMITS: Record<Plan, number> = {
   basic: 3,
@@ -86,19 +82,21 @@ export async function createMap(data: CreateMapData, supabase: SupabaseClient): 
     error.statusCode = 422;
     throw error;
   }
+  const insertPayload: Record<string, unknown> = {
+    couple_name: data.coupleName,
+    slug: '',
+    email: data.email,
+    plan: data.plan,
+    relationship_start_date: data.relationshipStartDate,
+    status: 'pending_payment',
+    youtube_video_id: data.youtubeVideoId ?? null,
+    youtube_start_time: data.youtubeStartTime ?? null,
+    youtube_end_time: data.youtubeEndTime ?? null,
+  };
+  if (data.id) insertPayload.id = data.id;
   const { data: mapRow, error: mapError } = await supabase
     .from('maps')
-    .insert({
-      couple_name: data.coupleName,
-      slug: '',
-      email: data.email,
-      plan: data.plan,
-      relationship_start_date: data.relationshipStartDate,
-      status: 'pending_payment',
-      youtube_video_id: data.youtubeVideoId ?? null,
-      youtube_start_time: data.youtubeStartTime ?? null,
-      youtube_end_time: data.youtubeEndTime ?? null,
-    })
+    .insert(insertPayload)
     .select()
     .single();
   if (mapError) throw new Error(mapError.message);
@@ -127,7 +125,7 @@ export async function activateMap(mapId: string, supabase: SupabaseClient): Prom
   const slug = generateSlug(existingMap.couple_name);
   const token = generateToken();
   const expiresAt = existingMap.plan === 'basic'
-    ? new Date(Date.now() + BASIC_PLAN_EXPIRY_DAYS * 24 * 60 * 60 * 1000).toISOString()
+    ? new Date(Date.now() + BASIC_PLAN_EXPIRY_DAYS * ONE_DAY_IN_MS).toISOString()
     : null;
   const { data: updatedMap, error: updateError } = await supabase
     .from('maps')
@@ -173,42 +171,39 @@ export async function getMapById(id: string, supabase: SupabaseClient): Promise<
   return toMapRecord(data);
 }
 
-export async function getMapByPaymentId(paymentId: string, supabase: SupabaseClient): Promise<MapRecord | null> {
-  const { data, error } = await supabase
-    .from('maps')
-    .select()
-    .eq('payment_id', paymentId)
-    .single();
-  if (error || !data) return null;
-  return toMapRecord(data);
+export async function getMapByOrderNsu(orderNsu: string, supabase: SupabaseClient): Promise<MapRecord | null> {
+  return getMapById(orderNsu, supabase);
 }
 
 export async function getPaymentStatus(mapId: string, supabase: SupabaseClient): Promise<MapPaymentStatus> {
   const { data, error } = await supabase
     .from('maps')
-    .select('status, pix_qr_code, pix_code, payment_expires_at')
+    .select('status, checkout_url')
     .eq('id', mapId)
     .single();
   if (error) throw new Error(error.message);
   return {
     status: data.status as MapStatus,
-    pixQrCode: data.pix_qr_code as string | null,
-    pixCode: data.pix_code as string | null,
-    paymentExpiresAt: data.payment_expires_at as string | null,
+    checkoutUrl: data.checkout_url as string | null,
   };
 }
 
 export async function updatePaymentData(mapId: string, data: PaymentData, supabase: SupabaseClient): Promise<void> {
   const { error } = await supabase
     .from('maps')
-    .update({
-      payment_id: data.paymentId,
-      pix_qr_code: data.pixQrCode,
-      pix_code: data.pixCode,
-      payment_expires_at: data.paymentExpiresAt.toISOString(),
-    })
+    .update({ checkout_url: data.checkoutUrl })
     .eq('id', mapId);
   if (error) throw new Error(error.message);
+}
+
+export async function getLocationsByMapId(mapId: string, supabase: SupabaseClient): Promise<Location[]> {
+  const { data, error } = await supabase
+    .from('locations')
+    .select()
+    .eq('map_id', mapId)
+    .order('order', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(toLocation);
 }
 
 async function expireMap(mapId: string, supabase: SupabaseClient): Promise<void> {
@@ -217,6 +212,20 @@ async function expireMap(mapId: string, supabase: SupabaseClient): Promise<void>
     .update({ status: 'expired' })
     .eq('id', mapId);
   if (error) throw new Error(error.message);
+}
+
+function toLocation(row: Record<string, unknown>): Location {
+  return {
+    id: row.id as string,
+    mapId: row.map_id as string,
+    title: row.title as string,
+    description: row.description as string | null,
+    message: row.message as string | null,
+    photoUrl: row.photo_url as string | null,
+    latitude: row.latitude as number,
+    longitude: row.longitude as number,
+    order: row.order as number,
+  };
 }
 
 function toMapRecord(row: Record<string, unknown>): MapRecord {
@@ -233,9 +242,7 @@ function toMapRecord(row: Record<string, unknown>): MapRecord {
     youtubeStartTime: row.youtube_start_time as number | null,
     youtubeEndTime: row.youtube_end_time as number | null,
     paymentId: row.payment_id as string | null,
-    pixQrCode: row.pix_qr_code as string | null,
-    pixCode: row.pix_code as string | null,
-    paymentExpiresAt: row.payment_expires_at as string | null,
+    checkoutUrl: row.checkout_url as string | null,
     expiresAt: row.expires_at as string | null,
     createdAt: row.created_at as string,
   };

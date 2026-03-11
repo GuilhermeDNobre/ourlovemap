@@ -15,7 +15,10 @@
       "mcp__context7__resolve-library-id",
       "mcp__context7__query-docs",
       "Bash(find /d/temp/ws-vscode/ourlovemap -name \"*task*\" -type f 2>/dev/null | head -30)",
-      "Bash(find /d/temp/ws-vscode/ourlovemap/tasks -name \"techspec*\" -o -name \"prd*\" 2>/dev/null | grep -v node_modules | head -20)"
+      "Bash(find /d/temp/ws-vscode/ourlovemap/tasks -name \"techspec*\" -o -name \"prd*\" 2>/dev/null | grep -v node_modules | head -20)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.infinitepay.io)",
+      "WebFetch(domain:ajuda.infinitepay.io)"
     ]
   }
 }

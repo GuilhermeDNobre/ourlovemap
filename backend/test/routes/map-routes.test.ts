@@ -9,17 +9,28 @@ jest.mock('../../src/services/storage-service.js', () => ({
 jest.mock('../../src/services/map-service.js', () => ({
   createMap: jest.fn(),
   getMapById: jest.fn(),
-  getPaymentStatus: jest.fn(),
+  getMapByToken: jest.fn(),
+  getLocationsByMapId: jest.fn(),
 }));
 
 jest.mock('../../src/services/payment-service.js', () => ({
-  createPixPayment: jest.fn(),
+  createCheckoutPayment: jest.fn(),
+}));
+
+jest.mock('@sentry/node', () => ({
+  captureException: jest.fn(),
+  init: jest.fn(),
 }));
 
 import { buildApp } from '../helpers/build-app';
 import { uploadPhoto } from '../../src/services/storage-service.js';
-import { createMap, getMapById, getPaymentStatus } from '../../src/services/map-service.js';
-import { createPixPayment } from '../../src/services/payment-service.js';
+import {
+  createMap,
+  getMapById,
+  getMapByToken,
+  getLocationsByMapId,
+} from '../../src/services/map-service.js';
+import { createCheckoutPayment } from '../../src/services/payment-service.js';
 
 const BOUNDARY = 'test-boundary-abc123';
 
@@ -75,13 +86,8 @@ function buildValidFile() {
   }];
 }
 
-function buildDefaultPixResult() {
-  return {
-    paymentId: 'pay-1',
-    pixQrCode: 'base64-qr',
-    pixCode: 'pix-code',
-    paymentExpiresAt: new Date('2026-03-10T01:00:00Z'),
-  };
+function buildDefaultCheckoutResult() {
+  return { checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc' };
 }
 
 const originalEnv = process.env;
@@ -98,11 +104,11 @@ afterEach(() => {
 });
 
 describe('POST /api/maps', () => {
-  it('should return 200 with mapId, pixQrCode, pixCode, paymentExpiresAt for valid request', async () => {
+  it('should return 200 with mapId and checkoutUrl for valid request', async () => {
     const app = buildApp();
     (uploadPhoto as jest.Mock).mockResolvedValue('https://storage.example.com/photo.jpg');
     (createMap as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment' });
-    (createPixPayment as jest.Mock).mockResolvedValue(buildDefaultPixResult());
+    (createCheckoutPayment as jest.Mock).mockResolvedValue(buildDefaultCheckoutResult());
 
     const response = await app.inject({
       method: 'POST',
@@ -114,15 +120,13 @@ describe('POST /api/maps', () => {
     expect(response.statusCode).toBe(200);
     const body = response.json();
     expect(body.mapId).toBe('map-1');
-    expect(body.pixQrCode).toBe('base64-qr');
-    expect(body.pixCode).toBe('pix-code');
-    expect(body.paymentExpiresAt).toBeDefined();
+    expect(body.checkoutUrl).toBe('https://checkout.infinitepay.com.br/myhandle?lenc=abc');
     expect(uploadPhoto).toHaveBeenCalledWith(expect.objectContaining({ mapId: expect.any(String) }));
     expect(createMap).toHaveBeenCalledWith(
       expect.objectContaining({ coupleName: 'Carol e André', email: 'carol@example.com', plan: 'basic' }),
       expect.anything(),
     );
-    expect(createPixPayment).toHaveBeenCalledWith(
+    expect(createCheckoutPayment).toHaveBeenCalledWith(
       expect.objectContaining({ plan: 'basic', email: 'carol@example.com' }),
       expect.anything(),
     );
@@ -247,11 +251,11 @@ describe('POST /api/maps', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('should return 422 when Mercado Pago payment creation fails', async () => {
+  it('should return 422 when InfinitePay checkout creation fails', async () => {
     const app = buildApp();
     (uploadPhoto as jest.Mock).mockResolvedValue('https://storage.example.com/photo.jpg');
     (createMap as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment' });
-    (createPixPayment as jest.Mock).mockRejectedValue(new Error('MP API unavailable'));
+    (createCheckoutPayment as jest.Mock).mockRejectedValue(new Error('InfinitePay API unavailable'));
 
     const response = await app.inject({
       method: 'POST',
@@ -265,29 +269,39 @@ describe('POST /api/maps', () => {
 });
 
 describe('POST /api/maps/:id/retry-payment', () => {
-  it('should return 200 with new PIX data when map is in payment_failed status', async () => {
+  it('should return 200 with new checkoutUrl when map is in payment_failed status', async () => {
     const app = buildApp();
     (getMapById as jest.Mock).mockResolvedValue({
       id: 'map-1', status: 'payment_failed', plan: 'basic', email: 'carol@example.com',
     });
-    (createPixPayment as jest.Mock).mockResolvedValue({
-      paymentId: 'pay-2',
-      pixQrCode: 'new-base64-qr',
-      pixCode: 'new-pix-code',
-      paymentExpiresAt: new Date('2026-03-10T02:00:00Z'),
+    (createCheckoutPayment as jest.Mock).mockResolvedValue({
+      checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=new',
     });
 
     const response = await app.inject({ method: 'POST', url: '/api/maps/map-1/retry-payment' });
 
     expect(response.statusCode).toBe(200);
     const body = response.json();
-    expect(body.pixQrCode).toBe('new-base64-qr');
-    expect(body.pixCode).toBe('new-pix-code');
-    expect(body.paymentExpiresAt).toBeDefined();
-    expect(createPixPayment).toHaveBeenCalledWith(
+    expect(body.checkoutUrl).toBe('https://checkout.infinitepay.com.br/myhandle?lenc=new');
+    expect(createCheckoutPayment).toHaveBeenCalledWith(
       expect.objectContaining({ mapId: 'map-1', plan: 'basic', email: 'carol@example.com' }),
       expect.anything(),
     );
+  });
+
+  it('should return 200 with new checkoutUrl when map is in pending_payment status', async () => {
+    const app = buildApp();
+    (getMapById as jest.Mock).mockResolvedValue({
+      id: 'map-1', status: 'pending_payment', plan: 'basic', email: 'carol@example.com',
+    });
+    (createCheckoutPayment as jest.Mock).mockResolvedValue({
+      checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=new2',
+    });
+
+    const response = await app.inject({ method: 'POST', url: '/api/maps/map-1/retry-payment' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().checkoutUrl).toBeDefined();
   });
 
   it('should return 422 when map status is active', async () => {
@@ -299,7 +313,19 @@ describe('POST /api/maps/:id/retry-payment', () => {
     const response = await app.inject({ method: 'POST', url: '/api/maps/map-1/retry-payment' });
 
     expect(response.statusCode).toBe(422);
-    expect(createPixPayment).not.toHaveBeenCalled();
+    expect(createCheckoutPayment).not.toHaveBeenCalled();
+  });
+
+  it('should return 422 when map status is expired', async () => {
+    const app = buildApp();
+    (getMapById as jest.Mock).mockResolvedValue({
+      id: 'map-1', status: 'expired', plan: 'basic', email: 'carol@example.com',
+    });
+
+    const response = await app.inject({ method: 'POST', url: '/api/maps/map-1/retry-payment' });
+
+    expect(response.statusCode).toBe(422);
+    expect(createCheckoutPayment).not.toHaveBeenCalled();
   });
 
   it('should return 404 when map does not exist', async () => {
@@ -313,14 +339,12 @@ describe('POST /api/maps/:id/retry-payment', () => {
 });
 
 describe('GET /api/maps/:id/payment-status', () => {
-  it('should return 200 with all payment status fields', async () => {
+  it('should return 200 with status and checkoutUrl', async () => {
     const app = buildApp();
-    (getMapById as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment' });
-    (getPaymentStatus as jest.Mock).mockResolvedValue({
+    (getMapById as jest.Mock).mockResolvedValue({
+      id: 'map-1',
       status: 'pending_payment',
-      pixQrCode: 'base64-qr',
-      pixCode: 'pix-code',
-      paymentExpiresAt: '2026-03-10T01:00:00Z',
+      checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc',
     });
 
     const response = await app.inject({ method: 'GET', url: '/api/maps/map-1/payment-status' });
@@ -328,9 +352,7 @@ describe('GET /api/maps/:id/payment-status', () => {
     expect(response.statusCode).toBe(200);
     const body = response.json();
     expect(body.status).toBe('pending_payment');
-    expect(body.pixQrCode).toBe('base64-qr');
-    expect(body.pixCode).toBe('pix-code');
-    expect(body.paymentExpiresAt).toBe('2026-03-10T01:00:00Z');
+    expect(body.checkoutUrl).toBe('https://checkout.infinitepay.com.br/myhandle?lenc=abc');
   });
 
   it('should return 404 when map does not exist', async () => {
@@ -340,5 +362,116 @@ describe('GET /api/maps/:id/payment-status', () => {
     const response = await app.inject({ method: 'GET', url: '/api/maps/nonexistent/payment-status' });
 
     expect(response.statusCode).toBe(404);
+  });
+});
+
+describe('GET /api/maps/by-token', () => {
+  function buildActiveMap() {
+    return {
+      id: 'map-1',
+      coupleName: 'Carol e André',
+      slug: 'carol-e-andre',
+      email: 'carol@example.com',
+      plan: 'basic',
+      relationshipStartDate: '2020-06-15',
+      token: 'tok01',
+      status: 'active',
+      youtubeVideoId: 'dQw4w9WgXcQ',
+      youtubeStartTime: 30,
+      youtubeEndTime: 90,
+      paymentId: null,
+      checkoutUrl: null,
+      expiresAt: null,
+      createdAt: '2026-03-10T00:00:00Z',
+    };
+  }
+
+  function buildLocations() {
+    return [
+      {
+        id: 'loc-1',
+        mapId: 'map-1',
+        title: 'Nossa primeira vez',
+        description: 'Um lugar especial',
+        message: 'Te amo',
+        photoUrl: 'https://storage.example.com/photo.jpg',
+        latitude: -23.5,
+        longitude: -46.6,
+        order: 1,
+      },
+    ];
+  }
+
+  it('should return 200 with full map data for a valid active token', async () => {
+    const app = buildApp();
+    (getMapByToken as jest.Mock).mockResolvedValue(buildActiveMap());
+    (getLocationsByMapId as jest.Mock).mockResolvedValue(buildLocations());
+
+    const response = await app.inject({ method: 'GET', url: '/api/maps/by-token?token=tok01' });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.coupleName).toBe('Carol e André');
+    expect(body.relationshipStartDate).toBe('2020-06-15');
+    expect(body.youtubeVideoId).toBe('dQw4w9WgXcQ');
+    expect(body.youtubeStartTime).toBe(30);
+    expect(body.youtubeEndTime).toBe(90);
+    expect(body.locations).toHaveLength(1);
+    expect(body.locations[0].title).toBe('Nossa primeira vez');
+    expect(body.locations[0].latitude).toBe(-23.5);
+    expect(body.locations[0].longitude).toBe(-46.6);
+    expect(body.locations[0].photoUrl).toBe('https://storage.example.com/photo.jpg');
+    expect(getMapByToken).toHaveBeenCalledWith('tok01', expect.anything());
+    expect(getLocationsByMapId).toHaveBeenCalledWith('map-1', expect.anything());
+  });
+
+  it('should return 401 when token query param is absent', async () => {
+    const app = buildApp();
+
+    const response = await app.inject({ method: 'GET', url: '/api/maps/by-token' });
+
+    expect(response.statusCode).toBe(401);
+    expect(getMapByToken).not.toHaveBeenCalled();
+  });
+
+  it('should return 401 when token does not match any map', async () => {
+    const app = buildApp();
+    (getMapByToken as jest.Mock).mockResolvedValue(null);
+
+    const response = await app.inject({ method: 'GET', url: '/api/maps/by-token?token=unknown' });
+
+    expect(response.statusCode).toBe(401);
+  });
+
+  it('should return 403 with upgrade message when map is expired', async () => {
+    const app = buildApp();
+    (getMapByToken as jest.Mock).mockResolvedValue({ ...buildActiveMap(), status: 'expired' });
+
+    const response = await app.inject({ method: 'GET', url: '/api/maps/by-token?token=tok01' });
+
+    expect(response.statusCode).toBe(403);
+    const body = response.json();
+    expect(body.error).toBe('map_expired');
+    expect(body.message).toContain('Premium');
+  });
+
+  it('should return 403 when map is in pending_payment status', async () => {
+    const app = buildApp();
+    (getMapByToken as jest.Mock).mockResolvedValue({ ...buildActiveMap(), status: 'pending_payment' });
+
+    const response = await app.inject({ method: 'GET', url: '/api/maps/by-token?token=tok01' });
+
+    expect(response.statusCode).toBe(403);
+    expect(getLocationsByMapId).not.toHaveBeenCalled();
+  });
+
+  it('should return 403 when map is in payment_failed status', async () => {
+    const app = buildApp();
+    (getMapByToken as jest.Mock).mockResolvedValue({ ...buildActiveMap(), status: 'payment_failed' });
+
+    const response = await app.inject({ method: 'GET', url: '/api/maps/by-token?token=tok01' });
+
+    expect(response.statusCode).toBe(403);
+    expect(getLocationsByMapId).not.toHaveBeenCalled();
   });
 });
