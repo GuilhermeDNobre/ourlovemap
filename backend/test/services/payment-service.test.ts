@@ -76,7 +76,7 @@ describe('createCheckoutPayment', () => {
   it('should call InfinitePay API with correct price in cents for basic plan and return checkoutUrl', async () => {
     mockedAxiosPost.mockResolvedValue({ data: { url: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc' } });
     (updatePaymentData as jest.Mock).mockResolvedValue(undefined);
-    const params: CreateCheckoutPaymentParams = { mapId: 'map-1', plan: 'basic', email: 'carol@example.com' };
+    const params: CreateCheckoutPaymentParams = { mapId: 'map-1', plan: 'basic', email: 'carol@example.com', buyerName: 'Carol Silva', buyerPhone: '11999999999' };
 
     const result = await createCheckoutPayment(params, buildMockSupabase());
 
@@ -94,7 +94,7 @@ describe('createCheckoutPayment', () => {
   it('should call InfinitePay API with 2990 cents for premium plan', async () => {
     mockedAxiosPost.mockResolvedValue({ data: { url: 'https://checkout.infinitepay.com.br/myhandle?lenc=xyz' } });
     (updatePaymentData as jest.Mock).mockResolvedValue(undefined);
-    const params: CreateCheckoutPaymentParams = { mapId: 'map-2', plan: 'premium', email: 'carol@example.com' };
+    const params: CreateCheckoutPaymentParams = { mapId: 'map-2', plan: 'premium', email: 'carol@example.com', buyerName: 'Carol Silva', buyerPhone: '11999999999' };
 
     await createCheckoutPayment(params, buildMockSupabase());
 
@@ -109,7 +109,7 @@ describe('createCheckoutPayment', () => {
   it('should embed webhook_url with secret in the request body', async () => {
     mockedAxiosPost.mockResolvedValue({ data: { url: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc' } });
     (updatePaymentData as jest.Mock).mockResolvedValue(undefined);
-    const params: CreateCheckoutPaymentParams = { mapId: 'map-1', plan: 'basic', email: 'carol@example.com' };
+    const params: CreateCheckoutPaymentParams = { mapId: 'map-1', plan: 'basic', email: 'carol@example.com', buyerName: 'Carol Silva', buyerPhone: '11999999999' };
 
     await createCheckoutPayment(params, buildMockSupabase());
 
@@ -123,7 +123,7 @@ describe('createCheckoutPayment', () => {
 
   it('should rethrow error when InfinitePay API call fails', async () => {
     mockedAxiosPost.mockRejectedValue(new Error('InfinitePay API unavailable'));
-    const params: CreateCheckoutPaymentParams = { mapId: 'map-1', plan: 'basic', email: 'carol@example.com' };
+    const params: CreateCheckoutPaymentParams = { mapId: 'map-1', plan: 'basic', email: 'carol@example.com', buyerName: 'Carol Silva', buyerPhone: '11999999999' };
 
     await expect(createCheckoutPayment(params, buildMockSupabase())).rejects.toThrow('InfinitePay API unavailable');
   });

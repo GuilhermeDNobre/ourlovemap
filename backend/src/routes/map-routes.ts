@@ -12,9 +12,10 @@ import {
 import { createCheckoutPayment } from '../services/payment-service.js';
 
 const VALID_PLANS = new Set<string>(['basic', 'premium']);
-const REQUIRED_FIELDS = ['couple_name', 'email', 'plan', 'relationship_start_date'] as const;
+const REQUIRED_FIELDS = ['couple_name', 'buyer_name', 'buyer_phone', 'email', 'plan', 'relationship_start_date'] as const;
 const PLAN_LOCATION_LIMITS: Record<string, number> = { basic: 3, premium: 7 };
 const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
+const YOUTUBE_URL_PATTERN = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
 
 interface ParsedLocationField {
   title?: string;
@@ -83,6 +84,13 @@ function validateRequiredFields(fields: Record<string, string>): string | null {
     if (!fields[field]) return `${field} is required`;
   }
   if (!VALID_PLANS.has(fields.plan)) return 'plan must be basic or premium';
+  return null;
+}
+
+function extractYoutubeId(urlOrId: string): string | null {
+  const match = urlOrId.match(YOUTUBE_URL_PATTERN);
+  if (match) return match[1];
+  if (/^[a-zA-Z0-9_-]{11}$/.test(urlOrId)) return urlOrId;
   return null;
 }
 
@@ -257,16 +265,23 @@ export default async function mapRoutes(fastify: FastifyInstance): Promise<void>
       const limit = PLAN_LOCATION_LIMITS[fields.plan];
       return reply.code(422).send({ error: `Plan ${fields.plan} allows at most ${limit} locations` });
     }
+    const extractedId = fields.youtube_url ? extractYoutubeId(fields.youtube_url) : undefined;
+    if (fields.youtube_url && !extractedId) {
+      return reply.code(400).send({ error: 'youtube_url is not a valid YouTube URL' });
+    }
+    const youtubeVideoId = extractedId ?? undefined;
     const mapId = crypto.randomUUID();
     const locations = await buildLocations(locationFields, files, mapId, fastify.supabase, request.log);
     const map = await createMap({
       id: mapId,
       coupleName: fields.couple_name,
+      buyerName: fields.buyer_name,
+      buyerPhone: fields.buyer_phone,
       email: fields.email,
       plan: fields.plan as Plan,
       relationshipStartDate: fields.relationship_start_date,
       locations,
-      youtubeVideoId: fields.youtube_video_id,
+      youtubeVideoId,
       youtubeStartTime: fields.youtube_start_time ? parseInt(fields.youtube_start_time, 10) : undefined,
       youtubeEndTime: fields.youtube_end_time ? parseInt(fields.youtube_end_time, 10) : undefined,
     }, fastify.supabase);
@@ -278,7 +293,7 @@ export default async function mapRoutes(fastify: FastifyInstance): Promise<void>
     }
     try {
       const result = await createCheckoutPayment(
-        { mapId: map.id, plan: fields.plan as Plan, email: fields.email },
+        { mapId: map.id, plan: fields.plan as Plan, email: fields.email, buyerName: fields.buyer_name, buyerPhone: fields.buyer_phone },
         fastify.supabase,
       );
       return reply.send({ mapId: map.id, checkoutUrl: result.checkoutUrl });

@@ -45,9 +45,9 @@ export default async function paymentRoutes(fastify: FastifyInstance): Promise<v
     }
     const event = request.body as InfinitePayWebhookEvent;
     const result = await processWebhookEvent(event, fastify.supabase, request.log);
-    if (result.wasActivated) {
+    if (result.wasActivated && result.mapId) {
       try {
-        fastify.posthog?.capture({ distinctId: result.mapId!, event: 'payment_approved', properties: { plan: result.plan } });
+        fastify.posthog?.capture({ distinctId: result.mapId, event: 'payment_approved', properties: { plan: result.plan } });
       } catch (error) {
         request.log.warn({ error: error instanceof Error ? error.message : error }, 'PostHog capture failed');
       }

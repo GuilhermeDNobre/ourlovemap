@@ -22,6 +22,8 @@ export interface CreateCheckoutPaymentParams {
   mapId: string;
   plan: Plan;
   email: string;
+  buyerName: string;
+  buyerPhone: string;
 }
 
 export interface CheckoutPaymentResult {
@@ -59,11 +61,11 @@ export async function createCheckoutPayment(
         },
       ],
       webhook_url: webhookUrl,
-      customer: { email: params.email },
+      customer: { name: params.buyerName, email: params.email, phone: params.buyerPhone },
     });
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      throw new Error(`InfinitePay checkout creation failed: ${error.response?.status ?? 'network error'}`);
+      throw new Error(`InfinitePay checkout creation failed: ${error.response?.status ?? 'network error'} — ${JSON.stringify(error.response?.data)}`);
     }
     throw error;
   }

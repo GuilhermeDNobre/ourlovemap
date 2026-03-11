@@ -32,7 +32,7 @@ export function buildApp(options: FastifyServerOptions = { logger: true }): Fast
     const message = error instanceof Error ? error.message : String(error);
     if (statusCode >= 500) {
       Sentry.captureException(error);
-      fastify.log.error({ error: message }, 'Unhandled error');
+      fastify.log.error({ err: error }, 'Unhandled error');
     }
     reply.code(statusCode).send({
       error: statusCode >= 500 ? 'Internal server error' : message,

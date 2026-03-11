@@ -34,7 +34,7 @@ export default async function mapPaymentRoutes(fastify: FastifyInstance): Promis
     }
     try {
       const result = await createCheckoutPayment(
-        { mapId: map.id, plan: map.plan, email: map.email },
+        { mapId: map.id, plan: map.plan, email: map.email, buyerName: map.buyerName, buyerPhone: map.buyerPhone },
         fastify.supabase,
       );
       return reply.send({ checkoutUrl: result.checkoutUrl });

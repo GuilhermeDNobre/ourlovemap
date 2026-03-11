@@ -64,6 +64,22 @@ describe('sendDeliveryEmail', () => {
     );
   });
 
+  it('should send from the correct noreply address', async () => {
+    const params: SendDeliveryEmailParams = {
+      coupleName: 'Carol e André',
+      token: 'abc12',
+      qrCodeBuffer: Buffer.from('jpg-data'),
+    };
+
+    await sendDeliveryEmail(params, 'carol@example.com');
+
+    expect(mockEmailsSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: 'Our Love Map <noreply@ourlovemap.com>',
+      }),
+    );
+  });
+
   it('should attach the QR code buffer as a JPG attachment', async () => {
     const qrBuffer = Buffer.from('jpg-data');
     const params: SendDeliveryEmailParams = {

@@ -18,6 +18,8 @@ export interface LocationInput {
 export interface CreateMapData {
   id?: string;
   coupleName: string;
+  buyerName: string;
+  buyerPhone: string;
   email: string;
   plan: Plan;
   relationshipStartDate: string;
@@ -30,6 +32,8 @@ export interface CreateMapData {
 export interface MapRecord {
   id: string;
   coupleName: string;
+  buyerName: string;
+  buyerPhone: string;
   slug: string;
   email: string;
   plan: Plan;
@@ -84,6 +88,8 @@ export async function createMap(data: CreateMapData, supabase: SupabaseClient): 
   }
   const insertPayload: Record<string, unknown> = {
     couple_name: data.coupleName,
+    buyer_name: data.buyerName,
+    buyer_phone: data.buyerPhone,
     slug: '',
     email: data.email,
     plan: data.plan,
@@ -232,6 +238,8 @@ function toMapRecord(row: Record<string, unknown>): MapRecord {
   return {
     id: row.id as string,
     coupleName: row.couple_name as string,
+    buyerName: row.buyer_name as string,
+    buyerPhone: row.buyer_phone as string,
     slug: row.slug as string,
     email: row.email as string,
     plan: row.plan as Plan,

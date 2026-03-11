@@ -1,0 +1,3 @@
+ALTER TABLE maps
+  ADD COLUMN IF NOT EXISTS buyer_name text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS buyer_phone text NOT NULL DEFAULT '';

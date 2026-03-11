@@ -39,6 +39,8 @@ function buildBaseMapRow(overrides: Record<string, unknown> = {}): Record<string
   return {
     id: 'map-1',
     couple_name: 'Carol e André',
+    buyer_name: 'Carol Silva',
+    buyer_phone: '11999999999',
     slug: '',
     email: 'carol@example.com',
     plan: 'basic',
@@ -68,6 +70,8 @@ function buildLocations(count: number) {
 function buildCreateMapData(plan: Plan, locationCount: number): CreateMapData {
   return {
     coupleName: 'Carol e André',
+    buyerName: 'Carol Silva',
+    buyerPhone: '11999999999',
     email: 'carol@example.com',
     plan,
     relationshipStartDate: '2020-06-15',

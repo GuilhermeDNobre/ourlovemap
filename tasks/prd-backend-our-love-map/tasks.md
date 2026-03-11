@@ -10,5 +10,5 @@
 - [x] 6.0 Payment service (Checkout via InfinitePay)
 - [x] 7.0 Endpoint POST /api/maps
 - [x] 8.0 Webhook, retry e polling de pagamento
-- [ ] 9.0 QR Code da página e email de entrega
-- [ ] 10.0 Endpoint público GET /api/maps/by-token + observabilidade
+- [x] 9.0 QR Code da página e email de entrega
+- [x] 10.0 Endpoint público GET /api/maps/by-token + observabilidade

@@ -1,5 +1,7 @@
 import { Resend } from 'resend';
 
+const resend = new Resend(process.env.RESEND_API_KEY ?? '');
+
 export interface SendDeliveryEmailParams {
   coupleName: string;
   token: string;
@@ -10,8 +12,9 @@ export async function sendDeliveryEmail(
   params: SendDeliveryEmailParams,
   email: string,
 ): Promise<void> {
-  const resend = new Resend(process.env.RESEND_API_KEY ?? '');
-  const link = `${process.env.OURLOVEMAP_BASE_URL}/access?token=${params.token}`;
+  const baseUrl = process.env.OURLOVEMAP_BASE_URL;
+  if (!baseUrl) throw new Error('OURLOVEMAP_BASE_URL is not configured');
+  const link = `${baseUrl}/access?token=${params.token}`;
   await resend.emails.send({
     from: 'Our Love Map <noreply@ourlovemap.com>',
     to: email,

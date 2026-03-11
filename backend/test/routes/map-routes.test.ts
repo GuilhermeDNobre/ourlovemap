@@ -56,6 +56,8 @@ function buildMultipartBody(
 function buildBaseFields(): Record<string, string> {
   return {
     couple_name: 'Carol e André',
+    buyer_name: 'Carol Silva',
+    buyer_phone: '11999999999',
     email: 'carol@example.com',
     plan: 'basic',
     relationship_start_date: '2020-06-15',
@@ -272,7 +274,7 @@ describe('POST /api/maps/:id/retry-payment', () => {
   it('should return 200 with new checkoutUrl when map is in payment_failed status', async () => {
     const app = buildApp();
     (getMapById as jest.Mock).mockResolvedValue({
-      id: 'map-1', status: 'payment_failed', plan: 'basic', email: 'carol@example.com',
+      id: 'map-1', status: 'payment_failed', plan: 'basic', email: 'carol@example.com', buyerName: 'Carol Silva', buyerPhone: '11999999999',
     });
     (createCheckoutPayment as jest.Mock).mockResolvedValue({
       checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=new',
@@ -292,7 +294,7 @@ describe('POST /api/maps/:id/retry-payment', () => {
   it('should return 200 with new checkoutUrl when map is in pending_payment status', async () => {
     const app = buildApp();
     (getMapById as jest.Mock).mockResolvedValue({
-      id: 'map-1', status: 'pending_payment', plan: 'basic', email: 'carol@example.com',
+      id: 'map-1', status: 'pending_payment', plan: 'basic', email: 'carol@example.com', buyerName: 'Carol Silva', buyerPhone: '11999999999',
     });
     (createCheckoutPayment as jest.Mock).mockResolvedValue({
       checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=new2',
@@ -307,7 +309,7 @@ describe('POST /api/maps/:id/retry-payment', () => {
   it('should return 422 when map status is active', async () => {
     const app = buildApp();
     (getMapById as jest.Mock).mockResolvedValue({
-      id: 'map-1', status: 'active', plan: 'basic', email: 'carol@example.com',
+      id: 'map-1', status: 'active', plan: 'basic', email: 'carol@example.com', buyerName: 'Carol Silva', buyerPhone: '11999999999',
     });
 
     const response = await app.inject({ method: 'POST', url: '/api/maps/map-1/retry-payment' });
@@ -319,7 +321,7 @@ describe('POST /api/maps/:id/retry-payment', () => {
   it('should return 422 when map status is expired', async () => {
     const app = buildApp();
     (getMapById as jest.Mock).mockResolvedValue({
-      id: 'map-1', status: 'expired', plan: 'basic', email: 'carol@example.com',
+      id: 'map-1', status: 'expired', plan: 'basic', email: 'carol@example.com', buyerName: 'Carol Silva', buyerPhone: '11999999999',
     });
 
     const response = await app.inject({ method: 'POST', url: '/api/maps/map-1/retry-payment' });
@@ -453,6 +455,16 @@ describe('GET /api/maps/by-token', () => {
     const body = response.json();
     expect(body.error).toBe('map_expired');
     expect(body.message).toContain('Premium');
+  });
+
+  it('should return 403 even when PostHog capture throws for expired map', async () => {
+    const app = buildApp();
+    (getMapByToken as jest.Mock).mockResolvedValue({ ...buildActiveMap(), status: 'expired' });
+
+    const response = await app.inject({ method: 'GET', url: '/api/maps/by-token?token=tok01' });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().error).toBe('map_expired');
   });
 
   it('should return 403 when map is in pending_payment status', async () => {

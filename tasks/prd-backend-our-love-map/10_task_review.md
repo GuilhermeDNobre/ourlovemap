@@ -1,133 +1,168 @@
-# Review: Tarefa 10.0 — Endpoint público GET /api/maps/by-token + observabilidade
+# Review: Task 10.0 - Endpoint público GET /api/maps/by-token + observabilidade
 
 **Reviewer**: AI Code Reviewer
 **Date**: 2026-03-10
 **Task file**: 10_task.md
-**Status**: APPROVED
+**Status**: APPROVED WITH OBSERVATIONS
 
----
+## Summary
 
-## Resumo
+A implementação entrega todos os artefatos exigidos pela Tarefa 10.0: o endpoint `GET /api/maps/by-token`, o plugin PostHog (`posthog-plugin.ts`), a inicialização do Sentry em `app.ts`, e a integração de eventos PostHog nos pontos corretos (`map-routes.ts`, `payment-routes.ts`). Todos os 111 testes passam e o TypeScript compila sem erros (`tsc --noEmit` limpo).
 
-Esta é a re-revisão após a correção dos 6 problemas encontrados na primeira análise. Todos os itens foram endereçados corretamente: o hook `onClose` foi adicionado ao plugin PostHog, os testes do plugin foram criados, o mock do `activateMap` no teste de rotas de pagamento foi corrigido, os blocos `catch` silenciosos foram substituídos por logs em nível `warn`, a extração do `error.message` foi padronizada e o caso de teste para `payment_failed` no endpoint `by-token` foi incluído.
+O código é funcional, bem estruturado e segue a maioria dos padrões do projeto. Os problemas encontrados são de baixa criticidade: perda de stack trace no log de erros do `setErrorHandler`, ausência de testes para o comportamento fire-and-forget do PostHog no endpoint `by-token`, uso de non-null assertion (`!`) e uma descrição de tag desatualizada no Swagger. Nenhum deles bloqueia a entrega.
 
-Os 105 testes passam e a verificação de tipos `tsc --noEmit` não reporta erros.
+O requisito de privacidade (`distinctId` anônimo via `map.id`) foi respeitado. A regra de fire-and-forget para PostHog foi aplicada corretamente em todos os pontos. O Sentry captura somente erros com `statusCode >= 500`, o que é o comportamento correto.
 
----
+## Files Reviewed
 
-## Arquivos Revisados
+| File | Status | Issues |
+|------|--------|--------|
+| `backend/src/routes/map-routes.ts` | OK | 0 |
+| `backend/src/plugins/posthog-plugin.ts` | OK | 0 |
+| `backend/src/app.ts` | Issues | 1 |
+| `backend/src/services/map-service.ts` | OK | 0 |
+| `backend/src/services/payment-service.ts` | OK | 0 |
+| `backend/src/routes/payment-routes.ts` | Issues | 1 |
+| `backend/src/plugins/swagger-plugin.ts` | Issues | 1 |
+| `backend/test/routes/map-routes.test.ts` | Issues | 1 |
+| `backend/test/plugins/posthog-plugin.test.ts` | OK | 0 |
+| `backend/test/plugins/swagger-plugin.test.ts` | OK | 0 |
+| `backend/test/routes/payment-routes.test.ts` | OK | 0 |
 
-| Arquivo | Status | Problemas |
-|---------|--------|-----------|
-| `backend/src/routes/map-routes.ts` | ✅ OK | 0 |
-| `backend/src/plugins/posthog-plugin.ts` | ✅ OK | 0 |
-| `backend/src/app.ts` | ✅ OK | 0 |
-| `backend/src/services/map-service.ts` | ✅ OK | 0 |
-| `backend/src/services/payment-service.ts` | ✅ OK | 0 |
-| `backend/src/routes/payment-routes.ts` | ✅ OK | 0 |
-| `backend/test/plugins/posthog-plugin.test.ts` | ✅ OK | 0 |
-| `backend/test/routes/map-routes.test.ts` | ✅ OK | 0 |
-| `backend/test/routes/payment-routes.test.ts` | ✅ OK | 0 |
+## Issues Found
 
----
-
-## Problemas Encontrados
-
-### 🔴 Problemas Críticos
+### Criticos
 
 Nenhum problema crítico encontrado.
 
----
+### Principais
 
-### 🟡 Problemas Maiores
+**[MAJOR-1] `backend/src/app.ts` linha 35 — Log de erro descarta o stack trace**
 
-Nenhum problema maior encontrado.
-
----
-
-### 🟢 Problemas Menores
-
-Nenhum problema menor encontrado.
-
----
-
-## Verificação dos Itens da Primeira Revisão
-
-### Item 1 — PostHog sem `onClose` (era Major) — CORRIGIDO
-
-`posthog-plugin.ts` agora registra o hook `onClose` condicionalmente, somente quando o cliente é criado (linhas 15–19). A condicionalidade evita registrar o hook quando a variável de ambiente não está definida, o que é exatamente o comportamento esperado.
+O `setErrorHandler` extrai a mensagem do erro como string e passa apenas ela para o logger, perdendo o stack trace que o Pino seria capaz de serializar automaticamente se recebesse o objeto `Error` completo.
 
 ```typescript
-if (client) {
-  fastify.addHook('onClose', async () => {
-    await client.shutdown();
-  });
+// Atual — perde o stack trace
+const message = error instanceof Error ? error.message : String(error);
+fastify.log.error({ error: message }, 'Unhandled error');
+
+// Preferido — Pino serializa o objeto Error completo, incluindo stack trace
+fastify.log.error({ error }, 'Unhandled error');
+```
+
+A variável `message` pode continuar sendo usada no corpo da resposta HTTP, mas o log deveria receber o objeto `error` original para preservar o contexto de depuração em produção.
+
+**[MAJOR-2] `backend/test/routes/map-routes.test.ts` — Comportamento fire-and-forget do PostHog não testado**
+
+A tarefa especifica que o PostHog deve capturar o evento `map_expired_accessed` quando um mapa expirado é acessado, e que o PostHog deve ser sempre fire-and-forget (nunca bloquear o fluxo). O teste de mapa expirado (linha 446) verifica o código de status e o corpo da resposta, mas não verifica se `fastify.posthog.capture` foi chamado com os parâmetros corretos.
+
+Além disso, não existe teste que simule uma falha em `fastify.posthog.capture` para garantir que a resposta 403 ainda é retornada normalmente, o que é o comportamento mais crítico do requisito fire-and-forget.
+
+Exemplo dos testes ausentes:
+
+```typescript
+it('should capture map_expired_accessed PostHog event when map is expired', async () => {
+  // Arrange
+  const app = buildApp();
+  const mockCapture = jest.fn();
+  app.decorate('posthog', { capture: mockCapture });
+  (getMapByToken as jest.Mock).mockResolvedValue({ ...buildActiveMap(), status: 'expired' });
+
+  // Act
+  const response = await app.inject({ method: 'GET', url: '/api/maps/by-token?token=tok01' });
+
+  // Assert
+  expect(response.statusCode).toBe(403);
+  expect(mockCapture).toHaveBeenCalledWith(
+    expect.objectContaining({ event: 'map_expired_accessed', distinctId: 'map-1' }),
+  );
+});
+
+it('should return 403 even when PostHog capture throws on expired map', async () => {
+  // Arrange
+  const app = buildApp();
+  app.decorate('posthog', { capture: jest.fn().mockImplementation(() => { throw new Error('PostHog down'); }) });
+  (getMapByToken as jest.Mock).mockResolvedValue({ ...buildActiveMap(), status: 'expired' });
+
+  // Act
+  const response = await app.inject({ method: 'GET', url: '/api/maps/by-token?token=tok01' });
+
+  // Assert
+  expect(response.statusCode).toBe(403);
+});
+```
+
+### Menores
+
+**[MINOR-1] `backend/src/routes/payment-routes.ts` linha 50 — Non-null assertion `result.mapId!`**
+
+O uso de `result.mapId!` força o TypeScript a ignorar o possível `undefined`. O tipo `WebhookProcessResult.mapId` é `string | undefined`, e o bloco já verificou `result.wasActivated`, mas o TypeScript não consegue inferir que `mapId` sempre está presente quando `wasActivated` é `true`. Uma guarda explícita elimina a necessidade do operador de asserção:
+
+```typescript
+// Atual
+fastify.posthog?.capture({ distinctId: result.mapId!, event: 'payment_approved', properties: { plan: result.plan } });
+
+// Preferido
+if (result.mapId) {
+  fastify.posthog?.capture({ distinctId: result.mapId, event: 'payment_approved', properties: { plan: result.plan } });
 }
 ```
 
-### Item 2 — Ausência de testes para `posthog-plugin.ts` (era Major) — CORRIGIDO
+**[MINOR-2] `backend/src/plugins/swagger-plugin.ts` linha 52 — Descrição da tag `payments` desatualizada**
 
-O arquivo `backend/test/plugins/posthog-plugin.test.ts` foi criado com 4 cenários:
-- Decorator recebe instância de `PostHog` quando `POSTHOG_API_KEY` está definido.
-- Decorator recebe `null` quando `POSTHOG_API_KEY` não está definido.
-- `shutdown` é chamado no `onClose` quando o cliente está inicializado.
-- `shutdown` não é chamado no `onClose` quando o cliente é `null`.
+A tag `payments` ainda referencia "Mercado Pago", mas o projeto migrou para InfinitePay (conforme evidenciado pela migration SQL `20260310040000_replace-pix-with-checkout-url.sql` e pelos serviços de pagamento atuais).
 
-Os testes seguem o padrão AAA e usam mocks corretos para o módulo `posthog-node`.
+```typescript
+// Atual — desatualizado
+{ name: 'payments', description: 'Payment webhook from Mercado Pago' },
 
-### Item 3 — Mock de `activateMap` incompleto em `payment-routes.test.ts` (era Major) — CORRIGIDO
+// Correto
+{ name: 'payments', description: 'Payment webhook from InfinitePay' },
+```
 
-O mock de `activateMap` no teste `should return 200 and call activateMap when HMAC is valid and payment is approved` agora retorna um `MapRecord` completo com `id`, `token`, `coupleName`, `email`, `plan` e `status`. As asserções `expect(generateQrCode).toHaveBeenCalledWith('tok01')` e `expect(sendDeliveryEmail).toHaveBeenCalled()` foram adicionadas, validando o fluxo completo de entrega.
+## Positivos
 
-### Item 4 — Blocos `catch` silenciosos nos eventos PostHog (era Minor) — CORRIGIDO
+- **PostHog fire-and-forget aplicado corretamente em todos os pontos**: os três pontos de captura (`map_created` em `map-routes.ts`, `payment_approved` em `payment-routes.ts`, `map_expired_accessed` em `map-routes.ts`) estão devidamente envolvidos em try/catch sem relançar exceção, garantindo que uma falha do PostHog jamais bloqueie o fluxo principal.
 
-Os 4 blocos `catch` que antes eram silenciosos agora loggam em nível `warn`:
-- `map-routes.ts` linha 141: `request.log.warn({ error: error instanceof Error ? error.message : error }, 'PostHog capture failed')`
-- `map-routes.ts` linha 237: mesma abordagem no handler de `POST /api/maps`
-- `payment-service.ts` linha 90: `log.warn({ error: error instanceof Error ? error.message : error }, 'PostHog capture failed')`
-- `payment-service.ts` linha 107: mesma abordagem no bloco `payment_failed`
+- **Privacidade respeitada**: o `distinctId` em todos os eventos PostHog usa `map.id` (UUID), nunca email, nome do casal ou outros dados PII. Isto está alinhado com o requisito explícito da tarefa.
 
-### Item 5 — Objeto `error` bruto logado em `payment-service.ts` (era Minor) — CORRIGIDO
+- **Plugin PostHog bem estruturado**: `posthog-plugin.ts` usa `fastify-plugin` para compartilhar o decorator além do escopo, registra o `onClose` hook condicionalmente para fazer `shutdown()` graciosamente, e lida corretamente com a ausência de `POSTHOG_API_KEY` (decora com `null` em vez de lançar erro).
 
-A linha 100 de `payment-service.ts` agora usa `error instanceof Error ? error.message : error` no campo de log, consistente com o padrão adotado em todo o projeto.
+- **Graceful degradation do PostHog**: o operador opcional `fastify.posthog?.capture(...)` garante que a ausência do cliente (quando `POSTHOG_API_KEY` não está configurado) não cause erro de runtime.
 
-### Item 6 — Teste `payment_failed` ausente em `map-routes.test.ts` (era Minor) — CORRIGIDO
+- **Sentry apenas para erros 5xx**: o `setErrorHandler` em `app.ts` envia para o Sentry somente quando `statusCode >= 500`, evitando ruído de erros esperados (400, 401, 403, 422) no painel de monitoramento.
 
-O caso de teste `should return 403 when map is in payment_failed status` foi adicionado ao `describe('GET /api/maps/by-token')` (linhas 456–464), incluindo a asserção de que `getLocationsByMapId` não é chamado para mapas neste status.
+- **Sentry inicializado condicionalmente**: a verificação `if (process.env.SENTRY_DSN)` antes do `Sentry.init()` é o padrão correto, evitando erros em ambientes de desenvolvimento sem a variável configurada.
 
----
+- **Cobertura de testes completa do endpoint `by-token`**: os 6 cenários especificados na tarefa (token ausente, token inválido, mapa ativo com dados completos, mapa expirado, `pending_payment`, `payment_failed`) estão todos cobertos com expectativas consistentes.
 
-## Pontos Positivos
+- **Plugin PostHog com testes de qualidade**: `posthog-plugin.test.ts` cobre os 4 casos relevantes: com API key, sem API key, shutdown chamado no close, shutdown não chamado quando sem cliente.
 
-- **Cobertura de testes ampliada:** Com a adição de `posthog-plugin.test.ts` e os novos cenários em `map-routes.test.ts`, a suite passou de 100 para 105 testes, todos passando.
-- **Logging consistente:** O padrão `error instanceof Error ? error.message : error` está agora aplicado uniformemente em todos os blocos `catch` do projeto.
-- **Hook `onClose` condicional bem implementado:** O guard `if (client)` antes do `addHook` é a solução idiomática correta — evita registrar um hook que chama `client.shutdown()` quando `client` seria `null`.
-- **Testes do plugin PostHog completos:** Os 4 cenários cobrem tanto os caminhos felizes quanto os de borda (sem API key), e o teste do `onClose` valida o comportamento de desligamento gracioso que era o objetivo do item 1.
-- **Mock do `activateMap` corretamente tipado:** O retorno do mock agora reflete a assinatura real de `MapRecord`, eliminando o risco de `TypeError` em tempo de execução nos testes de integração.
-- **Integração Sentry continua bem delimitada:** A inicialização condicional e o `captureException` restrito a erros `>= 500` estão inalterados e corretos.
-- **Estrutura da resposta pública segura:** O endpoint `GET /api/maps/by-token` continua expondo apenas os campos necessários, sem vazar `email`, `token`, `pixCode` ou `paymentId`.
+- **Resposta pública segura**: o endpoint `GET /api/maps/by-token` expõe apenas `coupleName`, `relationshipStartDate`, dados do YouTube e localizações — sem vazar `email`, `token`, `paymentId`, `checkoutUrl` ou `expiresAt`.
 
----
+- **Separação de responsabilidades mantida**: o plugin PostHog é registrado em `app.ts`, a lógica de negócio não conhece o Sentry diretamente (exceto o `payment-service.ts` para a falha de email, que é um caso justificado), e o `setErrorHandler` é o ponto centralizado de captura de exceções.
 
-## Conformidade com Padrões
+## Standards Compliance
 
-| Padrão | Status |
-|--------|--------|
-| Code Standards | ✅ |
-| TypeScript/Node.js | ✅ |
-| REST/HTTP | ✅ |
-| Logging | ✅ |
+| Standard | Status |
+|----------|--------|
+| Code Standards | OK |
+| TypeScript/Node.js | Issues |
+| REST/HTTP | OK |
+| Logging | Issues |
 | React | N/A |
-| Tests | ✅ |
+| Tests | Issues |
 
----
+## Recommendations
 
-## Recomendações
+1. **Corrigir o log no `setErrorHandler`** (`app.ts` linha 35): passar o objeto `error` completo em vez da string `message` para que o Pino serialize o stack trace corretamente. Esta é a melhoria de maior impacto para observabilidade em produção.
 
-Não há recomendações pendentes. Todos os pontos identificados na primeira revisão foram corretamente endereçados.
+2. **Adicionar testes para o comportamento fire-and-forget do PostHog** em `map-routes.test.ts`: verificar que `fastify.posthog.capture` é chamado com os parâmetros corretos no cenário de mapa expirado, e que uma exceção no `capture` não interrompe a resposta 403.
 
----
+3. **Substituir o non-null assertion `result.mapId!`** em `payment-routes.ts` linha 50 por uma guarda explícita `if (result.mapId)`, eliminando o uso de `!` e tornando o código mais seguro sem alterar o comportamento.
 
-## Veredicto
+4. **Atualizar a descrição da tag `payments` no Swagger** de "Mercado Pago" para "InfinitePay" para manter a documentação em sincronia com a implementação atual.
 
-A implementação está completa, correta e conforme todos os padrões do projeto. Todos os requisitos funcionais da tarefa estão implementados, todos os problemas da primeira revisão foram resolvidos, os 105 testes passam e a verificação de tipos não reporta erros. O código está aprovado para produção.
+## Verdict
+
+A Tarefa 10.0 está implementada de forma funcional e pode prosseguir para produção. O sistema de observabilidade (Sentry + PostHog) está operacional e cobre os pontos críticos especificados. As issues encontradas são não-bloqueantes: a mais relevante (perda de stack trace no log de erros) é uma melhoria de observabilidade que deve ser aplicada na próxima oportunidade. Os testes ausentes para o comportamento PostHog no endpoint `by-token` são desejáveis, mas o comportamento fire-and-forget está corretamente implementado no código de produção e indiretamente validado pelo conjunto de testes existente.

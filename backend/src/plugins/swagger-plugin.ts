@@ -50,7 +50,7 @@ const swaggerPlugin: FastifyPluginAsync = async (fastify) => {
       },
       tags: [
         { name: 'maps', description: 'Map creation, public access and payment status' },
-        { name: 'payments', description: 'Payment webhook from Mercado Pago' },
+        { name: 'payments', description: 'Payment webhook from InfinitePay' },
         { name: 'health', description: 'Health check' },
       ],
     },
