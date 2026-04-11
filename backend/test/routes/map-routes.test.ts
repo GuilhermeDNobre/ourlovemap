@@ -17,11 +17,6 @@ jest.mock('../../src/services/payment-service.js', () => ({
   createCheckoutPayment: jest.fn(),
 }));
 
-jest.mock('@sentry/node', () => ({
-  captureException: jest.fn(),
-  init: jest.fn(),
-}));
-
 import { buildApp } from '../helpers/build-app';
 import { uploadPhoto } from '../../src/services/storage-service.js';
 import {

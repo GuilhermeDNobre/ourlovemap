@@ -20,11 +20,6 @@ jest.mock('../../src/services/email-service.js', () => ({
   sendDeliveryEmail: jest.fn(),
 }));
 
-jest.mock('@sentry/node', () => ({
-  captureException: jest.fn(),
-  init: jest.fn(),
-}));
-
 import { buildApp } from '../helpers/build-app';
 import {
   getMapByOrderNsu,

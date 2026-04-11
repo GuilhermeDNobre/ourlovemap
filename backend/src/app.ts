@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/node';
 import Fastify from 'fastify';
 import type { FastifyInstance, FastifyServerOptions } from 'fastify';
 import supabasePlugin from './plugins/supabase-plugin.js';
@@ -11,13 +10,6 @@ import mapPaymentRoutes from './routes/map-payment-routes.js';
 import paymentRoutes from './routes/payment-routes.js';
 
 export function buildApp(options: FastifyServerOptions = { logger: true }): FastifyInstance {
-  if (process.env.SENTRY_DSN) {
-    Sentry.init({
-      dsn: process.env.SENTRY_DSN,
-      environment: process.env.NODE_ENV ?? 'development',
-    });
-  }
-
   const fastify = Fastify({
     ...options,
     ajv: {
@@ -31,7 +23,6 @@ export function buildApp(options: FastifyServerOptions = { logger: true }): Fast
     const statusCode = (error as Error & { statusCode?: number }).statusCode ?? 500;
     const message = error instanceof Error ? error.message : String(error);
     if (statusCode >= 500) {
-      Sentry.captureException(error);
       fastify.log.error({ err: error }, 'Unhandled error');
     }
     reply.code(statusCode).send({

@@ -13,10 +13,6 @@ jest.mock('../../src/services/qr-code-service.js', () => ({
 jest.mock('../../src/services/email-service.js', () => ({
   sendDeliveryEmail: jest.fn(),
 }));
-jest.mock('@sentry/node', () => ({
-  captureException: jest.fn(),
-}));
-
 import axios from 'axios';
 import {
   createCheckoutPayment,

@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/node';
 import axios from 'axios';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { FastifyBaseLogger } from 'fastify';
@@ -107,7 +106,6 @@ export async function processWebhookEvent(
       activatedMap.email,
     );
   } catch (error) {
-    Sentry.captureException(error);
     log.error({ mapId: map.id, error: error instanceof Error ? error.message : error }, 'Failed to send delivery email');
   }
   return { wasActivated: true, plan: map.plan, mapId: map.id };
