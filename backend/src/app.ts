@@ -12,6 +12,7 @@ import paymentRoutes from './routes/payment-routes.js';
 export function buildApp(options: FastifyServerOptions = { logger: true }): FastifyInstance {
   const fastify = Fastify({
     ...options,
+    pluginTimeout: 30000,
     ajv: {
       customOptions: {
         strictSchema: false,

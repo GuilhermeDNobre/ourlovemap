@@ -13,7 +13,10 @@ const mongodbPlugin: FastifyPluginAsync = async (fastify) => {
   if (!uri) {
     throw new Error('MONGODB_URI environment variable is required');
   }
-  await mongoose.connect(uri);
+  await mongoose.connect(uri, {
+    serverSelectionTimeoutMS: 8000,
+    connectTimeoutMS: 8000,
+  });
   fastify.decorate('mongoose', mongoose);
   fastify.addHook('onClose', async () => {
     await mongoose.disconnect();
