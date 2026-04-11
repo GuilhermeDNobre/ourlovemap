@@ -1,5 +1,4 @@
 import axios from 'axios';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import type { FastifyBaseLogger } from 'fastify';
 import {
   getMapByOrderNsu,
@@ -44,7 +43,6 @@ export interface InfinitePayWebhookEvent {
 
 export async function createCheckoutPayment(
   params: CreateCheckoutPaymentParams,
-  supabase: SupabaseClient,
 ): Promise<CheckoutPaymentResult> {
   const price = PLAN_PRICES_CENTS[params.plan];
   const webhookUrl = `${process.env.OURLOVEMAP_API_URL}/api/payments/webhook?secret=${process.env.INFINITEPAY_WEBHOOK_SECRET}`;
@@ -70,7 +68,7 @@ export async function createCheckoutPayment(
     throw error;
   }
   const checkoutUrl = response.data.url;
-  await updatePaymentData(params.mapId, { checkoutUrl }, supabase);
+  await updatePaymentData(params.mapId, { checkoutUrl });
   return { checkoutUrl };
 }
 
@@ -82,10 +80,9 @@ export interface WebhookProcessResult {
 
 export async function processWebhookEvent(
   event: InfinitePayWebhookEvent,
-  supabase: SupabaseClient,
   log: FastifyBaseLogger,
 ): Promise<WebhookProcessResult> {
-  const map = await getMapByOrderNsu(event.order_nsu, supabase);
+  const map = await getMapByOrderNsu(event.order_nsu);
   if (!map) {
     log.warn({ orderNsu: event.order_nsu }, 'Map not found for webhook event');
     return { wasActivated: false };
@@ -94,7 +91,7 @@ export async function processWebhookEvent(
     log.warn({ mapId: map.id }, 'Webhook event ignored: map already active');
     return { wasActivated: false };
   }
-  const activatedMap = await activateMap(map.id, supabase);
+  const activatedMap = await activateMap(map.id);
   if (!activatedMap.token) {
     log.error({ mapId: map.id }, 'Activated map has no token');
     return { wasActivated: true, plan: map.plan, mapId: map.id };

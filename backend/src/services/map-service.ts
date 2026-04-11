@@ -1,9 +1,10 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { Types } from 'mongoose';
+import { MapModel, type MapDocument, type MapStatus, type Plan } from '../models/map-model.js';
+import { LocationModel, type LocationDocument } from '../models/location-model.js';
 import { generateSlug } from '../utils/slug.js';
 import { generateToken } from '../utils/token.js';
 
-export type MapStatus = 'pending_payment' | 'active' | 'expired' | 'payment_failed';
-export type Plan = 'basic' | 'premium' | 'test';
+export type { MapStatus, Plan };
 
 export interface LocationInput {
   title: string;
@@ -71,188 +72,144 @@ export interface PaymentData {
 }
 
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
-
-const PLAN_LOCATION_LIMITS: Record<Plan, number> = {
-  basic: 3,
-  premium: 7,
-  test: 2
-};
-
+export const PLAN_LOCATION_LIMITS: Record<Plan, number> = { basic: 3, premium: 7, test: 7 };
 const BASIC_PLAN_EXPIRY_DAYS = 7;
 
-export async function createMap(data: CreateMapData, supabase: SupabaseClient): Promise<MapRecord> {
+function toMapRecord(doc: MapDocument): MapRecord {
+  return {
+    id: doc._id.toString(),
+    coupleName: doc.coupleName,
+    buyerName: doc.buyerName,
+    buyerPhone: doc.buyerPhone,
+    slug: doc.slug,
+    email: doc.email,
+    plan: doc.plan,
+    relationshipStartDate: doc.relationshipStartDate instanceof Date
+      ? doc.relationshipStartDate.toISOString().split('T')[0]
+      : String(doc.relationshipStartDate),
+    token: doc.token ?? null,
+    status: doc.status,
+    youtubeVideoId: doc.youtubeVideoId ?? null,
+    youtubeStartTime: doc.youtubeStartTime ?? null,
+    youtubeEndTime: doc.youtubeEndTime ?? null,
+    paymentId: doc.paymentId ?? null,
+    checkoutUrl: doc.checkoutUrl ?? null,
+    expiresAt: doc.expiresAt ? doc.expiresAt.toISOString() : null,
+    createdAt: doc.createdAt.toISOString(),
+  };
+}
+
+function toLocation(doc: LocationDocument): Location {
+  return {
+    id: doc._id.toString(),
+    mapId: doc.mapId.toString(),
+    title: doc.title,
+    description: doc.description ?? null,
+    message: doc.message ?? null,
+    photoUrl: doc.photoUrl ?? null,
+    latitude: doc.latitude,
+    longitude: doc.longitude,
+    order: doc.order,
+  };
+}
+
+export async function createMap(data: CreateMapData): Promise<MapRecord> {
   const limit = PLAN_LOCATION_LIMITS[data.plan];
   if (data.locations.length > limit) {
     const error = new Error(`Plan ${data.plan} allows at most ${limit} locations`) as Error & { statusCode: number };
     error.statusCode = 422;
     throw error;
   }
-  const insertPayload: Record<string, unknown> = {
-    couple_name: data.coupleName,
-    buyer_name: data.buyerName,
-    buyer_phone: data.buyerPhone,
+  const mapId = data.id ? new Types.ObjectId(data.id) : new Types.ObjectId();
+  const doc = await MapModel.create({
+    _id: mapId,
+    coupleName: data.coupleName,
+    buyerName: data.buyerName,
+    buyerPhone: data.buyerPhone,
     slug: '',
     email: data.email,
     plan: data.plan,
-    relationship_start_date: data.relationshipStartDate,
+    relationshipStartDate: new Date(data.relationshipStartDate),
     status: 'pending_payment',
-    youtube_video_link: data.youtubeVideoId ?? null,
-    youtube_start_time: data.youtubeStartTime ?? null,
-    youtube_end_time: data.youtubeEndTime ?? null,
-  };
-  if (data.id) insertPayload.id = data.id;
-  const { data: mapRow, error: mapError } = await supabase
-    .from('maps')
-    .insert(insertPayload)
-    .select()
-    .single();
-  if (mapError) throw new Error(mapError.message);
-  const locationRows = data.locations.map(loc => ({
-    map_id: mapRow.id,
+    youtubeVideoId: data.youtubeVideoId,
+    youtubeStartTime: data.youtubeStartTime,
+    youtubeEndTime: data.youtubeEndTime,
+  });
+  const locationDocs = data.locations.map(loc => ({
+    mapId: doc._id,
     title: loc.title,
-    description: loc.description ?? null,
-    message: loc.message ?? null,
-    photo_url: loc.photoUrl ?? null,
+    description: loc.description,
+    message: loc.message,
+    photoUrl: loc.photoUrl,
     latitude: loc.latitude,
     longitude: loc.longitude,
     order: loc.order,
   }));
-  const { error: locError } = await supabase.from('locations').insert(locationRows);
-  if (locError) throw new Error(locError.message);
-  return toMapRecord(mapRow);
+  await LocationModel.insertMany(locationDocs);
+  return toMapRecord(doc);
 }
 
-export async function activateMap(mapId: string, supabase: SupabaseClient): Promise<MapRecord> {
-  const { data: existingMap, error: fetchError } = await supabase
-    .from('maps')
-    .select()
-    .eq('id', mapId)
-    .single();
-  if (fetchError) throw new Error(fetchError.message);
-  const slug = generateSlug(existingMap.couple_name);
+export async function activateMap(mapId: string): Promise<MapRecord> {
+  const existing = await MapModel.findById(mapId);
+  if (!existing) throw new Error(`Map not found: ${mapId}`);
+  const slug = generateSlug(existing.coupleName);
   const token = generateToken();
-  const expiresAt = existingMap.plan === 'basic'
-    ? new Date(Date.now() + BASIC_PLAN_EXPIRY_DAYS * ONE_DAY_IN_MS).toISOString()
-    : null;
-  const { data: updatedMap, error: updateError } = await supabase
-    .from('maps')
-    .update({ slug, token, expires_at: expiresAt, status: 'active' })
-    .eq('id', mapId)
-    .select()
-    .single();
-  if (updateError) throw new Error(updateError.message);
-  return toMapRecord(updatedMap);
+  const expiresAt = existing.plan === 'basic'
+    ? new Date(Date.now() + BASIC_PLAN_EXPIRY_DAYS * ONE_DAY_IN_MS)
+    : undefined;
+  const updated = await MapModel.findByIdAndUpdate(
+    mapId,
+    { slug, token, expiresAt, status: 'active' },
+    { new: true },
+  );
+  if (!updated) throw new Error(`Map not found after update: ${mapId}`);
+  return toMapRecord(updated);
 }
 
-export async function setPaymentFailed(mapId: string, supabase: SupabaseClient): Promise<void> {
-  const { error } = await supabase
-    .from('maps')
-    .update({ status: 'payment_failed' })
-    .eq('id', mapId);
-  if (error) throw new Error(error.message);
+export async function setPaymentFailed(mapId: string): Promise<void> {
+  await MapModel.findByIdAndUpdate(mapId, { status: 'payment_failed' });
 }
 
-export async function getMapByToken(token: string, supabase: SupabaseClient): Promise<MapRecord | null> {
-  const { data, error } = await supabase
-    .from('maps')
-    .select()
-    .eq('token', token)
-    .single();
-  if (error || !data) return null;
+async function expireMap(mapId: Types.ObjectId): Promise<MapDocument | null> {
+  return MapModel.findByIdAndUpdate(mapId, { status: 'expired' }, { new: true });
+}
+
+export async function getMapByToken(token: string): Promise<MapRecord | null> {
+  const doc = await MapModel.findOne({ token });
+  if (!doc) return null;
   const now = new Date();
-  const isExpired = data.expires_at !== null && new Date(data.expires_at) < now && data.status === 'active';
+  const isExpired = doc.expiresAt !== undefined && doc.expiresAt < now && doc.status === 'active';
   if (isExpired) {
-    await expireMap(data.id, supabase);
-    return toMapRecord({ ...data, status: 'expired' });
+    const expiredDoc = await expireMap(doc._id);
+    return expiredDoc ? toMapRecord(expiredDoc) : toMapRecord(doc);
   }
-  return toMapRecord(data);
+  return toMapRecord(doc);
 }
 
-export async function getMapById(id: string, supabase: SupabaseClient): Promise<MapRecord | null> {
-  const { data, error } = await supabase
-    .from('maps')
-    .select()
-    .eq('id', id)
-    .single();
-  if (error || !data) return null;
-  return toMapRecord(data);
+export async function getMapById(id: string): Promise<MapRecord | null> {
+  const doc = await MapModel.findById(id);
+  if (!doc) return null;
+  return toMapRecord(doc);
 }
 
-export async function getMapByOrderNsu(orderNsu: string, supabase: SupabaseClient): Promise<MapRecord | null> {
-  return getMapById(orderNsu, supabase);
+export async function getMapByOrderNsu(orderNsu: string): Promise<MapRecord | null> {
+  return getMapById(orderNsu);
 }
 
-export async function getPaymentStatus(mapId: string, supabase: SupabaseClient): Promise<MapPaymentStatus> {
-  const { data, error } = await supabase
-    .from('maps')
-    .select('status, checkout_url')
-    .eq('id', mapId)
-    .single();
-  if (error) throw new Error(error.message);
+export async function getPaymentStatus(mapId: string): Promise<MapPaymentStatus> {
+  const doc = await MapModel.findById(mapId, 'status checkoutUrl');
+  if (!doc) throw new Error(`Map not found: ${mapId}`);
   return {
-    status: data.status as MapStatus,
-    checkoutUrl: data.checkout_url as string | null,
+    status: doc.status,
+    checkoutUrl: doc.checkoutUrl ?? null,
   };
 }
 
-export async function updatePaymentData(mapId: string, data: PaymentData, supabase: SupabaseClient): Promise<void> {
-  const { error } = await supabase
-    .from('maps')
-    .update({ checkout_url: data.checkoutUrl })
-    .eq('id', mapId);
-  if (error) throw new Error(error.message);
+export async function updatePaymentData(mapId: string, data: PaymentData): Promise<void> {
+  await MapModel.findByIdAndUpdate(mapId, { checkoutUrl: data.checkoutUrl });
 }
 
-export async function getLocationsByMapId(mapId: string, supabase: SupabaseClient): Promise<Location[]> {
-  const { data, error } = await supabase
-    .from('locations')
-    .select()
-    .eq('map_id', mapId)
-    .order('order', { ascending: true });
-  if (error) throw new Error(error.message);
-  return (data ?? []).map(toLocation);
-}
-
-async function expireMap(mapId: string, supabase: SupabaseClient): Promise<void> {
-  const { error } = await supabase
-    .from('maps')
-    .update({ status: 'expired' })
-    .eq('id', mapId);
-  if (error) throw new Error(error.message);
-}
-
-function toLocation(row: Record<string, unknown>): Location {
-  return {
-    id: row.id as string,
-    mapId: row.map_id as string,
-    title: row.title as string,
-    description: row.description as string | null,
-    message: row.message as string | null,
-    photoUrl: row.photo_url as string | null,
-    latitude: row.latitude as number,
-    longitude: row.longitude as number,
-    order: row.order as number,
-  };
-}
-
-function toMapRecord(row: Record<string, unknown>): MapRecord {
-  return {
-    id: row.id as string,
-    coupleName: row.couple_name as string,
-    buyerName: row.buyer_name as string,
-    buyerPhone: row.buyer_phone as string,
-    slug: row.slug as string,
-    email: row.email as string,
-    plan: row.plan as Plan,
-    relationshipStartDate: row.relationship_start_date as string,
-    token: row.token as string | null,
-    status: row.status as MapStatus,
-    youtubeVideoId: row.youtube_video_link as string | null,
-    youtubeStartTime: row.youtube_start_time as number | null,
-    youtubeEndTime: row.youtube_end_time as number | null,
-    paymentId: row.payment_id as string | null,
-    checkoutUrl: row.checkout_url as string | null,
-    expiresAt: row.expires_at as string | null,
-    createdAt: row.created_at as string,
-  };
+export async function getLocationsByMapId(mapId: string): Promise<Location[]> {
+  const docs = await LocationModel.find({ mapId }).sort({ order: 1 });
+  return docs.map(toLocation);
 }

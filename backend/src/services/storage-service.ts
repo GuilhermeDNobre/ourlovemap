@@ -1,6 +1,5 @@
 import { randomUUID } from 'crypto';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { FastifyBaseLogger } from 'fastify';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 const ACCEPTED_MIME_TYPES: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -8,8 +7,6 @@ const ACCEPTED_MIME_TYPES: Record<string, string> = {
   'image/png': 'png',
   'image/webp': 'webp',
 };
-
-const STORAGE_BUCKET = 'couple-photos';
 
 export interface UploadableFile {
   mimetype: string;
@@ -19,11 +16,20 @@ export interface UploadableFile {
 interface UploadPhotoParams {
   file: UploadableFile;
   mapId: string;
-  supabase: SupabaseClient;
-  log: FastifyBaseLogger;
 }
 
-export async function uploadPhoto({ file, mapId, supabase, log }: UploadPhotoParams): Promise<string> {
+function createR2Client(): S3Client {
+  return new S3Client({
+    region: 'auto',
+    endpoint: `https://${process.env.CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
+    },
+  });
+}
+
+export async function uploadPhoto({ file, mapId }: UploadPhotoParams): Promise<string> {
   const ext = ACCEPTED_MIME_TYPES[file.mimetype];
   if (!ext) {
     const error = new Error('File type not allowed') as Error & { statusCode: number };
@@ -31,14 +37,13 @@ export async function uploadPhoto({ file, mapId, supabase, log }: UploadPhotoPar
     throw error;
   }
   const buffer = await file.toBuffer();
-  const storagePath = `${mapId}/${randomUUID()}.${ext}`;
-  const { error: uploadError } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .upload(storagePath, buffer, { contentType: file.mimetype });
-  if (uploadError) {
-    log.error({ error: uploadError.message, mapId }, 'Supabase storage upload failed');
-    throw uploadError;
-  }
-  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath);
-  return data.publicUrl;
+  const storagePath = `photos/${mapId}/${randomUUID()}.${ext}`;
+  const client = createR2Client();
+  await client.send(new PutObjectCommand({
+    Bucket: process.env.CLOUDFLARE_R2_BUCKET!,
+    Key: storagePath,
+    Body: buffer,
+    ContentType: file.mimetype,
+  }));
+  return `${process.env.CLOUDFLARE_R2_PUBLIC_URL!}/${storagePath}`;
 }

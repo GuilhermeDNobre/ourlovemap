@@ -1,63 +1,66 @@
-# Tarefa 2.0: Banco de dados e plugin Supabase
+# Tarefa 2.0: Banco de dados e plugin MongoDB
 
 <critical>Ler os arquivos de prd.md e techspec.md desta pasta, se você não ler esses arquivos sua tarefa será invalidada</critical>
 
 ## Visão Geral
 
-Criar as tabelas `maps` e `locations` no Supabase e implementar o plugin Fastify que injeta o client `@supabase/supabase-js` via decorator, disponibilizando-o para todos os serviços e rotas.
+Definir os modelos Mongoose para as coleções `maps` e `locations` e implementar o plugin Fastify que conecta ao MongoDB via mongoose e injeta a conexão via decorator, disponibilizando-o para todos os serviços e rotas.
 
 <requirements>
-- Tabelas `maps` e `locations` criadas conforme schema definido na techspec.md
-- Plugin Fastify `supabase-plugin.ts` registra o client Supabase como decorator `fastify.supabase`
-- Credenciais lidas de variáveis de ambiente (`SUPABASE_URL`, `SUPABASE_SERVICE_KEY`)
-- Migrations SQL versionadas em `./backend/migrations/`
+- Models `Map` e `Location` criados conforme schema definido na techspec.md
+- Plugin Fastify `mongodb-plugin.ts` conecta ao MongoDB e registra a conexão como decorator `fastify.mongoose`
+- URI de conexão lida da variável de ambiente `MONGODB_URI`
+- Plugin encerra a conexão graciosamente ao fechar o servidor
 </requirements>
 
 ## Subtarefas
 
-- [x] 2.1 Criar arquivo `./backend/migrations/001_create_maps.sql` com o schema completo da tabela `maps` (todos os campos da techspec.md, incluindo `payment_id`, `pix_qr_code`, `pix_code`, `payment_expires_at`, `youtube_end_time`)
-- [x] 2.2 Criar arquivo `./backend/migrations/002_create_locations.sql` com o schema completo da tabela `locations` e a foreign key para `maps`
-- [ ] 2.3 Executar as migrations no projeto Supabase (via SQL Editor no dashboard ou CLI)
-- [x] 2.4 Criar `src/plugins/supabase-plugin.ts` que inicializa `createClient(url, key)` e registra via `fastify.decorate('supabase', client)`
-- [x] 2.5 Registrar o plugin em `src/app.ts` antes de qualquer rota
+- [ ] 2.1 Criar `src/models/map-model.ts` com o schema e model Mongoose completo da coleção `maps` (todos os campos da techspec.md: `coupleName`, `slug`, `email`, `plan`, `relationshipStartDate`, `token`, `status`, `youtubeVideoId`, `youtubeStartTime`, `youtubeEndTime`, `paymentId`, `checkoutUrl`, `expiresAt`, `timestamps: true`)
+- [ ] 2.2 Criar `src/models/location-model.ts` com o schema e model Mongoose completo da coleção `locations` e referência para `Map` via `mapId`
+- [ ] 2.3 Criar `src/plugins/mongodb-plugin.ts` que conecta via `mongoose.connect(MONGODB_URI)` e registra via `fastify.decorate('mongoose', mongoose)`
+- [ ] 2.4 Registrar o plugin em `src/app.ts` antes de qualquer rota
+- [ ] 2.5 Adicionar hook `onClose` no plugin para encerrar a conexão com `mongoose.disconnect()`
 
 ## Detalhes de Implementação
 
-Consultar seção **Modelos de Dados** e **Pontos de Integração** da techspec.md para o schema completo das tabelas e as variáveis de ambiente necessárias.
+Consultar seção **Modelos de Dados** e **Pontos de Integração** da techspec.md para o schema completo dos models e as variáveis de ambiente necessárias.
 
-O plugin deve usar `fastify-plugin` (`fp`) para que o decorator `fastify.supabase` seja acessível fora do escopo do plugin.
+O plugin deve usar `fastify-plugin` (`fp`) para que o decorator `fastify.mongoose` seja acessível fora do escopo do plugin.
 
 ```typescript
 // Exemplo de estrutura do plugin
-import fp from 'fastify-plugin'
-import { createClient } from '@supabase/supabase-js'
+import fp from 'fastify-plugin';
+import mongoose from 'mongoose';
 
 export default fp(async (fastify) => {
-  const client = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!
-  )
-  fastify.decorate('supabase', client)
-})
+  await mongoose.connect(process.env.MONGODB_URI!);
+  fastify.decorate('mongoose', mongoose);
+  fastify.addHook('onClose', async () => {
+    await mongoose.disconnect();
+  });
+});
 ```
+
+Os models devem ser importados diretamente nos serviços — não precisam passar pelo decorator. O decorator serve apenas para garantir que a conexão foi estabelecida antes das rotas serem registradas.
 
 ## Critérios de Sucesso
 
-- Tabelas `maps` e `locations` existem no Supabase com todos os campos e constraints corretos
-- `fastify.supabase` está disponível em rotas e serviços após o registro do plugin
+- Models `Map` e `Location` exportam tipos `MapDocument` e `LocationDocument` e os models Mongoose correspondentes
+- `fastify.mongoose` está disponível após o registro do plugin
+- Conexão é encerrada corretamente ao fechar o servidor
 - `npm run build` compila sem erros após adição do plugin
 
 ## Testes da Tarefa
 
-- [ ] Teste de unidade: `supabase-plugin.ts` decora a instância Fastify corretamente (mock do `createClient`)
-- [ ] Teste de integração: `buildApp()` inicializa com o plugin registrado sem lançar exceção
+- [ ] Teste de unidade: `mongodb-plugin.ts` decora a instância Fastify corretamente (mock de `mongoose.connect`)
+- [ ] Teste de integração: `buildApp()` inicializa com o plugin registrado sem lançar exceção (mock do `mongoose.connect`)
 
 <critical>SEMPRE CRIE E EXECUTE OS TESTES DA TAREFA ANTES DE CONSIDERÁ-LA FINALIZADA</critical>
 
 ## Arquivos relevantes
 
-- `./backend/migrations/001_create_maps.sql`
-- `./backend/migrations/002_create_locations.sql`
-- `./backend/src/plugins/supabase-plugin.ts`
+- `./backend/src/models/map-model.ts`
+- `./backend/src/models/location-model.ts`
+- `./backend/src/plugins/mongodb-plugin.ts`
 - `./backend/src/app.ts` (modificado para registrar o plugin)
 - `./backend/test/helpers/build-app.ts` (modificado para incluir o plugin)

@@ -1,6 +1,16 @@
-jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn(() => ({ from: jest.fn() })),
-}));
+jest.mock('mongoose', () => {
+  const Schema = jest.fn().mockImplementation(() => ({ index: jest.fn() }));
+  const model = jest.fn().mockReturnValue({});
+  return {
+    Schema,
+    model,
+    connect: jest.fn().mockResolvedValue(undefined),
+    disconnect: jest.fn().mockResolvedValue(undefined),
+    Types: {
+      ObjectId: jest.fn().mockImplementation(() => ({ toString: () => 'generated-map-id' })),
+    },
+  };
+});
 
 jest.mock('../../src/services/storage-service.js', () => ({
   uploadPhoto: jest.fn(),
@@ -11,6 +21,7 @@ jest.mock('../../src/services/map-service.js', () => ({
   getMapById: jest.fn(),
   getMapByToken: jest.fn(),
   getLocationsByMapId: jest.fn(),
+  PLAN_LOCATION_LIMITS: { basic: 3, premium: 7, test: 7 },
 }));
 
 jest.mock('../../src/services/payment-service.js', () => ({
@@ -87,17 +98,8 @@ function buildDefaultCheckoutResult() {
   return { checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc' };
 }
 
-const originalEnv = process.env;
-
 beforeEach(() => {
   jest.clearAllMocks();
-  process.env = { ...originalEnv };
-  process.env.SUPABASE_URL = 'https://test.supabase.co';
-  process.env.SUPABASE_SERVICE_KEY = 'test-service-key';
-});
-
-afterEach(() => {
-  process.env = originalEnv;
 });
 
 describe('POST /api/maps', () => {
@@ -121,11 +123,9 @@ describe('POST /api/maps', () => {
     expect(uploadPhoto).toHaveBeenCalledWith(expect.objectContaining({ mapId: expect.any(String) }));
     expect(createMap).toHaveBeenCalledWith(
       expect.objectContaining({ coupleName: 'Carol e André', email: 'carol@example.com', plan: 'basic' }),
-      expect.anything(),
     );
     expect(createCheckoutPayment).toHaveBeenCalledWith(
       expect.objectContaining({ plan: 'basic', email: 'carol@example.com' }),
-      expect.anything(),
     );
   });
 
@@ -282,7 +282,6 @@ describe('POST /api/maps/:id/retry-payment', () => {
     expect(body.checkoutUrl).toBe('https://checkout.infinitepay.com.br/myhandle?lenc=new');
     expect(createCheckoutPayment).toHaveBeenCalledWith(
       expect.objectContaining({ mapId: 'map-1', plan: 'basic', email: 'carol@example.com' }),
-      expect.anything(),
     );
   });
 
@@ -418,8 +417,8 @@ describe('GET /api/maps/by-token', () => {
     expect(body.locations[0].latitude).toBe(-23.5);
     expect(body.locations[0].longitude).toBe(-46.6);
     expect(body.locations[0].photoUrl).toBe('https://storage.example.com/photo.jpg');
-    expect(getMapByToken).toHaveBeenCalledWith('tok01', expect.anything());
-    expect(getLocationsByMapId).toHaveBeenCalledWith('map-1', expect.anything());
+    expect(getMapByToken).toHaveBeenCalledWith('tok01');
+    expect(getLocationsByMapId).toHaveBeenCalledWith('map-1');
   });
 
   it('should return 401 when token query param is absent', async () => {

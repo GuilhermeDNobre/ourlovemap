@@ -1,4 +1,29 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+
+jest.mock('../../src/models/map-model.js', () => ({
+  MapModel: {
+    create: jest.fn(),
+    findOne: jest.fn(),
+    findById: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
+  },
+}));
+
+jest.mock('../../src/models/location-model.js', () => ({
+  LocationModel: {
+    find: jest.fn(),
+    insertMany: jest.fn(),
+  },
+}));
+
+jest.mock('../../src/utils/slug.js', () => ({
+  generateSlug: jest.fn().mockImplementation((name: unknown) => (name as string).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')),
+}));
+
+jest.mock('../../src/utils/token.js', () => ({
+  generateToken: jest.fn().mockReturnValue('tok01'),
+}));
+
 import {
   createMap,
   activateMap,
@@ -8,63 +33,51 @@ import {
   getMapByOrderNsu,
   getPaymentStatus,
   updatePaymentData,
+  getLocationsByMapId,
   type CreateMapData,
   type Plan,
   type PaymentData,
 } from '../../src/services/map-service.js';
+import { MapModel } from '../../src/models/map-model.js';
+import { LocationModel } from '../../src/models/location-model.js';
 
-type BuilderResult = { data: unknown; error: unknown };
-
-function makeBuilder(result: Partial<BuilderResult> = {}) {
-  const resolved: BuilderResult = { data: result.data ?? null, error: result.error ?? null };
-  const builder = {
-    insert: jest.fn(),
-    update: jest.fn(),
-    select: jest.fn(),
-    eq: jest.fn(),
-    single: jest.fn().mockResolvedValue(resolved),
-    then: (
-      onFulfilled: (value: BuilderResult) => unknown,
-      onRejected?: (reason: unknown) => unknown,
-    ) => Promise.resolve(resolved).then(onFulfilled, onRejected),
-  };
-  builder.insert.mockReturnValue(builder);
-  builder.update.mockReturnValue(builder);
-  builder.select.mockReturnValue(builder);
-  builder.eq.mockReturnValue(builder);
-  return builder;
-}
-
-function buildBaseMapRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+function buildMockMapDoc(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'map-1',
-    couple_name: 'Carol e André',
-    buyer_name: 'Carol Silva',
-    buyer_phone: '11999999999',
+    _id: { toString: () => 'map-1' },
+    coupleName: 'Carol e André',
+    buyerName: 'Carol Silva',
+    buyerPhone: '11999999999',
     slug: '',
     email: 'carol@example.com',
     plan: 'basic',
-    relationship_start_date: '2020-06-15',
-    token: null,
+    relationshipStartDate: new Date('2020-06-15'),
+    token: undefined,
     status: 'pending_payment',
-    youtube_video_id: null,
-    youtube_start_time: null,
-    youtube_end_time: null,
-    payment_id: null,
-    checkout_url: null,
-    expires_at: null,
-    created_at: '2026-03-10T00:00:00Z',
+    youtubeVideoId: undefined,
+    youtubeStartTime: undefined,
+    youtubeEndTime: undefined,
+    paymentId: undefined,
+    checkoutUrl: undefined,
+    expiresAt: undefined,
+    createdAt: new Date('2026-03-10T00:00:00Z'),
+    updatedAt: new Date('2026-03-10T00:00:00Z'),
     ...overrides,
   };
 }
 
-function buildLocations(count: number) {
-  return Array.from({ length: count }, (_, i) => ({
-    title: `Location ${i + 1}`,
-    latitude: -23.5 + i * 0.1,
-    longitude: -46.6 + i * 0.1,
-    order: i + 1,
-  }));
+function buildMockLocationDoc(overrides: Record<string, unknown> = {}) {
+  return {
+    _id: { toString: () => 'loc-1' },
+    mapId: { toString: () => 'map-1' },
+    title: 'Nossa primeira vez',
+    description: undefined,
+    message: undefined,
+    photoUrl: undefined,
+    latitude: -23.5,
+    longitude: -46.6,
+    order: 1,
+    ...overrides,
+  };
 }
 
 function buildCreateMapData(plan: Plan, locationCount: number): CreateMapData {
@@ -75,23 +88,26 @@ function buildCreateMapData(plan: Plan, locationCount: number): CreateMapData {
     email: 'carol@example.com',
     plan,
     relationshipStartDate: '2020-06-15',
-    locations: buildLocations(locationCount),
+    locations: Array.from({ length: locationCount }, (_, i) => ({
+      title: `Location ${i + 1}`,
+      latitude: -23.5 + i * 0.1,
+      longitude: -46.6 + i * 0.1,
+      order: i + 1,
+    })),
   };
 }
 
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
 describe('createMap', () => {
   it('should succeed with basic plan and 3 locations', async () => {
-    const mapRow = buildBaseMapRow();
-    const mapsBuilder = makeBuilder({ data: mapRow, error: null });
-    const locationsBuilder = makeBuilder({ data: [], error: null });
-    const supabase = {
-      from: jest.fn().mockImplementation((table: string) => {
-        if (table === 'maps') return mapsBuilder;
-        return locationsBuilder;
-      }),
-    } as unknown as SupabaseClient;
+    const doc = buildMockMapDoc({ plan: 'basic' });
+    (MapModel.create as jest.Mock).mockImplementation(() => Promise.resolve(doc));
+    (LocationModel.insertMany as jest.Mock).mockImplementation(() => Promise.resolve([]));
 
-    const result = await createMap(buildCreateMapData('basic', 3), supabase);
+    const result = await createMap(buildCreateMapData('basic', 3));
 
     expect(result.id).toBe('map-1');
     expect(result.status).toBe('pending_payment');
@@ -99,118 +115,112 @@ describe('createMap', () => {
   });
 
   it('should throw 422 error with basic plan and 4 locations', async () => {
-    const supabase = { from: jest.fn() } as unknown as SupabaseClient;
-
-    await expect(createMap(buildCreateMapData('basic', 4), supabase)).rejects.toMatchObject({
+    await expect(createMap(buildCreateMapData('basic', 4))).rejects.toMatchObject({
       message: expect.stringContaining('basic'),
       statusCode: 422,
     });
+    expect(MapModel.create).not.toHaveBeenCalled();
   });
 
   it('should succeed with premium plan and 7 locations', async () => {
-    const mapRow = buildBaseMapRow({ plan: 'premium' });
-    const mapsBuilder = makeBuilder({ data: mapRow, error: null });
-    const locationsBuilder = makeBuilder({ data: [], error: null });
-    const supabase = {
-      from: jest.fn().mockImplementation((table: string) => {
-        if (table === 'maps') return mapsBuilder;
-        return locationsBuilder;
-      }),
-    } as unknown as SupabaseClient;
+    const doc = buildMockMapDoc({ plan: 'premium' });
+    (MapModel.create as jest.Mock).mockImplementation(() => Promise.resolve(doc));
+    (LocationModel.insertMany as jest.Mock).mockImplementation(() => Promise.resolve([]));
 
-    const result = await createMap(buildCreateMapData('premium', 7), supabase);
+    const result = await createMap(buildCreateMapData('premium', 7));
 
     expect(result.id).toBe('map-1');
     expect(result.plan).toBe('premium');
   });
 
   it('should throw 422 error with premium plan and 8 locations', async () => {
-    const supabase = { from: jest.fn() } as unknown as SupabaseClient;
-
-    await expect(createMap(buildCreateMapData('premium', 8), supabase)).rejects.toMatchObject({
+    await expect(createMap(buildCreateMapData('premium', 8))).rejects.toMatchObject({
       message: expect.stringContaining('premium'),
       statusCode: 422,
     });
+    expect(MapModel.create).not.toHaveBeenCalled();
+  });
+
+  it('should call LocationModel.insertMany with correct mapId', async () => {
+    const doc = buildMockMapDoc();
+    (MapModel.create as jest.Mock).mockImplementation(() => Promise.resolve(doc));
+    (LocationModel.insertMany as jest.Mock).mockImplementation(() => Promise.resolve([]));
+
+    await createMap(buildCreateMapData('basic', 1));
+
+    expect(LocationModel.insertMany).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ mapId: doc._id, title: 'Location 1' }),
+      ]),
+    );
   });
 });
 
 describe('activateMap', () => {
-  it('should generate correct slug, token with 5 chars, expires_at = now+7d for basic', async () => {
-    const existingMap = buildBaseMapRow({ plan: 'basic' });
-    const capturedUpdate = { args: null as Record<string, unknown> | null };
-    const firstBuilder = makeBuilder({ data: existingMap, error: null });
-    const secondBuilder = makeBuilder({ data: null, error: null });
-    secondBuilder.update.mockImplementation((args: Record<string, unknown>) => {
-      capturedUpdate.args = args;
-      secondBuilder.single.mockResolvedValue({
-        data: { ...existingMap, ...args, status: 'active' },
-        error: null,
-      });
-      return secondBuilder;
-    });
-    let callCount = 0;
-    const supabase = {
-      from: jest.fn().mockImplementation(() => {
-        callCount++;
-        return callCount === 1 ? firstBuilder : secondBuilder;
-      }),
-    } as unknown as SupabaseClient;
+  it('should generate slug, token with 5 chars, and set status to active', async () => {
+    const existing = buildMockMapDoc({ plan: 'basic' });
+    const updated = buildMockMapDoc({ plan: 'basic', slug: 'carol-e-andre', token: 'tok01', status: 'active', expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) });
+    (MapModel.findById as jest.Mock).mockImplementation(() => Promise.resolve(existing));
+    (MapModel.findByIdAndUpdate as jest.Mock).mockImplementation(() => Promise.resolve(updated));
 
-    const beforeActivation = new Date();
-    const result = await activateMap('map-1', supabase);
-    const afterActivation = new Date();
+    const result = await activateMap('map-1');
 
-    expect(capturedUpdate.args?.slug).toBe('carol-e-andre');
-    expect(String(capturedUpdate.args?.token)).toHaveLength(5);
-    expect(capturedUpdate.args?.status).toBe('active');
-    const expectedMin = new Date(beforeActivation.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const expectedMax = new Date(afterActivation.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const actualExpiresAt = new Date(capturedUpdate.args?.expires_at as string);
-    expect(actualExpiresAt.getTime()).toBeGreaterThanOrEqual(expectedMin.getTime());
-    expect(actualExpiresAt.getTime()).toBeLessThanOrEqual(expectedMax.getTime());
+    expect(MapModel.findByIdAndUpdate).toHaveBeenCalledWith(
+      'map-1',
+      expect.objectContaining({ slug: expect.any(String), token: 'tok01', status: 'active' }),
+      { new: true },
+    );
     expect(result.status).toBe('active');
+    expect(result.token).toBe('tok01');
   });
 
-  it('should set expires_at to null for premium plan', async () => {
-    const existingMap = buildBaseMapRow({ plan: 'premium' });
+  it('should set expiresAt ~7 days from now for basic plan', async () => {
+    const existing = buildMockMapDoc({ plan: 'basic' });
     const capturedUpdate = { args: null as Record<string, unknown> | null };
-    const firstBuilder = makeBuilder({ data: existingMap, error: null });
-    const secondBuilder = makeBuilder({ data: null, error: null });
-    secondBuilder.update.mockImplementation((args: Record<string, unknown>) => {
-      capturedUpdate.args = args;
-      secondBuilder.single.mockResolvedValue({
-        data: { ...existingMap, ...args, status: 'active' },
-        error: null,
-      });
-      return secondBuilder;
+    (MapModel.findById as jest.Mock).mockImplementation(() => Promise.resolve(existing));
+    (MapModel.findByIdAndUpdate as jest.Mock).mockImplementation((_id: unknown, args: unknown) => {
+      capturedUpdate.args = args as Record<string, unknown>;
+      return Promise.resolve(buildMockMapDoc({ ...capturedUpdate.args, status: 'active' }));
     });
-    let callCount = 0;
-    const supabase = {
-      from: jest.fn().mockImplementation(() => {
-        callCount++;
-        return callCount === 1 ? firstBuilder : secondBuilder;
-      }),
-    } as unknown as SupabaseClient;
 
-    await activateMap('map-1', supabase);
+    const before = new Date();
+    await activateMap('map-1');
+    const after = new Date();
 
-    expect(capturedUpdate.args?.expires_at).toBeNull();
+    const expectedMin = new Date(before.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const expectedMax = new Date(after.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const actualExpiresAt = capturedUpdate.args?.expiresAt as Date;
+    expect(actualExpiresAt.getTime()).toBeGreaterThanOrEqual(expectedMin.getTime());
+    expect(actualExpiresAt.getTime()).toBeLessThanOrEqual(expectedMax.getTime());
+  });
+
+  it('should not set expiresAt for premium plan', async () => {
+    const existing = buildMockMapDoc({ plan: 'premium' });
+    const capturedUpdate = { args: null as Record<string, unknown> | null };
+    (MapModel.findById as jest.Mock).mockImplementation(() => Promise.resolve(existing));
+    (MapModel.findByIdAndUpdate as jest.Mock).mockImplementation((_id: unknown, args: unknown) => {
+      capturedUpdate.args = args as Record<string, unknown>;
+      return Promise.resolve(buildMockMapDoc({ ...capturedUpdate.args, status: 'active' }));
+    });
+
+    await activateMap('map-1');
+
+    expect(capturedUpdate.args?.expiresAt).toBeUndefined();
+  });
+
+  it('should throw when map is not found', async () => {
+    (MapModel.findById as jest.Mock).mockImplementation(() => Promise.resolve(null));
+
+    await expect(activateMap('nonexistent')).rejects.toThrow('Map not found');
   });
 });
 
 describe('getMapByToken', () => {
-  it('should return map for valid token and active map', async () => {
-    const mapRow = buildBaseMapRow({
-      status: 'active',
-      token: 'abc12',
-      slug: 'carol-e-andre',
-      expires_at: null,
-    });
-    const supabase = {
-      from: jest.fn().mockImplementation(() => makeBuilder({ data: mapRow, error: null })),
-    } as unknown as SupabaseClient;
+  it('should return map for valid token and active map without expiry', async () => {
+    const doc = buildMockMapDoc({ status: 'active', token: 'abc12', slug: 'carol-e-andre', expiresAt: undefined });
+    (MapModel.findOne as jest.Mock).mockImplementation(() => Promise.resolve(doc));
 
-    const result = await getMapByToken('abc12', supabase);
+    const result = await getMapByToken('abc12');
 
     expect(result).not.toBeNull();
     expect(result?.status).toBe('active');
@@ -218,42 +228,26 @@ describe('getMapByToken', () => {
   });
 
   it('should update status to expired and return expired map when map has expired', async () => {
-    const pastDate = new Date(Date.now() - 1000).toISOString();
-    const mapRow = buildBaseMapRow({
-      status: 'active',
-      token: 'abc12',
-      slug: 'carol-e-andre',
-      expires_at: pastDate,
-    });
-    const capturedExpireUpdate = { args: null as Record<string, unknown> | null };
-    const selectBuilder = makeBuilder({ data: mapRow, error: null });
-    const expireBuilder = makeBuilder({ data: null, error: null });
-    expireBuilder.update.mockImplementation((args: Record<string, unknown>) => {
-      capturedExpireUpdate.args = args;
-      return expireBuilder;
-    });
-    let callCount = 0;
-    const supabase = {
-      from: jest.fn().mockImplementation(() => {
-        callCount++;
-        return callCount === 1 ? selectBuilder : expireBuilder;
-      }),
-    } as unknown as SupabaseClient;
+    const pastDate = new Date(Date.now() - 1000);
+    const doc = buildMockMapDoc({ status: 'active', token: 'abc12', expiresAt: pastDate });
+    const expiredDoc = buildMockMapDoc({ status: 'expired', token: 'abc12', expiresAt: pastDate });
+    (MapModel.findOne as jest.Mock).mockImplementation(() => Promise.resolve(doc));
+    (MapModel.findByIdAndUpdate as jest.Mock).mockImplementation(() => Promise.resolve(expiredDoc));
 
-    const result = await getMapByToken('abc12', supabase);
+    const result = await getMapByToken('abc12');
 
-    expect(capturedExpireUpdate.args?.status).toBe('expired');
+    expect(MapModel.findByIdAndUpdate).toHaveBeenCalledWith(
+      doc._id,
+      { status: 'expired' },
+      { new: true },
+    );
     expect(result?.status).toBe('expired');
   });
 
   it('should return null for nonexistent token', async () => {
-    const supabase = {
-      from: jest.fn().mockImplementation(() =>
-        makeBuilder({ data: null, error: { message: 'No rows found' } }),
-      ),
-    } as unknown as SupabaseClient;
+    (MapModel.findOne as jest.Mock).mockImplementation(() => Promise.resolve(null));
 
-    const result = await getMapByToken('nonexistent', supabase);
+    const result = await getMapByToken('nonexistent');
 
     expect(result).toBeNull();
   });
@@ -261,44 +255,30 @@ describe('getMapByToken', () => {
 
 describe('setPaymentFailed', () => {
   it('should update status to payment_failed', async () => {
-    const capturedUpdate = { args: null as Record<string, unknown> | null };
-    const builder = makeBuilder({ data: null, error: null });
-    builder.update.mockImplementation((args: Record<string, unknown>) => {
-      capturedUpdate.args = args;
-      return builder;
-    });
-    const supabase = {
-      from: jest.fn().mockImplementation(() => builder),
-    } as unknown as SupabaseClient;
+    (MapModel.findByIdAndUpdate as jest.Mock).mockImplementation(() => Promise.resolve(null));
 
-    await setPaymentFailed('map-1', supabase);
+    await setPaymentFailed('map-1');
 
-    expect(capturedUpdate.args?.status).toBe('payment_failed');
+    expect(MapModel.findByIdAndUpdate).toHaveBeenCalledWith('map-1', { status: 'payment_failed' });
   });
 });
 
 describe('getMapByOrderNsu', () => {
   it('should return map when order nsu (mapId) exists', async () => {
-    const mapRow = buildBaseMapRow({ id: 'map-123', status: 'pending_payment' });
-    const supabase = {
-      from: jest.fn().mockImplementation(() => makeBuilder({ data: mapRow, error: null })),
-    } as unknown as SupabaseClient;
+    const doc = buildMockMapDoc({ status: 'pending_payment' });
+    (MapModel.findById as jest.Mock).mockImplementation(() => Promise.resolve(doc));
 
-    const result = await getMapByOrderNsu('map-123', supabase);
+    const result = await getMapByOrderNsu('map-1');
 
     expect(result).not.toBeNull();
-    expect(result?.id).toBe('map-123');
+    expect(result?.id).toBe('map-1');
     expect(result?.status).toBe('pending_payment');
   });
 
   it('should return null when paymentId does not exist', async () => {
-    const supabase = {
-      from: jest.fn().mockImplementation(() =>
-        makeBuilder({ data: null, error: { message: 'No rows found' } }),
-      ),
-    } as unknown as SupabaseClient;
+    (MapModel.findById as jest.Mock).mockImplementation(() => Promise.resolve(null));
 
-    const result = await getMapByOrderNsu('nonexistent', supabase);
+    const result = await getMapByOrderNsu('nonexistent');
 
     expect(result).toBeNull();
   });
@@ -306,73 +286,39 @@ describe('getMapByOrderNsu', () => {
 
 describe('getPaymentStatus', () => {
   it('should return payment status and checkoutUrl for valid mapId', async () => {
-    const paymentStatusRow = {
-      status: 'pending_payment',
-      checkout_url: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc',
-    };
-    const supabase = {
-      from: jest.fn().mockImplementation(() => makeBuilder({ data: paymentStatusRow, error: null })),
-    } as unknown as SupabaseClient;
+    const doc = buildMockMapDoc({ status: 'pending_payment', checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc' });
+    (MapModel.findById as jest.Mock).mockImplementation(() => Promise.resolve(doc));
 
-    const result = await getPaymentStatus('map-1', supabase);
+    const result = await getPaymentStatus('map-1');
 
     expect(result.status).toBe('pending_payment');
     expect(result.checkoutUrl).toBe('https://checkout.infinitepay.com.br/myhandle?lenc=abc');
   });
 
-  it('should throw when supabase returns an error', async () => {
-    const supabase = {
-      from: jest.fn().mockImplementation(() =>
-        makeBuilder({ data: null, error: { message: 'Map not found' } }),
-      ),
-    } as unknown as SupabaseClient;
+  it('should throw when map is not found', async () => {
+    (MapModel.findById as jest.Mock).mockImplementation(() => Promise.resolve(null));
 
-    await expect(getPaymentStatus('nonexistent', supabase)).rejects.toThrow('Map not found');
+    await expect(getPaymentStatus('nonexistent')).rejects.toThrow('Map not found');
   });
 });
 
 describe('updatePaymentData', () => {
-  it('should update checkout_url with correct value', async () => {
-    const capturedUpdate = { args: null as Record<string, unknown> | null };
-    const builder = makeBuilder({ data: null, error: null });
-    builder.update.mockImplementation((args: Record<string, unknown>) => {
-      capturedUpdate.args = args;
-      return builder;
-    });
-    const supabase = {
-      from: jest.fn().mockImplementation(() => builder),
-    } as unknown as SupabaseClient;
-    const paymentData: PaymentData = {
-      checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc',
-    };
+  it('should update checkoutUrl with correct value', async () => {
+    (MapModel.findByIdAndUpdate as jest.Mock).mockImplementation(() => Promise.resolve(null));
+    const data: PaymentData = { checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc' };
 
-    await updatePaymentData('map-1', paymentData, supabase);
+    await updatePaymentData('map-1', data);
 
-    expect(capturedUpdate.args?.checkout_url).toBe('https://checkout.infinitepay.com.br/myhandle?lenc=abc');
-  });
-
-  it('should throw when supabase returns an error', async () => {
-    const builder = makeBuilder({ data: null, error: { message: 'Update failed' } });
-    builder.update.mockReturnValue(builder);
-    const supabase = {
-      from: jest.fn().mockImplementation(() => builder),
-    } as unknown as SupabaseClient;
-    const paymentData: PaymentData = {
-      checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc',
-    };
-
-    await expect(updatePaymentData('map-1', paymentData, supabase)).rejects.toThrow('Update failed');
+    expect(MapModel.findByIdAndUpdate).toHaveBeenCalledWith('map-1', { checkoutUrl: data.checkoutUrl });
   });
 });
 
 describe('getMapById', () => {
   it('should return map when id exists', async () => {
-    const mapRow = buildBaseMapRow({ id: 'map-1' });
-    const supabase = {
-      from: jest.fn().mockImplementation(() => makeBuilder({ data: mapRow, error: null })),
-    } as unknown as SupabaseClient;
+    const doc = buildMockMapDoc();
+    (MapModel.findById as jest.Mock).mockImplementation(() => Promise.resolve(doc));
 
-    const result = await getMapById('map-1', supabase);
+    const result = await getMapById('map-1');
 
     expect(result).not.toBeNull();
     expect(result?.id).toBe('map-1');
@@ -380,14 +326,35 @@ describe('getMapById', () => {
   });
 
   it('should return null when map does not exist', async () => {
-    const supabase = {
-      from: jest.fn().mockImplementation(() =>
-        makeBuilder({ data: null, error: { message: 'No rows found' } }),
-      ),
-    } as unknown as SupabaseClient;
+    (MapModel.findById as jest.Mock).mockImplementation(() => Promise.resolve(null));
 
-    const result = await getMapById('nonexistent', supabase);
+    const result = await getMapById('nonexistent');
 
     expect(result).toBeNull();
+  });
+});
+
+describe('getLocationsByMapId', () => {
+  it('should return locations sorted by order', async () => {
+    const docs = [buildMockLocationDoc({ order: 1 }), buildMockLocationDoc({ _id: { toString: () => 'loc-2' }, order: 2 })];
+    const mockSort = jest.fn().mockImplementation(() => Promise.resolve(docs));
+    (LocationModel.find as jest.Mock).mockReturnValue({ sort: mockSort });
+
+    const result = await getLocationsByMapId('map-1');
+
+    expect(LocationModel.find).toHaveBeenCalledWith({ mapId: 'map-1' });
+    expect(mockSort).toHaveBeenCalledWith({ order: 1 });
+    expect(result).toHaveLength(2);
+    expect(result[0].order).toBe(1);
+    expect(result[1].order).toBe(2);
+  });
+
+  it('should return empty array when no locations exist', async () => {
+    const mockSort = jest.fn().mockImplementation(() => Promise.resolve([]));
+    (LocationModel.find as jest.Mock).mockReturnValue({ sort: mockSort });
+
+    const result = await getLocationsByMapId('map-1');
+
+    expect(result).toHaveLength(0);
   });
 });

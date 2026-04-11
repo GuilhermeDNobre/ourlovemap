@@ -1,11 +1,11 @@
-import crypto from 'crypto';
-import type { FastifyInstance, FastifyRequest, FastifyBaseLogger } from 'fastify';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { Types } from 'mongoose';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { uploadPhoto, type UploadableFile } from '../services/storage-service.js';
 import {
   createMap,
   getMapByToken,
   getLocationsByMapId,
+  PLAN_LOCATION_LIMITS,
   type LocationInput,
   type Plan,
 } from '../services/map-service.js';
@@ -13,7 +13,6 @@ import { createCheckoutPayment } from '../services/payment-service.js';
 
 const VALID_PLANS = new Set<string>(['basic', 'premium', 'test']);
 const REQUIRED_FIELDS = ['couple_name', 'buyer_name', 'buyer_phone', 'email', 'plan', 'relationship_start_date'] as const;
-const PLAN_LOCATION_LIMITS: Record<string, number> = { basic: 3, premium: 7 };
 const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
 const YOUTUBE_URL_PATTERN = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
 
@@ -104,17 +103,15 @@ function validateLocationFields(locationFields: Record<number, ParsedLocationFie
   return null;
 }
 
-function validateLocationCount(plan: string, count: number): boolean {
+function validateLocationCount(plan: Plan, count: number): boolean {
   const limit = PLAN_LOCATION_LIMITS[plan];
-  return limit === undefined || count <= limit;
+  return count <= limit;
 }
 
 async function buildLocations(
   locationFields: Record<number, ParsedLocationField>,
   files: ParsedFile[],
   mapId: string,
-  supabase: SupabaseClient,
-  log: FastifyBaseLogger,
 ): Promise<LocationInput[]> {
   const fileMap: Record<number, ParsedFile> = {};
   for (const file of files) fileMap[file.idx] = file;
@@ -129,7 +126,7 @@ async function buildLocations(
           mimetype: captured.mimetype,
           toBuffer: async () => captured.buffer,
         };
-        photoUrl = await uploadPhoto({ file: uploadableFile, mapId, supabase, log });
+        photoUrl = await uploadPhoto({ file: uploadableFile, mapId });
       }
       return {
         title: loc.title ?? '',
@@ -190,7 +187,7 @@ function registerByTokenRoute(fastify: FastifyInstance): void {
   }, async (request, reply) => {
     const { token } = request.query as { token?: string };
     if (!token) return reply.code(401).send({ error: 'Token is required' });
-    const map = await getMapByToken(token, fastify.supabase);
+    const map = await getMapByToken(token);
     if (!map) return reply.code(401).send({ error: 'Invalid token' });
     if (map.status === 'expired') {
       try {
@@ -206,7 +203,7 @@ function registerByTokenRoute(fastify: FastifyInstance): void {
     if (map.status !== 'active') {
       return reply.code(403).send({ error: 'Map is not active' });
     }
-    const locations = await getLocationsByMapId(map.id, fastify.supabase);
+    const locations = await getLocationsByMapId(map.id);
     return reply.send({
       coupleName: map.coupleName,
       relationshipStartDate: map.relationshipStartDate,
@@ -244,11 +241,7 @@ export default async function mapRoutes(fastify: FastifyInstance): Promise<void>
       response: {
         200: {
           description: 'Map created and checkout link generated',
-          type: 'object',
-          properties: {
-            mapId: { type: 'string', format: 'uuid' },
-            checkoutUrl: { type: 'string', description: 'InfinitePay checkout URL' },
-          },
+          $ref: 'https://ourlovemap.com/schemas/CheckoutResult#',
         },
         400: { description: 'Missing required field or invalid plan', $ref: 'https://ourlovemap.com/schemas/Error#' },
         422: { description: 'Location limit exceeded or checkout creation failed', $ref: 'https://ourlovemap.com/schemas/Error#' },
@@ -261,30 +254,31 @@ export default async function mapRoutes(fastify: FastifyInstance): Promise<void>
     const locationValidationError = validateLocationFields(locationFields);
     if (locationValidationError) return reply.code(400).send({ error: locationValidationError });
     const locationCount = Object.keys(locationFields).length;
-    if (!validateLocationCount(fields.plan, locationCount)) {
-      const limit = PLAN_LOCATION_LIMITS[fields.plan];
-      return reply.code(422).send({ error: `Plan ${fields.plan} allows at most ${limit} locations` });
+    const plan = fields.plan as Plan;
+    if (!validateLocationCount(plan, locationCount)) {
+      const limit = PLAN_LOCATION_LIMITS[plan];
+      return reply.code(422).send({ error: `Plan ${plan} allows at most ${limit} locations` });
     }
     const extractedId = fields.youtube_url ? extractYoutubeId(fields.youtube_url) : undefined;
     if (fields.youtube_url && !extractedId) {
       return reply.code(400).send({ error: 'youtube_url is not a valid YouTube URL' });
     }
     const youtubeVideoId = extractedId ?? undefined;
-    const mapId = crypto.randomUUID();
-    const locations = await buildLocations(locationFields, files, mapId, fastify.supabase, request.log);
+    const mapId = new Types.ObjectId().toString();
+    const locations = await buildLocations(locationFields, files, mapId);
     const map = await createMap({
       id: mapId,
       coupleName: fields.couple_name,
       buyerName: fields.buyer_name,
       buyerPhone: fields.buyer_phone,
       email: fields.email,
-      plan: fields.plan as Plan,
+      plan,
       relationshipStartDate: fields.relationship_start_date,
       locations,
       youtubeVideoId,
       youtubeStartTime: fields.youtube_start_time ? parseInt(fields.youtube_start_time, 10) : undefined,
       youtubeEndTime: fields.youtube_end_time ? parseInt(fields.youtube_end_time, 10) : undefined,
-    }, fastify.supabase);
+    });
     request.log.info({ mapId: map.id, plan: fields.plan }, 'Map created');
     try {
       fastify.posthog?.capture({ distinctId: map.id, event: 'map_created', properties: { plan: fields.plan } });
@@ -293,8 +287,7 @@ export default async function mapRoutes(fastify: FastifyInstance): Promise<void>
     }
     try {
       const result = await createCheckoutPayment(
-        { mapId: map.id, plan: fields.plan as Plan, email: fields.email, buyerName: fields.buyer_name, buyerPhone: fields.buyer_phone },
-        fastify.supabase,
+        { mapId: map.id, plan, email: fields.email, buyerName: fields.buyer_name, buyerPhone: fields.buyer_phone },
       );
       return reply.send({ mapId: map.id, checkoutUrl: result.checkoutUrl });
     } catch (error) {

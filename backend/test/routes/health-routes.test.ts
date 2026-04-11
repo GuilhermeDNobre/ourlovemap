@@ -1,8 +1,18 @@
 import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 
-jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn(() => ({ from: jest.fn() })),
-}));
+jest.mock('mongoose', () => {
+  const ObjectId = jest.fn().mockImplementation(() => ({ toString: () => 'mock-id' }));
+  const SchemaConstructor = jest.fn().mockImplementation(() => ({ index: jest.fn() }));
+  const SchemaWithTypes = Object.assign(SchemaConstructor, { Types: { ObjectId } });
+  const model = jest.fn().mockReturnValue({});
+  return {
+    Schema: SchemaWithTypes,
+    model,
+    connect: jest.fn().mockImplementation(() => Promise.resolve()),
+    disconnect: jest.fn().mockImplementation(() => Promise.resolve()),
+    Types: { ObjectId },
+  };
+});
 
 import { buildApp } from '../helpers/build-app';
 
@@ -11,8 +21,7 @@ describe('GET /health', () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv };
-    process.env.SUPABASE_URL = 'https://test.supabase.co';
-    process.env.SUPABASE_SERVICE_KEY = 'test-service-key';
+    process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
   });
 
   afterEach(() => {

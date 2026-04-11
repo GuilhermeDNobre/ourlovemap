@@ -24,12 +24,13 @@ export default async function paymentRoutes(fastify: FastifyInstance): Promise<v
           secret: { type: 'string', description: 'Shared webhook secret configured in INFINITEPAY_WEBHOOK_SECRET' },
         },
       },
+      body: { $ref: 'https://ourlovemap.com/schemas/InfinitePayWebhookEvent#' },
       response: {
         200: {
           description: 'Event received and processed',
           type: 'object',
           properties: {
-            received: { type: 'boolean', example: true },
+            received: { type: 'boolean' },
           },
         },
         401: {
@@ -44,7 +45,7 @@ export default async function paymentRoutes(fastify: FastifyInstance): Promise<v
       return reply.code(401).send({ error: 'Invalid webhook secret' });
     }
     const event = request.body as InfinitePayWebhookEvent;
-    const result = await processWebhookEvent(event, fastify.supabase, request.log);
+    const result = await processWebhookEvent(event, request.log);
     if (result.wasActivated && result.mapId) {
       try {
         fastify.posthog?.capture({ distinctId: result.mapId, event: 'payment_approved', properties: { plan: result.plan } });

@@ -1,5 +1,6 @@
-jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn(() => ({ from: jest.fn() })),
+jest.mock('mongoose', () => ({
+  connect: jest.fn().mockImplementation(() => Promise.resolve()),
+  disconnect: jest.fn().mockImplementation(() => Promise.resolve()),
 }));
 
 jest.mock('axios');
@@ -35,8 +36,6 @@ const originalEnv = process.env;
 beforeEach(() => {
   jest.clearAllMocks();
   process.env = { ...originalEnv };
-  process.env.SUPABASE_URL = 'https://test.supabase.co';
-  process.env.SUPABASE_SERVICE_KEY = 'test-service-key';
   process.env.INFINITEPAY_WEBHOOK_SECRET = WEBHOOK_SECRET;
   (generateQrCode as jest.Mock).mockResolvedValue(Buffer.from('jpg'));
   (sendDeliveryEmail as jest.Mock).mockResolvedValue(undefined);
@@ -95,8 +94,8 @@ describe('POST /api/payments/webhook', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(activateMap).toHaveBeenCalledWith('map-1', expect.anything());
-    expect(generateQrCode).toHaveBeenCalledWith('tok01');
+    expect(activateMap).toHaveBeenCalledWith('map-1');
+    expect(generateQrCode).toHaveBeenCalledWith({ slug: undefined, token: 'tok01' });
     expect(sendDeliveryEmail).toHaveBeenCalled();
   });
 

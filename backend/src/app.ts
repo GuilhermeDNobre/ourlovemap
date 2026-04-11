@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import type { FastifyInstance, FastifyServerOptions } from 'fastify';
-import supabasePlugin from './plugins/supabase-plugin.js';
+import mongodbPlugin from './plugins/mongodb-plugin.js';
 import multipartPlugin from './plugins/multipart-plugin.js';
 import posthogPlugin from './plugins/posthog-plugin.js';
 import swaggerPlugin from './plugins/swagger-plugin.js';
@@ -32,7 +32,7 @@ export function buildApp(options: FastifyServerOptions = { logger: true }): Fast
   });
 
   fastify.register(swaggerPlugin);
-  fastify.register(supabasePlugin);
+  fastify.register(mongodbPlugin);
   fastify.register(multipartPlugin);
   fastify.register(posthogPlugin);
   fastify.register(healthRoutes);

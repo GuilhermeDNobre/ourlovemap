@@ -2,7 +2,7 @@
 
 ## Resumo Executivo
 
-O backend será implementado como uma API Fastify em TypeScript dentro de `./backend`, em um monorepo. A arquitetura é orientada a serviços: cada responsabilidade (mapa, pagamento, storage, email, QR Code) é encapsulada em um serviço dedicado, consumido pelas rotas Fastify. O fluxo central é: criação do mapa com geração de link de checkout InfinitePay → webhook do InfinitePay confirma o pagamento → geração do token/slug/QR Code da página → envio de email. O `@supabase/supabase-js` gerencia banco e storage; um token secreto na query string valida os webhooks do InfinitePay.
+O backend será implementado como uma API Fastify em TypeScript dentro de `./backend`, em um monorepo. A arquitetura é orientada a serviços: cada responsabilidade (mapa, pagamento, storage, email, QR Code) é encapsulada em um serviço dedicado, consumido pelas rotas Fastify. O fluxo central é: criação do mapa com geração de link de checkout InfinitePay → webhook do InfinitePay confirma o pagamento → geração do token/slug/QR Code da página → envio de email. `mongoose` gerencia o banco MongoDB; Cloudflare R2 gerencia o storage de fotos (via `@aws-sdk/client-s3` com endpoint R2); um token secreto na query string valida os webhooks do InfinitePay.
 
 ---
 
@@ -14,12 +14,12 @@ O backend será implementado como uma API Fastify em TypeScript dentro de `./bac
 |---|---|
 | `map-routes.ts` | Rotas: `POST /api/maps`, `GET /api/maps/by-token`, `GET /api/maps/:id/payment-status`, `POST /api/maps/:id/retry-payment` |
 | `payment-routes.ts` | Rota: `POST /api/payments/webhook` |
-| `map-service.ts` | CRUD de mapas e localizações no Supabase |
+| `map-service.ts` | CRUD de mapas e localizações no MongoDB |
 | `payment-service.ts` | Criação de checkout InfinitePay e processamento do webhook |
-| `storage-service.ts` | Upload de fotos para o Supabase Storage, validação de tipo e tamanho |
+| `storage-service.ts` | Upload de fotos para Cloudflare R2, validação de tipo e tamanho |
 | `email-service.ts` | Envio de email via Resend após aprovação do pagamento |
 | `qr-code-service.ts` | Geração do QR Code da página (PNG→JPG via `sharp`) |
-| `supabase-plugin.ts` | Plugin Fastify que injeta o client Supabase via decorator |
+| `mongodb-plugin.ts` | Plugin Fastify que conecta ao MongoDB via mongoose e injeta a conexão via decorator |
 | `slug.ts` | Utilitário: `couple_name` → slug kebab-case sem acentos |
 | `token.ts` | Utilitário: geração de token alfanumérico (a-z, A-Z, 0-9, 5 caracteres) via `crypto.randomBytes` |
 | `hmac.ts` | Utilitário: validação HMAC-SHA256 (implementado, não usado no webhook InfinitePay) |
@@ -41,18 +41,18 @@ Frontend → GET /api/maps/by-token?token=X → map-service (valida token + expi
 ```typescript
 // map-service.ts
 interface MapService {
-  createMap(data: CreateMapData): Promise<Map>
-  activateMap(mapId: string): Promise<Map>
+  createMap(data: CreateMapData): Promise<MapDocument>
+  activateMap(mapId: string): Promise<MapDocument>
   setPaymentFailed(mapId: string): Promise<void>
-  getMapByOrderNsu(orderNsu: string): Promise<Map | null>
-  getMapByToken(token: string): Promise<Map | null>
+  getMapByOrderNsu(orderNsu: string): Promise<MapDocument | null>
+  getMapByToken(token: string): Promise<MapDocument | null>
   getPaymentStatus(mapId: string): Promise<MapPaymentStatus>
 }
 
 // payment-service.ts
 interface PaymentService {
-  createCheckoutPayment(params: CreateCheckoutPaymentParams, supabase: SupabaseClient): Promise<CheckoutPaymentResult>
-  processWebhookEvent(event: InfinitePayWebhookEvent, supabase: SupabaseClient): Promise<void>
+  createCheckoutPayment(params: CreateCheckoutPaymentParams): Promise<CheckoutPaymentResult>
+  processWebhookEvent(event: InfinitePayWebhookEvent, log: FastifyBaseLogger): Promise<void>
 }
 
 // storage-service.ts
@@ -63,53 +63,100 @@ interface StorageService {
 
 ### Modelos de Dados
 
-**Tabela `maps` (Supabase):**
+**Mongoose Model `Map`:**
 
-```sql
-id                  uuid PRIMARY KEY DEFAULT gen_random_uuid()
-couple_name         text NOT NULL
-slug                text NOT NULL
-email               text NOT NULL
-plan                text NOT NULL CHECK (plan IN ('basic', 'premium'))
-relationship_start_date date NOT NULL
-token               text UNIQUE
-status              text NOT NULL DEFAULT 'pending_payment'
-                    CHECK (status IN ('pending_payment','active','expired','payment_failed'))
-youtube_video_id    text
-youtube_start_time  integer
-youtube_end_time    integer
-payment_id          text              -- order_nsu = map id (correlação com InfinitePay)
-checkout_url        text              -- URL de checkout gerada pelo InfinitePay
-expires_at          timestamptz       -- NULL = premium; now()+7d = basic
-created_at          timestamptz DEFAULT now()
+```typescript
+import { Schema, model, Document, Types } from 'mongoose';
+
+export type MapStatus = 'pending_payment' | 'active' | 'expired' | 'payment_failed';
+export type Plan = 'basic' | 'premium' | 'test';
+
+export interface MapDocument extends Document {
+  _id: Types.ObjectId;
+  coupleName: string;
+  slug: string;
+  email: string;
+  plan: Plan;
+  relationshipStartDate: Date;
+  token?: string;
+  status: MapStatus;
+  youtubeVideoId?: string;
+  youtubeStartTime?: number;
+  youtubeEndTime?: number;
+  paymentId?: string;       // order_nsu = map id (correlação com InfinitePay)
+  checkoutUrl?: string;     // URL de checkout gerada pelo InfinitePay
+  expiresAt?: Date;         // undefined = premium; now()+7d = basic
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const mapSchema = new Schema<MapDocument>(
+  {
+    coupleName: { type: String, required: true },
+    slug: { type: String, required: true },
+    email: { type: String, required: true },
+    plan: { type: String, enum: ['basic', 'premium', 'test'], required: true },
+    relationshipStartDate: { type: Date, required: true },
+    token: { type: String, unique: true, sparse: true },
+    status: {
+      type: String,
+      enum: ['pending_payment', 'active', 'expired', 'payment_failed'],
+      default: 'pending_payment',
+    },
+    youtubeVideoId: String,
+    youtubeStartTime: Number,
+    youtubeEndTime: Number,
+    paymentId: String,
+    checkoutUrl: String,
+    expiresAt: Date,
+  },
+  { timestamps: true },
+);
+
+export const MapModel = model<MapDocument>('Map', mapSchema);
 ```
 
-> **Migração necessária:** adicionar coluna `checkout_url text`, remover colunas `pix_qr_code`, `pix_code` e `payment_expires_at` via nova migration no Supabase.
+**Mongoose Model `Location`:**
 
-**Tabela `locations` (Supabase):**
+```typescript
+export interface LocationDocument extends Document {
+  _id: Types.ObjectId;
+  mapId: Types.ObjectId;
+  title: string;
+  description?: string;
+  message?: string;
+  photoUrl?: string;
+  latitude: number;
+  longitude: number;
+  order: number;
+}
 
-```sql
-id          uuid PRIMARY KEY DEFAULT gen_random_uuid()
-map_id      uuid REFERENCES maps(id) ON DELETE CASCADE
-title       text NOT NULL
-description text
-message     text
-photo_url   text
-latitude    decimal NOT NULL
-longitude   decimal NOT NULL
-"order"     integer NOT NULL
+const locationSchema = new Schema<LocationDocument>({
+  mapId: { type: Schema.Types.ObjectId, ref: 'Map', required: true },
+  title: { type: String, required: true },
+  description: String,
+  message: String,
+  photoUrl: String,
+  latitude: { type: Number, required: true },
+  longitude: { type: Number, required: true },
+  order: { type: Number, required: true },
+});
+
+export const LocationModel = model<LocationDocument>('Location', locationSchema);
 ```
 
 **Tipos TypeScript principais:**
 
 ```typescript
 type MapStatus = 'pending_payment' | 'active' | 'expired' | 'payment_failed'
-type Plan = 'basic' | 'premium'
+type Plan = 'basic' | 'premium' | 'test'
 
 interface CreateCheckoutPaymentParams {
   mapId: string
   plan: Plan
   email: string
+  buyerName: string
+  buyerPhone: string
 }
 
 interface CheckoutPaymentResult {
@@ -147,7 +194,7 @@ interface MapPaymentStatus {
 **`POST /api/maps` — resposta de sucesso:**
 ```json
 {
-  "mapId": "uuid",
+  "mapId": "objectid-hex",
   "checkoutUrl": "https://checkout.infinitepay.com.br/tag?lenc=..."
 }
 ```
@@ -208,11 +255,10 @@ interface MapPaymentStatus {
 
 | Serviço | Lib | Auth | Erro crítico |
 |---|---|---|---|
-| Supabase DB | `@supabase/supabase-js` | `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` | Retry com log de erro; não silenciar |
-| Supabase Storage | `@supabase/supabase-js` | idem | Rejeitar upload com 500 se falhar |
-| InfinitePay | `axios` | `INFINITEPAY_HANDLE` (no header; público) | Retornar 422 se criação do checkout falhar |
+| MongoDB | `mongoose` | `MONGODB_URI` | Falhar rápido no startup se conexão falhar; re-throw em erros de operação |
+| Cloudflare R2 | `@aws-sdk/client-s3` (endpoint R2) | `CLOUDFLARE_R2_ACCOUNT_ID` + `CLOUDFLARE_R2_ACCESS_KEY_ID` + `CLOUDFLARE_R2_SECRET_ACCESS_KEY` | Rejeitar upload com 500 se falhar |
+| InfinitePay | `axios` | `INFINITEPAY_HANDLE` (no body; público) | Retornar 422 se criação do checkout falhar |
 | Resend | `resend` SDK | `RESEND_API_KEY` | Log de erro; não bloquear ativação do mapa |
-| Sentry | `@sentry/node` | `SENTRY_DSN` | Capturar todas as exceções não tratadas |
 | PostHog | `posthog-node` | `POSTHOG_API_KEY` | Fire-and-forget; nunca bloquear fluxo principal |
 
 ---
@@ -225,14 +271,14 @@ Componentes a testar com Jest:
 - `slug.ts`: casos com acentos, espaços múltiplos, caracteres especiais
 - `token.ts`: unicidade estatística, charset correto, comprimento = 5
 - `map-service.ts`: lógica de expiração (`expired` para plano `basic` após 7 dias)
-- `storage-service.ts`: rejeição de arquivo > 5MB e tipo inválido (mocks de Supabase)
+- `storage-service.ts`: rejeição de arquivo > 5MB e tipo inválido (mocks do S3 client)
 
-Mocks necessários: `@supabase/supabase-js`, `axios`, `resend`, `qrcode`, `sharp`
+Mocks necessários: `mongoose`, `axios`, `resend`, `qrcode`, `sharp`, `@aws-sdk/client-s3` (R2)
 
 ### Testes de Integração
 
 Usar `fastify.inject()` com instância configurada via `buildApp()`:
-- `POST /api/maps`: criação completa com mocks de Supabase e InfinitePay (axios)
+- `POST /api/maps`: criação completa com mocks de mongoose e InfinitePay (axios)
 - `POST /api/payments/webhook`: aprovação → ativação; token inválido → 401
 - `GET /api/maps/by-token`: token válido → 200, inválido → 401, expirado → 403
 - `POST /api/maps/:id/retry-payment`: status `payment_failed` ou `pending_payment` → novo checkout; status `active` → 422
@@ -247,9 +293,9 @@ Escopo pós-frontend com Playwright:
 ## Sequenciamento de Desenvolvimento
 
 1. **Setup do projeto** — `./backend` com `package.json`, `tsconfig.json`, estrutura de pastas, variáveis de ambiente
-2. **Supabase plugin + migrations** — tabelas `maps` e `locations`, `supabase-plugin.ts`
+2. **MongoDB plugin + models** — models `Map` e `Location`, `mongodb-plugin.ts`
 3. **Utilitários** — `slug.ts`, `token.ts`, `hmac.ts` com testes unitários
-4. **Storage service** — upload de fotos com validação (depende do Supabase)
+4. **Storage service** — upload de fotos para Cloudflare R2 com validação
 5. **Map service** — CRUD de mapas e localizações
 6. **Payment service** — integração com InfinitePay checkout (depende do map-service)
 7. **`POST /api/maps`** — rota principal de criação (depende de todos os serviços acima)
@@ -257,11 +303,12 @@ Escopo pós-frontend com Playwright:
 9. **QR Code + Email service** — gerado no webhook de aprovação
 10. **`GET /api/maps/by-token`** — endpoint público com validação de token e expiração
 11. **`GET /api/maps/:id/payment-status`** — polling do frontend
-12. **Observabilidade** — Sentry e PostHog em todos os fluxos
+12. **Observabilidade** — PostHog em todos os fluxos
 
 ### Dependências Técnicas
 
-- Projeto Supabase criado com URL e service key disponíveis
+- Cluster MongoDB acessível via `MONGODB_URI` (Atlas ou self-hosted)
+- Bucket Cloudflare R2 criado com acesso público habilitado (custom domain ou URL pública do R2)
 - Conta InfinitePay com InfiniteTag (handle) configurado
 - API key do Resend com domínio verificado
 - Variável `OURLOVEMAP_BASE_URL` apontando para o domínio de produção (usada no QR Code)
@@ -271,13 +318,12 @@ Escopo pós-frontend com Playwright:
 
 ## Monitoramento e Observabilidade
 
-- **Sentry**: capturar exceções em `setErrorHandler` e em falhas de integrações externas
 - **PostHog**: eventos `map_created`, `payment_approved`, `payment_failed`, `map_expired_accessed`; fire-and-forget via `posthog.capture()` sem aguardar resposta
 - **Logs Pino** (via Fastify logger):
   - `info`: mapa criado, pagamento aprovado, email enviado
   - `warn`: evento de webhook ignorado (tipo desconhecido)
   - `error`: falha em integração externa, token de webhook inválido
-- Nunca logar `email`, `couple_name` completo ou dados de pagamento em produção
+- Nunca logar `email`, `coupleName` completo ou dados de pagamento em produção
 
 ---
 
@@ -287,6 +333,8 @@ Escopo pós-frontend com Playwright:
 
 | Decisão | Escolha | Justificativa |
 |---|---|---|
+| Banco de dados | MongoDB (mongoose) | Flexibilidade de schema para MVP; documentos aninhados para localizações; Atlas oferece tier gratuito |
+| Storage de fotos | Cloudflare R2 | Sem custo de egress; S3-compatível (usa `@aws-sdk/client-s3` com endpoint R2); integração natural com CDN Cloudflare |
 | Gateway de pagamento | InfinitePay Checkout | Mercado Pago PIX apresentou bloqueios de conta (PolicyAgent); InfinitePay tem API pública sem autenticação complexa |
 | Checkout link | URL de redirect | InfinitePay não gera QR Code; o usuário abre o link e escolhe PIX ou cartão na página deles |
 | Segurança do webhook | Token secreto na query string | InfinitePay não suporta HMAC; `crypto.timingSafeEqual` previne timing attacks na comparação |
@@ -313,9 +361,15 @@ Escopo pós-frontend com Playwright:
 ### Variáveis de Ambiente
 
 ```env
-# Supabase
-SUPABASE_URL=https://<projeto>.supabase.co
-SUPABASE_SERVICE_KEY=<service-role-key>
+# MongoDB
+MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/<dbname>
+
+# Cloudflare R2
+CLOUDFLARE_R2_ACCOUNT_ID=<account-id>
+CLOUDFLARE_R2_ACCESS_KEY_ID=<r2-access-key-id>
+CLOUDFLARE_R2_SECRET_ACCESS_KEY=<r2-secret-access-key>
+CLOUDFLARE_R2_BUCKET=ourlovemap-photos
+CLOUDFLARE_R2_PUBLIC_URL=https://pub-<hash>.r2.dev
 
 # InfinitePay
 INFINITEPAY_HANDLE=<sua-infinitetag-sem-$>
@@ -329,7 +383,6 @@ OURLOVEMAP_BASE_URL=https://ourlovemap.com
 OURLOVEMAP_API_URL=https://api.ourlovemap.com
 
 # Observabilidade (opcionais em dev)
-SENTRY_DSN=https://...
 POSTHOG_API_KEY=phc_...
 NODE_ENV=production
 ```
@@ -339,6 +392,9 @@ NODE_ENV=production
 ```
 ./backend/
   src/
+    models/
+      map-model.ts
+      location-model.ts
     routes/
       map-routes.ts
       payment-routes.ts
@@ -349,7 +405,10 @@ NODE_ENV=production
       email-service.ts
       qr-code-service.ts
     plugins/
-      supabase-plugin.ts
+      mongodb-plugin.ts
+      multipart-plugin.ts
+      posthog-plugin.ts
+      swagger-plugin.ts
     utils/
       slug.ts
       token.ts
@@ -376,8 +435,8 @@ NODE_ENV=production
 
 **Dependências npm:**
 ```
-fastify @fastify/multipart @supabase/supabase-js resend axios
-qrcode sharp @sentry/node posthog-node
+fastify @fastify/multipart mongoose @aws-sdk/client-s3 @aws-sdk/lib-storage resend axios
+qrcode sharp posthog-node
 @sinclair/typebox
 ```
 **Dev:**

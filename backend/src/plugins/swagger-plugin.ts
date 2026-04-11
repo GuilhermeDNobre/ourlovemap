@@ -30,13 +30,28 @@ const swaggerPlugin: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.addSchema({
-    $id: 'https://ourlovemap.com/schemas/PixPaymentResult',
+    $id: 'https://ourlovemap.com/schemas/CheckoutResult',
     type: 'object',
-    title: 'PixPaymentResult',
+    title: 'CheckoutResult',
     properties: {
-      pixQrCode: { type: 'string', description: 'Base64-encoded PIX QR code image' },
-      pixCode: { type: 'string', description: 'PIX copy-and-paste code' },
-      paymentExpiresAt: { type: 'string', format: 'date-time', description: 'PIX expiration timestamp (now + 15 min)' },
+      mapId: { type: 'string', description: 'MongoDB ObjectId of the created map (24-character hex string)' },
+      checkoutUrl: { type: 'string', description: 'InfinitePay checkout URL — redirect the user here to complete payment via PIX or credit card' },
+    },
+  });
+
+  fastify.addSchema({
+    $id: 'https://ourlovemap.com/schemas/InfinitePayWebhookEvent',
+    type: 'object',
+    title: 'InfinitePayWebhookEvent',
+    properties: {
+      invoice_slug: { type: 'string', description: 'InfinitePay invoice identifier' },
+      amount: { type: 'number', description: 'Total amount in centavos' },
+      paid_amount: { type: 'number', description: 'Amount effectively paid in centavos' },
+      installments: { type: 'integer', description: 'Number of installments' },
+      capture_method: { type: 'string', enum: ['credit_card', 'pix'], description: 'Payment method used' },
+      transaction_nsu: { type: 'string', description: 'Unique transaction identifier' },
+      order_nsu: { type: 'string', description: 'Our map ID — correlates the webhook to the map in our database' },
+      receipt_url: { type: 'string', description: 'URL of the payment receipt' },
     },
   });
 

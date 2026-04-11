@@ -1,22 +1,21 @@
-jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn(() => ({ from: jest.fn() })),
-}));
+jest.mock('mongoose', () => {
+  const ObjectId = jest.fn().mockImplementation(() => ({ toString: () => 'mock-id' }));
+  const SchemaConstructor = jest.fn().mockImplementation(() => ({ index: jest.fn() }));
+  const SchemaWithTypes = Object.assign(SchemaConstructor, { Types: { ObjectId } });
+  const model = jest.fn().mockReturnValue({});
+  return {
+    Schema: SchemaWithTypes,
+    model,
+    connect: jest.fn().mockResolvedValue(undefined),
+    disconnect: jest.fn().mockResolvedValue(undefined),
+    Types: { ObjectId },
+  };
+});
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect } from '@jest/globals';
 import { buildApp } from '../helpers/build-app';
 
 describe('swagger-plugin', () => {
-  const originalEnv = process.env;
-
-  beforeEach(() => {
-    process.env = { ...originalEnv };
-    process.env.SUPABASE_URL = 'https://test.supabase.co';
-    process.env.SUPABASE_SERVICE_KEY = 'test-service-key';
-  });
-
-  afterEach(() => {
-    process.env = originalEnv;
-  });
 
   it('should expose /docs/json with a valid OpenAPI 3.0 spec', async () => {
     const app = buildApp();
@@ -46,7 +45,7 @@ describe('swagger-plugin', () => {
     expect(paths).toContain('/api/payments/webhook');
   });
 
-  it('should expose shared schemas for Error, Location and PixPaymentResult', async () => {
+  it('should expose shared schemas for Error, Location, CheckoutResult and InfinitePayWebhookEvent', async () => {
     const app = buildApp();
     await app.ready();
 
@@ -56,7 +55,8 @@ describe('swagger-plugin', () => {
 
     expect(schemaTitles).toContain('Error');
     expect(schemaTitles).toContain('Location');
-    expect(schemaTitles).toContain('PixPaymentResult');
+    expect(schemaTitles).toContain('CheckoutResult');
+    expect(schemaTitles).toContain('InfinitePayWebhookEvent');
   });
 
   it('should tag routes with maps, payments and health tags', async () => {

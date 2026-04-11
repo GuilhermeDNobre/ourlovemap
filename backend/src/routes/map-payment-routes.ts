@@ -27,7 +27,7 @@ export default async function mapPaymentRoutes(fastify: FastifyInstance): Promis
     },
   }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const map = await getMapById(id, fastify.supabase);
+    const map = await getMapById(id);
     if (!map) return reply.code(404).send({ error: 'Map not found' });
     if (map.status === 'active' || map.status === 'expired') {
       return reply.code(422).send({ error: 'Map cannot retry payment' });
@@ -35,7 +35,6 @@ export default async function mapPaymentRoutes(fastify: FastifyInstance): Promis
     try {
       const result = await createCheckoutPayment(
         { mapId: map.id, plan: map.plan, email: map.email, buyerName: map.buyerName, buyerPhone: map.buyerPhone },
-        fastify.supabase,
       );
       return reply.send({ checkoutUrl: result.checkoutUrl });
     } catch (error) {
@@ -70,7 +69,7 @@ export default async function mapPaymentRoutes(fastify: FastifyInstance): Promis
     },
   }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const map = await getMapById(id, fastify.supabase);
+    const map = await getMapById(id);
     if (!map) return reply.code(404).send({ error: 'Map not found' });
     return reply.send({ status: map.status, checkoutUrl: map.checkoutUrl });
   });

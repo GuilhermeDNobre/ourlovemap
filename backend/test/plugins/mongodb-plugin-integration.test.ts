@@ -16,7 +16,7 @@ jest.mock('mongoose', () => {
 
 import { buildApp } from '../helpers/build-app';
 
-describe('buildApp initialization', () => {
+describe('buildApp with mongodb plugin', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
