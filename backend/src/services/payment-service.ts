@@ -14,7 +14,6 @@ const INFINITEPAY_CHECKOUT_URL = 'https://api.infinitepay.io/invoices/public/che
 const PLAN_PRICES_CENTS: Record<Plan, number> = {
   basic: 1990,
   premium: 2990,
-  test: 100,
 };
 
 export interface CreateCheckoutPaymentParams {

@@ -72,7 +72,7 @@ export interface PaymentData {
 }
 
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
-export const PLAN_LOCATION_LIMITS: Record<Plan, number> = { basic: 3, premium: 7, test: 7 };
+export const PLAN_LOCATION_LIMITS: Record<Plan, number> = { basic: 3, premium: 7 };
 const BASIC_PLAN_EXPIRY_DAYS = 7;
 
 function toMapRecord(doc: MapDocument): MapRecord {

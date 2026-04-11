@@ -11,7 +11,7 @@ import {
 } from '../services/map-service.js';
 import { createCheckoutPayment } from '../services/payment-service.js';
 
-const VALID_PLANS = new Set<string>(['basic', 'premium', 'test']);
+const VALID_PLANS = new Set<string>(['basic', 'premium']);
 const REQUIRED_FIELDS = ['couple_name', 'buyer_name', 'buyer_phone', 'email', 'plan', 'relationship_start_date'] as const;
 const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
 const YOUTUBE_URL_PATTERN = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;

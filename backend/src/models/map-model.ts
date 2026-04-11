@@ -1,7 +1,7 @@
 import { Schema, model, type Document, type Types } from 'mongoose';
 
 export type MapStatus = 'pending_payment' | 'active' | 'expired' | 'payment_failed';
-export type Plan = 'basic' | 'premium' | 'test';
+export type Plan = 'basic' | 'premium';
 
 export interface MapDocument extends Document {
   _id: Types.ObjectId;
@@ -31,7 +31,7 @@ const mapSchema = new Schema<MapDocument>(
     buyerPhone: { type: String, required: true },
     slug: { type: String, default: '' },
     email: { type: String, required: true },
-    plan: { type: String, enum: ['basic', 'premium', 'test'], required: true },
+    plan: { type: String, enum: ['basic', 'premium'], required: true },
     relationshipStartDate: { type: Date, required: true },
     token: { type: String, unique: true, sparse: true },
     status: {
