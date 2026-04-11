@@ -1,0 +1,11 @@
+process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+process.env.CLOUDFLARE_R2_ACCOUNT_ID = 'test-account-id';
+process.env.CLOUDFLARE_R2_ACCESS_KEY_ID = 'test-access-key';
+process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY = 'test-secret-key';
+process.env.CLOUDFLARE_R2_BUCKET = 'test-bucket';
+process.env.CLOUDFLARE_R2_PUBLIC_URL = 'https://test.r2.dev';
+process.env.RESEND_API_KEY = 'test-resend-key';
+process.env.OURLOVEMAP_BASE_URL = 'https://ourlovemap.com';
+process.env.OURLOVEMAP_API_URL = 'https://api.ourlovemap.com';
+process.env.INFINITEPAY_HANDLE = 'test-handle';
+process.env.INFINITEPAY_WEBHOOK_SECRET = 'test-webhook-secret';

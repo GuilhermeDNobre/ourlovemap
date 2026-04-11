@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude mcp:*)",
+      "WebSearch",
+      "Bash(npm install:*)",
+      "Bash(npm test:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(node:*)",
+      "Bash(cat:*)",
+      "Bash(rm -rf D:/temp/ws-vscode/ourlovemap/backend/__mocks__ && cd D:/temp/ws-vscode/ourlovemap/backend && npm run build 2>&1)",
+      "mcp__playwright__browser_navigate",
+      "Bash(cd D:/temp/ws-vscode/ourlovemap/backend && npx playwright install chrome 2>&1 | tail -5)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "Bash(find /d/temp/ws-vscode/ourlovemap -name \"*task*\" -type f 2>/dev/null | head -30)",
+      "Bash(find /d/temp/ws-vscode/ourlovemap/tasks -name \"techspec*\" -o -name \"prd*\" 2>/dev/null | grep -v node_modules | head -20)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.infinitepay.io)",
+      "WebFetch(domain:ajuda.infinitepay.io)",
+      "Bash(cd \"D:/temp/ws-vscode/ourlovemap/tasks/prd-backend-our-love-map\" && mkdir -p tasks reviews && mv *_task.md tasks/ && mv *_task_review.md reviews/)",
+      "Bash(npm uninstall:*)",
+      "Bash(npx jest:*)",
+      "Bash(npx tsx:*)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "mcp__plugin_context7_context7__query-docs",
+      "Bash(grep -v \"node_modules\" echo \"---\" grep -r \"8080\\\\|PORT\" /d/temp/ws-vscode/ourlovemap/backend/src/)"
+    ]
+  }
+}
