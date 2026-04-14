@@ -9,7 +9,7 @@ import {
   type LocationInput,
   type Plan,
 } from '../services/map-service.js';
-import { createCheckoutPayment } from '../services/payment-service.js';
+
 
 const VALID_PLANS = new Set<string>(['basic', 'premium']);
 const REQUIRED_FIELDS = ['couple_name', 'buyer_name', 'buyer_phone', 'email', 'plan', 'relationship_start_date'] as const;
@@ -230,8 +230,9 @@ export default async function mapRoutes(fastify: FastifyInstance): Promise<void>
       tags: ['maps'],
       summary: 'Create a new love map',
       description: [
-        'Creates a map with the couple\'s data and locations, then generates an InfinitePay checkout link.',
-        'Returns the checkout URL. The map is only accessible after payment approval.',
+        'Creates a map with the couple\'s data and locations. Returns the map ID.',
+        'After creation, call `/api/maps/:id/pix-payment` to get the PIX QR Code or `/api/maps/:id/card-payment` for card payment.',
+        'The map is only accessible after payment approval.',
         '',
         '**Content-Type:** `multipart/form-data`',
         '',
@@ -240,11 +241,11 @@ export default async function mapRoutes(fastify: FastifyInstance): Promise<void>
       ].join('\n'),
       response: {
         200: {
-          description: 'Map created and checkout link generated',
+          description: 'Map created successfully',
           $ref: 'https://ourlovemap.com/schemas/CheckoutResult#',
         },
         400: { description: 'Missing required field or invalid plan', $ref: 'https://ourlovemap.com/schemas/Error#' },
-        422: { description: 'Location limit exceeded or checkout creation failed', $ref: 'https://ourlovemap.com/schemas/Error#' },
+        422: { description: 'Location limit exceeded', $ref: 'https://ourlovemap.com/schemas/Error#' },
       },
     },
   }, async (request, reply) => {
@@ -285,16 +286,6 @@ export default async function mapRoutes(fastify: FastifyInstance): Promise<void>
     } catch (error) {
       request.log.warn({ error: error instanceof Error ? error.message : error }, 'PostHog capture failed');
     }
-    try {
-      const result = await createCheckoutPayment(
-        { mapId: map.id, plan, email: fields.email, buyerName: fields.buyer_name, buyerPhone: fields.buyer_phone },
-      );
-      return reply.send({ mapId: map.id, checkoutUrl: result.checkoutUrl });
-    } catch (error) {
-      request.log.error({ mapId: map.id, error: error instanceof Error ? error.message : error }, 'Checkout payment creation failed');
-      const err = new Error('Payment creation failed') as Error & { statusCode: number };
-      err.statusCode = 422;
-      throw err;
-    }
+    return reply.send({ mapId: map.id });
   });
 }

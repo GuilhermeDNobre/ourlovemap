@@ -1,9 +1,9 @@
 import crypto from 'crypto';
 import type { FastifyInstance } from 'fastify';
-import { processWebhookEvent, type InfinitePayWebhookEvent } from '../services/payment-service.js';
+import { processWebhookEvent, type AbacatePayWebhookEvent } from '../services/payment-service.js';
 
 function isValidWebhookSecret(received: string): boolean {
-  const expected = process.env.INFINITEPAY_WEBHOOK_SECRET ?? '';
+  const expected = process.env.ABACATEPAY_WEBHOOK_SECRET ?? '';
   if (!expected) return false;
   try {
     return crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
@@ -16,15 +16,15 @@ export default async function paymentRoutes(fastify: FastifyInstance): Promise<v
   fastify.post('/payments/webhook', {
     schema: {
       tags: ['payments'],
-      summary: 'InfinitePay payment webhook',
-      description: 'Receives payment approval events from InfinitePay. Validates the secret token in the query string before processing. On approval, activates the map and sends the QR Code email to the couple.',
+      summary: 'AbacatePay payment webhook',
+      description: 'Receives payment approval events from AbacatePay. Validates the secret token in the query string before processing. On approval, activates the map and sends the QR Code email to the couple.',
       querystring: {
         type: 'object',
         properties: {
-          secret: { type: 'string', description: 'Shared webhook secret configured in INFINITEPAY_WEBHOOK_SECRET' },
+          webhookSecret: { type: 'string', description: 'Shared webhook secret appended automatically by AbacatePay' },
         },
       },
-      body: { $ref: 'https://ourlovemap.com/schemas/InfinitePayWebhookEvent#' },
+      body: { $ref: 'https://ourlovemap.com/schemas/AbacatePayWebhookEvent#' },
       response: {
         200: {
           description: 'Event received and processed',
@@ -40,11 +40,11 @@ export default async function paymentRoutes(fastify: FastifyInstance): Promise<v
       },
     },
   }, async (request, reply) => {
-    const { secret } = request.query as { secret?: string };
-    if (!secret || !isValidWebhookSecret(secret)) {
+    const { webhookSecret } = request.query as { webhookSecret?: string };
+    if (!webhookSecret || !isValidWebhookSecret(webhookSecret)) {
       return reply.code(401).send({ error: 'Invalid webhook secret' });
     }
-    const event = request.body as InfinitePayWebhookEvent;
+    const event = request.body as AbacatePayWebhookEvent;
     const result = await processWebhookEvent(event, request.log);
     if (result.wasActivated && result.mapId) {
       try {
@@ -53,7 +53,7 @@ export default async function paymentRoutes(fastify: FastifyInstance): Promise<v
         request.log.warn({ error: error instanceof Error ? error.message : error }, 'PostHog capture failed');
       }
     }
-    request.log.info({ orderNsu: event.order_nsu }, 'Webhook event processed');
+    request.log.info({ billingId: event.data?.id }, 'Webhook event processed');
     return reply.send({ received: true });
   });
 }

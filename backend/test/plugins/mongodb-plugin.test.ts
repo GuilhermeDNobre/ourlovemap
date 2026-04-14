@@ -42,7 +42,7 @@ describe('mongodb-plugin', () => {
     await fastify.register(mongodbPlugin);
     await fastify.ready();
 
-    expect(mockConnect).toHaveBeenCalledWith('mongodb://localhost:27017/test');
+    expect(mockConnect).toHaveBeenCalledWith('mongodb://localhost:27017/test', { connectTimeoutMS: 8000, serverSelectionTimeoutMS: 8000 });
   });
 
   it('should call mongoose.disconnect when server closes', async () => {

@@ -34,24 +34,26 @@ const swaggerPlugin: FastifyPluginAsync = async (fastify) => {
     type: 'object',
     title: 'CheckoutResult',
     properties: {
-      mapId: { type: 'string', description: 'MongoDB ObjectId of the created map (24-character hex string)' },
-      checkoutUrl: { type: 'string', description: 'InfinitePay checkout URL — redirect the user here to complete payment via PIX or credit card' },
+      mapId: { type: 'string', description: 'MongoDB ObjectId of the created map (24-character hex string). Use this to call /api/maps/:id/pix-payment or /api/maps/:id/card-payment.' },
     },
   });
 
   fastify.addSchema({
-    $id: 'https://ourlovemap.com/schemas/InfinitePayWebhookEvent',
+    $id: 'https://ourlovemap.com/schemas/AbacatePayWebhookEvent',
     type: 'object',
-    title: 'InfinitePayWebhookEvent',
+    title: 'AbacatePayWebhookEvent',
+    description: 'Webhook event from AbacatePay. Covers billing.paid (card) and pix.paid events.',
     properties: {
-      invoice_slug: { type: 'string', description: 'InfinitePay invoice identifier' },
-      amount: { type: 'number', description: 'Total amount in centavos' },
-      paid_amount: { type: 'number', description: 'Amount effectively paid in centavos' },
-      installments: { type: 'integer', description: 'Number of installments' },
-      capture_method: { type: 'string', enum: ['credit_card', 'pix'], description: 'Payment method used' },
-      transaction_nsu: { type: 'string', description: 'Unique transaction identifier' },
-      order_nsu: { type: 'string', description: 'Our map ID — correlates the webhook to the map in our database' },
-      receipt_url: { type: 'string', description: 'URL of the payment receipt' },
+      event: { type: 'string', description: 'Event type: billing.paid or pix.paid' },
+      data: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'AbacatePay payment ID (bill_xxx or pix_char_xxx) — correlates the webhook to the map via paymentId field' },
+          amount: { type: 'number', description: 'Total amount in centavos' },
+          status: { type: 'string', description: 'Payment status (PAID, PENDING, EXPIRED)' },
+          devMode: { type: 'boolean', description: 'Whether the transaction was in dev mode' },
+        },
+      },
     },
   });
 
@@ -65,7 +67,7 @@ const swaggerPlugin: FastifyPluginAsync = async (fastify) => {
       },
       tags: [
         { name: 'maps', description: 'Map creation, public access and payment status' },
-        { name: 'payments', description: 'Payment webhook from InfinitePay' },
+        { name: 'payments', description: 'Payment webhook from AbacatePay' },
         { name: 'health', description: 'Health check' },
       ],
     },

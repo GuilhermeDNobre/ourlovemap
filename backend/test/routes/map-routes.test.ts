@@ -25,18 +25,17 @@ jest.mock('../../src/services/map-service.js', () => ({
 }));
 
 jest.mock('../../src/services/payment-service.js', () => ({
-  createCheckoutPayment: jest.fn(),
+  createPixPayment: jest.fn(),
+  createCardPayment: jest.fn(),
 }));
 
 import { buildApp } from '../helpers/build-app';
 import { uploadPhoto } from '../../src/services/storage-service.js';
 import {
   createMap,
-  getMapById,
   getMapByToken,
   getLocationsByMapId,
 } from '../../src/services/map-service.js';
-import { createCheckoutPayment } from '../../src/services/payment-service.js';
 
 const BOUNDARY = 'test-boundary-abc123';
 
@@ -94,20 +93,15 @@ function buildValidFile() {
   }];
 }
 
-function buildDefaultCheckoutResult() {
-  return { checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc' };
-}
-
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
 describe('POST /api/maps', () => {
-  it('should return 200 with mapId and checkoutUrl for valid request', async () => {
+  it('should return 200 with mapId for valid request', async () => {
     const app = buildApp();
     (uploadPhoto as jest.Mock).mockResolvedValue('https://storage.example.com/photo.jpg');
     (createMap as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment' });
-    (createCheckoutPayment as jest.Mock).mockResolvedValue(buildDefaultCheckoutResult());
 
     const response = await app.inject({
       method: 'POST',
@@ -119,13 +113,9 @@ describe('POST /api/maps', () => {
     expect(response.statusCode).toBe(200);
     const body = response.json();
     expect(body.mapId).toBe('map-1');
-    expect(body.checkoutUrl).toBe('https://checkout.infinitepay.com.br/myhandle?lenc=abc');
     expect(uploadPhoto).toHaveBeenCalledWith(expect.objectContaining({ mapId: expect.any(String) }));
     expect(createMap).toHaveBeenCalledWith(
       expect.objectContaining({ coupleName: 'Carol e André', email: 'carol@example.com', plan: 'basic' }),
-    );
-    expect(createCheckoutPayment).toHaveBeenCalledWith(
-      expect.objectContaining({ plan: 'basic', email: 'carol@example.com' }),
     );
   });
 
@@ -246,118 +236,6 @@ describe('POST /api/maps', () => {
     });
 
     expect(response.statusCode).toBe(400);
-  });
-
-  it('should return 422 when InfinitePay checkout creation fails', async () => {
-    const app = buildApp();
-    (uploadPhoto as jest.Mock).mockResolvedValue('https://storage.example.com/photo.jpg');
-    (createMap as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment' });
-    (createCheckoutPayment as jest.Mock).mockRejectedValue(new Error('InfinitePay API unavailable'));
-
-    const response = await app.inject({
-      method: 'POST',
-      url: '/api/maps',
-      headers: { 'content-type': `multipart/form-data; boundary=${BOUNDARY}` },
-      payload: buildMultipartBody(buildValidFields(), buildValidFile()),
-    });
-
-    expect(response.statusCode).toBe(422);
-  });
-});
-
-describe('POST /api/maps/:id/retry-payment', () => {
-  it('should return 200 with new checkoutUrl when map is in payment_failed status', async () => {
-    const app = buildApp();
-    (getMapById as jest.Mock).mockResolvedValue({
-      id: 'map-1', status: 'payment_failed', plan: 'basic', email: 'carol@example.com', buyerName: 'Carol Silva', buyerPhone: '11999999999',
-    });
-    (createCheckoutPayment as jest.Mock).mockResolvedValue({
-      checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=new',
-    });
-
-    const response = await app.inject({ method: 'POST', url: '/api/maps/map-1/retry-payment' });
-
-    expect(response.statusCode).toBe(200);
-    const body = response.json();
-    expect(body.checkoutUrl).toBe('https://checkout.infinitepay.com.br/myhandle?lenc=new');
-    expect(createCheckoutPayment).toHaveBeenCalledWith(
-      expect.objectContaining({ mapId: 'map-1', plan: 'basic', email: 'carol@example.com' }),
-    );
-  });
-
-  it('should return 200 with new checkoutUrl when map is in pending_payment status', async () => {
-    const app = buildApp();
-    (getMapById as jest.Mock).mockResolvedValue({
-      id: 'map-1', status: 'pending_payment', plan: 'basic', email: 'carol@example.com', buyerName: 'Carol Silva', buyerPhone: '11999999999',
-    });
-    (createCheckoutPayment as jest.Mock).mockResolvedValue({
-      checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=new2',
-    });
-
-    const response = await app.inject({ method: 'POST', url: '/api/maps/map-1/retry-payment' });
-
-    expect(response.statusCode).toBe(200);
-    expect(response.json().checkoutUrl).toBeDefined();
-  });
-
-  it('should return 422 when map status is active', async () => {
-    const app = buildApp();
-    (getMapById as jest.Mock).mockResolvedValue({
-      id: 'map-1', status: 'active', plan: 'basic', email: 'carol@example.com', buyerName: 'Carol Silva', buyerPhone: '11999999999',
-    });
-
-    const response = await app.inject({ method: 'POST', url: '/api/maps/map-1/retry-payment' });
-
-    expect(response.statusCode).toBe(422);
-    expect(createCheckoutPayment).not.toHaveBeenCalled();
-  });
-
-  it('should return 422 when map status is expired', async () => {
-    const app = buildApp();
-    (getMapById as jest.Mock).mockResolvedValue({
-      id: 'map-1', status: 'expired', plan: 'basic', email: 'carol@example.com', buyerName: 'Carol Silva', buyerPhone: '11999999999',
-    });
-
-    const response = await app.inject({ method: 'POST', url: '/api/maps/map-1/retry-payment' });
-
-    expect(response.statusCode).toBe(422);
-    expect(createCheckoutPayment).not.toHaveBeenCalled();
-  });
-
-  it('should return 404 when map does not exist', async () => {
-    const app = buildApp();
-    (getMapById as jest.Mock).mockResolvedValue(null);
-
-    const response = await app.inject({ method: 'POST', url: '/api/maps/nonexistent/retry-payment' });
-
-    expect(response.statusCode).toBe(404);
-  });
-});
-
-describe('GET /api/maps/:id/payment-status', () => {
-  it('should return 200 with status and checkoutUrl', async () => {
-    const app = buildApp();
-    (getMapById as jest.Mock).mockResolvedValue({
-      id: 'map-1',
-      status: 'pending_payment',
-      checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc',
-    });
-
-    const response = await app.inject({ method: 'GET', url: '/api/maps/map-1/payment-status' });
-
-    expect(response.statusCode).toBe(200);
-    const body = response.json();
-    expect(body.status).toBe('pending_payment');
-    expect(body.checkoutUrl).toBe('https://checkout.infinitepay.com.br/myhandle?lenc=abc');
-  });
-
-  it('should return 404 when map does not exist', async () => {
-    const app = buildApp();
-    (getMapById as jest.Mock).mockResolvedValue(null);
-
-    const response = await app.inject({ method: 'GET', url: '/api/maps/nonexistent/payment-status' });
-
-    expect(response.statusCode).toBe(404);
   });
 });
 

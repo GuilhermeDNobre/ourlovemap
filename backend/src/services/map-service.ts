@@ -68,7 +68,8 @@ export interface MapPaymentStatus {
 }
 
 export interface PaymentData {
-  checkoutUrl: string;
+  paymentId: string;
+  checkoutUrl: string | null;
 }
 
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -205,8 +206,14 @@ export async function getPaymentStatus(mapId: string): Promise<MapPaymentStatus>
   };
 }
 
+export async function getMapByPaymentId(paymentId: string): Promise<MapRecord | null> {
+  const doc = await MapModel.findOne({ paymentId });
+  if (!doc) return null;
+  return toMapRecord(doc);
+}
+
 export async function updatePaymentData(mapId: string, data: PaymentData): Promise<void> {
-  await MapModel.findByIdAndUpdate(mapId, { checkoutUrl: data.checkoutUrl });
+  await MapModel.findByIdAndUpdate(mapId, { checkoutUrl: data.checkoutUrl, paymentId: data.paymentId });
 }
 
 export async function getLocationsByMapId(mapId: string): Promise<Location[]> {
