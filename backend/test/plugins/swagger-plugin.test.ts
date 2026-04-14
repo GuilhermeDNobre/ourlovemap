@@ -29,7 +29,7 @@ describe('swagger-plugin', () => {
     expect(spec.info.title).toBe('Our Love Map API');
   });
 
-  it('should document all 6 expected routes', async () => {
+  it('should document all 7 expected routes', async () => {
     const app = buildApp();
     await app.ready();
 
@@ -41,11 +41,12 @@ describe('swagger-plugin', () => {
     expect(paths).toContain('/api/maps');
     expect(paths).toContain('/api/maps/by-token');
     expect(paths).toContain('/api/maps/{id}/payment-status');
-    expect(paths).toContain('/api/maps/{id}/retry-payment');
+    expect(paths).toContain('/api/maps/{id}/pix-payment');
+    expect(paths).toContain('/api/maps/{id}/card-payment');
     expect(paths).toContain('/api/payments/webhook');
   });
 
-  it('should expose shared schemas for Error, Location, CheckoutResult and InfinitePayWebhookEvent', async () => {
+  it('should expose shared schemas for Error, Location, CheckoutResult and AbacatePayWebhookEvent', async () => {
     const app = buildApp();
     await app.ready();
 
@@ -56,7 +57,7 @@ describe('swagger-plugin', () => {
     expect(schemaTitles).toContain('Error');
     expect(schemaTitles).toContain('Location');
     expect(schemaTitles).toContain('CheckoutResult');
-    expect(schemaTitles).toContain('InfinitePayWebhookEvent');
+    expect(schemaTitles).toContain('AbacatePayWebhookEvent');
   });
 
   it('should tag routes with maps, payments and health tags', async () => {

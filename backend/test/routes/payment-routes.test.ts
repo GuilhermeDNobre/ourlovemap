@@ -6,7 +6,7 @@ jest.mock('mongoose', () => ({
 jest.mock('axios');
 
 jest.mock('../../src/services/map-service.js', () => ({
-  getMapByOrderNsu: jest.fn(),
+  getMapByPaymentId: jest.fn(),
   activateMap: jest.fn(),
   updatePaymentData: jest.fn(),
   getMapById: jest.fn(),
@@ -23,7 +23,7 @@ jest.mock('../../src/services/email-service.js', () => ({
 
 import { buildApp } from '../helpers/build-app';
 import {
-  getMapByOrderNsu,
+  getMapByPaymentId,
   activateMap,
 } from '../../src/services/map-service.js';
 import { generateQrCode } from '../../src/services/qr-code-service.js';
@@ -36,7 +36,7 @@ const originalEnv = process.env;
 beforeEach(() => {
   jest.clearAllMocks();
   process.env = { ...originalEnv };
-  process.env.INFINITEPAY_WEBHOOK_SECRET = WEBHOOK_SECRET;
+  process.env.ABACATEPAY_WEBHOOK_SECRET = WEBHOOK_SECRET;
   (generateQrCode as jest.Mock).mockResolvedValue(Buffer.from('jpg'));
   (sendDeliveryEmail as jest.Mock).mockResolvedValue(undefined);
 });
@@ -45,17 +45,15 @@ afterEach(() => {
   process.env = originalEnv;
 });
 
-function buildWebhookBody(orderNsu: string) {
+function buildPixWebhookBody(paymentId: string) {
   return {
-    invoice_slug: 'inv-abc',
-    amount: 1990,
-    paid_amount: 1990,
-    installments: 1,
-    capture_method: 'pix',
-    transaction_nsu: 'txn-001',
-    order_nsu: orderNsu,
-    receipt_url: 'https://receipt.example.com',
-    items: [{ quantity: 1, price: 1990, description: 'Our Love Map — plano basic' }],
+    event: 'pix.paid',
+    data: {
+      id: paymentId,
+      amount: 1990,
+      status: 'PAID',
+      devMode: false,
+    },
   };
 }
 
@@ -83,14 +81,14 @@ function buildActiveMap() {
 describe('POST /api/payments/webhook', () => {
   it('should return 200 and call activateMap when secret is valid and map is pending', async () => {
     const app = buildApp();
-    (getMapByOrderNsu as jest.Mock).mockResolvedValue(buildPendingMap());
+    (getMapByPaymentId as jest.Mock).mockResolvedValue(buildPendingMap());
     (activateMap as jest.Mock).mockResolvedValue({ ...buildActiveMap() });
 
     const response = await app.inject({
       method: 'POST',
-      url: `/api/payments/webhook?secret=${WEBHOOK_SECRET}`,
+      url: `/api/payments/webhook?webhookSecret=${WEBHOOK_SECRET}`,
       headers: { 'content-type': 'application/json' },
-      payload: buildWebhookBody('map-1'),
+      payload: buildPixWebhookBody('pix_char_abc123'),
     });
 
     expect(response.statusCode).toBe(200);
@@ -106,7 +104,7 @@ describe('POST /api/payments/webhook', () => {
       method: 'POST',
       url: '/api/payments/webhook',
       headers: { 'content-type': 'application/json' },
-      payload: buildWebhookBody('map-1'),
+      payload: buildPixWebhookBody('pix_char_abc123'),
     });
 
     expect(response.statusCode).toBe(401);
@@ -118,9 +116,9 @@ describe('POST /api/payments/webhook', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: '/api/payments/webhook?secret=wrong-secret',
+      url: '/api/payments/webhook?webhookSecret=wrong-secret',
       headers: { 'content-type': 'application/json' },
-      payload: buildWebhookBody('map-1'),
+      payload: buildPixWebhookBody('pix_char_abc123'),
     });
 
     expect(response.statusCode).toBe(401);
@@ -129,28 +127,28 @@ describe('POST /api/payments/webhook', () => {
 
   it('should return 200 and not call activateMap again when map is already active', async () => {
     const app = buildApp();
-    (getMapByOrderNsu as jest.Mock).mockResolvedValue(buildActiveMap());
+    (getMapByPaymentId as jest.Mock).mockResolvedValue(buildActiveMap());
 
     const response = await app.inject({
       method: 'POST',
-      url: `/api/payments/webhook?secret=${WEBHOOK_SECRET}`,
+      url: `/api/payments/webhook?webhookSecret=${WEBHOOK_SECRET}`,
       headers: { 'content-type': 'application/json' },
-      payload: buildWebhookBody('map-1'),
+      payload: buildPixWebhookBody('pix_char_abc123'),
     });
 
     expect(response.statusCode).toBe(200);
     expect(activateMap).not.toHaveBeenCalled();
   });
 
-  it('should return 200 without calling activateMap when order_nsu does not match any map', async () => {
+  it('should return 200 without calling activateMap when payment id does not match any map', async () => {
     const app = buildApp();
-    (getMapByOrderNsu as jest.Mock).mockResolvedValue(null);
+    (getMapByPaymentId as jest.Mock).mockResolvedValue(null);
 
     const response = await app.inject({
       method: 'POST',
-      url: `/api/payments/webhook?secret=${WEBHOOK_SECRET}`,
+      url: `/api/payments/webhook?webhookSecret=${WEBHOOK_SECRET}`,
       headers: { 'content-type': 'application/json' },
-      payload: buildWebhookBody('unknown-map'),
+      payload: buildPixWebhookBody('pix_char_unknown'),
     });
 
     expect(response.statusCode).toBe(200);

@@ -303,13 +303,13 @@ describe('getPaymentStatus', () => {
 });
 
 describe('updatePaymentData', () => {
-  it('should update checkoutUrl with correct value', async () => {
+  it('should update paymentId and checkoutUrl with correct values', async () => {
     (MapModel.findByIdAndUpdate as jest.Mock).mockImplementation(() => Promise.resolve(null));
-    const data: PaymentData = { checkoutUrl: 'https://checkout.infinitepay.com.br/myhandle?lenc=abc' };
+    const data: PaymentData = { paymentId: 'bill_abc123', checkoutUrl: 'https://app.abacatepay.com/pay/bill_abc123' };
 
     await updatePaymentData('map-1', data);
 
-    expect(MapModel.findByIdAndUpdate).toHaveBeenCalledWith('map-1', { checkoutUrl: data.checkoutUrl });
+    expect(MapModel.findByIdAndUpdate).toHaveBeenCalledWith('map-1', { checkoutUrl: data.checkoutUrl, paymentId: data.paymentId });
   });
 });
 

@@ -25,7 +25,15 @@
       "Bash(npx tsx:*)",
       "mcp__plugin_context7_context7__resolve-library-id",
       "mcp__plugin_context7_context7__query-docs",
-      "Bash(grep -v \"node_modules\" echo \"---\" grep -r \"8080\\\\|PORT\" /d/temp/ws-vscode/ourlovemap/backend/src/)"
+      "Bash(grep -v \"node_modules\" echo \"---\" grep -r \"8080\\\\|PORT\" /d/temp/ws-vscode/ourlovemap/backend/src/)",
+      "WebFetch(domain:www.abacatepay.com)",
+      "WebFetch(domain:docs.abacatepay.com)",
+      "WebFetch(domain:api.abacatepay.com)",
+      "Bash(curl -s --request GET --url https://api.abacatepay.com/v1/store/get --header 'accept: application/json' --header 'authorization: Bearer abc_dev_LEAw322DfW5Xm5nnxhLhqZGj')",
+      "Bash(python -m json.tool)",
+      "Bash(curl -s --request GET --url https://api.abacatepay.com/v1/customer/list --header 'accept: application/json' --header 'authorization: Bearer abc_dev_LEAw322DfW5Xm5nnxhLhqZGj')",
+      "Bash(curl -s --request GET --url https://api.abacatepay.com/v1/billing/list --header 'accept: application/json' --header 'authorization: Bearer abc_dev_LEAw322DfW5Xm5nnxhLhqZGj')",
+      "Bash(curl:*)"
     ]
   }
 }
