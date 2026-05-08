@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Logo lockups</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--olm-bg); font-family: var(--font-sans); color: var(--fg-2); }
+  .card { padding: 22px 28px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; align-items: center; }
+  .tile { border-radius: 16px; padding: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 104px; }
+  .cream { background: var(--olm-bg); box-shadow: inset 0 0 0 1px var(--olm-surface); }
+  .white { background: #fff; box-shadow: var(--sh-sm); }
+  .dark  { background: var(--olm-dark); }
+  .tile img { height: 44px; }
+  .lbl { font-family: var(--font-mono); font-size: 10px; color: var(--fg-4); letter-spacing: 0.08em; text-transform: uppercase; }
+  .dark .lbl { color: var(--dfg-3); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="tile cream"><img src="../assets/logo.svg" alt="mark"><span class="lbl">Dark mark · cream</span></div>
+    <div class="tile white"><img src="../assets/logo-primary.svg" alt="mark"><span class="lbl">Primary · white</span></div>
+    <div class="tile dark"><img src="../assets/logo-cream.svg" alt="mark"><span class="lbl">Cream · dark</span></div>
+  </div>
+</body>
+</html>

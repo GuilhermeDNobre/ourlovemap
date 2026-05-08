@@ -1,0 +1,29 @@
+<!-- preview card base -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Colors — Brand</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--olm-bg); font-family: var(--font-sans); color: var(--fg-2); }
+  .card { padding: 24px 28px; }
+  .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .swatch { border-radius: var(--r-md); overflow: hidden; box-shadow: var(--sh-sm); background: #fff; }
+  .swatch .fill { height: 64px; }
+  .swatch .meta { padding: 8px 12px 10px; }
+  .name { font-size: 12px; font-weight: 600; color: var(--fg-1); letter-spacing: -0.01em; }
+  .hex { font-size: 11px; color: var(--fg-3); font-family: var(--font-mono); margin-top: 2px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="row">
+      <div class="swatch"><div class="fill" style="background:#F56C73"></div><div class="meta"><div class="name">Primary</div><div class="hex">#F56C73</div></div></div>
+      <div class="swatch"><div class="fill" style="background:#413C7B"></div><div class="meta"><div class="name">Title</div><div class="hex">#413C7B</div></div></div>
+      <div class="swatch"><div class="fill" style="background:#BF77F6"></div><div class="meta"><div class="name">Accent</div><div class="hex">#BF77F6</div></div></div>
+      <div class="swatch"><div class="fill" style="background:#25212A"></div><div class="meta"><div class="name">Dark</div><div class="hex">#25212A</div></div></div>
+    </div>
+  </div>
+</body>
+</html>

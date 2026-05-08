@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Chips & Badges</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--olm-bg); font-family: var(--font-sans); color: var(--fg-2); }
+  .card { padding: 24px 28px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .chip { font-family: var(--font-sans); font-weight: 500; font-size: 13px; padding: 7px 14px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; }
+  .neutral { background: var(--olm-surface-soft); color: var(--olm-title); }
+  .selected { background: var(--olm-title); color: #fff; }
+  .accent { background: var(--olm-accent-100); color: #7A3FB8; }
+  .primary { background: var(--olm-primary-100); color: #A83740; }
+  .outline { background: transparent; color: var(--olm-title); box-shadow: inset 0 0 0 1.5px var(--olm-surface); }
+  .dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; opacity: 0.8; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <span class="chip neutral">Primeiro encontro</span>
+    <span class="chip selected"><span class="dot"></span>Viagem</span>
+    <span class="chip primary">♥ Favorito</span>
+    <span class="chip accent">Aniversário</span>
+    <span class="chip outline">+ Adicionar</span>
+    <span class="chip neutral">Lisboa</span>
+    <span class="chip neutral">Paris</span>
+  </div>
+</body>
+</html>

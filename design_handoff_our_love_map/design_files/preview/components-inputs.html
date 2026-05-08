@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Form — Inputs</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--olm-bg); font-family: var(--font-sans); color: var(--fg-2); }
+  .card { padding: 22px 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  label { font-size: 12px; font-weight: 600; color: var(--olm-title); letter-spacing: 0.01em; }
+  .input { font-family: var(--font-sans); font-size: 14px; padding: 11px 14px; border-radius: 14px; border: 1.5px solid #E0DCE5; background: #fff; color: var(--fg-2); outline: none; }
+  .input:focus, .input.focus { border-color: var(--olm-primary); box-shadow: 0 0 0 4px rgba(245,108,115,0.14); }
+  .input.error { border-color: var(--olm-error); }
+  .help { font-size: 11px; color: var(--fg-3); }
+  .help.err { color: var(--olm-error); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="field">
+      <label>Nomes do casal</label>
+      <input class="input" placeholder="Ex. Ana e Lucas" />
+      <div class="help">Aparece no topo do mapa</div>
+    </div>
+    <div class="field">
+      <label>E-mail</label>
+      <input class="input focus" value="ana@email.com" />
+      <div class="help">Enviaremos o QR para esse e-mail</div>
+    </div>
+    <div class="field">
+      <label>Data especial</label>
+      <input class="input" value="14 · 02 · 2023" />
+    </div>
+    <div class="field">
+      <label>Confirme o e-mail</label>
+      <input class="input error" value="ana@emailcom" />
+      <div class="help err">Parece que faltou o ponto antes do com</div>
+    </div>
+  </div>
+</body>
+</html>

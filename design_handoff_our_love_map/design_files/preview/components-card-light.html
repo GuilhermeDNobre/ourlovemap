@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Card — Light</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--olm-bg); font-family: var(--font-sans); color: var(--fg-2); }
+  .wrap { padding: 22px 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .card { background: #fff; border-radius: 20px; padding: 18px; box-shadow: var(--sh-md); display: flex; gap: 14px; align-items: center; }
+  .photo { width: 76px; height: 76px; border-radius: 14px; background: linear-gradient(135deg, #FAA2A7, #D9ADFA); display:flex; align-items:center; justify-content:center; color: #fff; font-family: var(--font-serif); font-style: italic; font-size: 20px; flex-shrink: 0; }
+  .eyebrow { font-size: 11px; font-weight: 600; color: var(--olm-primary); letter-spacing: 0.12em; text-transform: uppercase; }
+  .title { font-family: var(--font-serif); font-size: 22px; color: var(--olm-title); line-height: 1.15; margin-top: 4px; }
+  .meta { font-size: 12px; color: var(--fg-3); margin-top: 6px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="photo">Lx</div>
+      <div>
+        <div class="eyebrow">14 · 02 · 2023</div>
+        <div class="title">Lisboa, Alfama</div>
+        <div class="meta">Onde tudo começou.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="photo" style="background: linear-gradient(135deg, #BF77F6, #413C7B)">Pa</div>
+      <div>
+        <div class="eyebrow">Aniversário · 1 ano</div>
+        <div class="title">Paris, Montmartre</div>
+        <div class="meta">A primeira viagem juntos.</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

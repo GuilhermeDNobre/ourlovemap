@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Our Love Map — Página pública</title>
+<link rel="stylesheet" href="../../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--olm-dark); color: var(--dfg-1); scroll-behavior: smooth; }
+  * { box-sizing: border-box; }
+  em { font-style: italic; }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
+  @keyframes pinPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.08); opacity: 0.9; }
+  }
+  @keyframes pinPulseInner {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+  @keyframes ringPulse {
+    0% { transform: scale(0.8); opacity: 0.6; }
+    100% { transform: scale(2.4); opacity: 0; }
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" src="./journeyData.jsx"></script>
+  <script type="text/babel" src="./PlaceSection.jsx"></script>
+  <script type="text/babel" src="./TravelTransition.jsx"></script>
+  <script type="text/babel" src="./FinalMap.jsx"></script>
+  <script type="text/babel">
+    // CoverMap — full-bleed dark map with a single inviting pin in the center.
+    // Couple name, opening line, and a live relationship counter sit above it.
+    const useRelationshipCounter = (startISO) => {
+      const [now, setNow] = React.useState(() => new Date());
+      React.useEffect(() => {
+        const t = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(t);
+      }, []);
+      const start = new Date(startISO);
+      let years = now.getFullYear() - start.getFullYear();
+      let months = now.getMonth() - start.getMonth();
+      let days = now.getDate() - start.getDate();
+      if (days < 0) {
+        months -= 1;
+        const prev = new Date(now.getFullYear(), now.getMonth(), 0);
+        days += prev.getDate();
+      }
+      if (months < 0) { years -= 1; months += 12; }
+      const ms = now - start;
+      const totalSec = Math.floor(ms / 1000);
+      const h = Math.floor((totalSec % 86400) / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      return { years, months, days, h, m, s };
+    };
+
+    const CoverMap = ({ names, opening, startDate }) => {
+      const c = useRelationshipCounter(startDate);
+      return (
+        <section style={{
+          minHeight: "100vh", position: "relative", overflow: "hidden",
+          background: "var(--olm-dark)",
+        }}>
+          {/* Dark map backdrop */}
+          <svg viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice"
+               style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+            <defs>
+              <pattern id="cover-grid" width="22" height="22" patternUnits="userSpaceOnUse">
+                <path d="M 22 0 L 0 0 0 22" fill="none" stroke="rgba(251,245,240,0.05)" strokeWidth="0.6"/>
+              </pattern>
+              <radialGradient id="cover-glow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="rgba(245,108,115,0.22)"/>
+                <stop offset="100%" stopColor="rgba(37,33,42,0)"/>
+              </radialGradient>
+            </defs>
+            <rect width="400" height="700" fill="url(#cover-grid)"/>
+            {/* abstract streets */}
+            {[
+              "M -20 140 Q 120 100, 220 140 T 420 100",
+              "M -20 230 Q 100 270, 220 240 T 420 280",
+              "M -20 380 Q 140 340, 240 380 T 420 360",
+              "M -20 480 Q 100 520, 220 500 T 420 540",
+              "M -20 600 Q 140 560, 240 600 T 420 580",
+              "M 80 -20 Q 60 200, 100 400 T 80 720",
+              "M 220 -20 Q 240 200, 200 400 T 220 720",
+              "M 320 -20 Q 300 200, 340 400 T 320 720",
+            ].map((d, i) => (
+              <path key={i} d={d} stroke="rgba(251,245,240,0.06)" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+            ))}
+            {/* glow behind pin */}
+            <circle cx="200" cy="350" r="220" fill="url(#cover-glow)"/>
+          </svg>
+
+          <div style={{
+            position: "relative",
+            minHeight: "100vh",
+            display: "flex", flexDirection: "column", alignItems: "center",
+            padding: "56px 24px 80px",
+            textAlign: "center",
+          }}>
+            <img src="../../assets/logo-cream.svg" style={{ width: 32, height: 32, opacity: 0.85 }} />
+
+            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--olm-primary)", letterSpacing: "0.2em", textTransform: "uppercase", marginTop: 26 }}>
+              Um mapa pra você
+            </div>
+
+            <h1 style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: "clamp(2.25rem, 8vw, 3.75rem)",
+              lineHeight: 1.05, letterSpacing: "-0.02em",
+              margin: "14px 0 0",
+            }}>
+              {names.split(" e ")[0]} <em style={{ color: "var(--olm-primary)" }}>e</em> {names.split(" e ")[1] || ""}
+            </h1>
+
+            <p style={{
+              fontFamily: "var(--font-serif)", fontStyle: "italic",
+              fontSize: 17, color: "var(--dfg-2)",
+              margin: "16px 0 0", maxWidth: 420, lineHeight: 1.45,
+            }}>"{opening}"</p>
+
+            {/* Relationship counter */}
+            <div style={{
+              marginTop: 22,
+              padding: "10px 18px",
+              background: "rgba(251,245,240,0.04)",
+              border: "1px solid rgba(251,245,240,0.08)",
+              borderRadius: 999,
+              display: "inline-flex", alignItems: "center", gap: 14,
+              fontFamily: "var(--font-sans)",
+              fontVariantNumeric: "tabular-nums",
+              fontSize: 12, letterSpacing: "0.06em",
+              color: "var(--dfg-2)",
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--olm-primary)", animation: "pinPulse 1.6s ease-in-out infinite" }} />
+              <span><b style={{ color: "var(--dfg-1)", fontWeight: 600 }}>{c.years}</b> anos</span>
+              <span style={{ color: "var(--dfg-4)" }}>·</span>
+              <span><b style={{ color: "var(--dfg-1)", fontWeight: 600 }}>{c.months}</b> meses</span>
+              <span style={{ color: "var(--dfg-4)" }}>·</span>
+              <span><b style={{ color: "var(--dfg-1)", fontWeight: 600 }}>{c.days}</b> dias</span>
+              <span style={{ color: "var(--dfg-4)" }}>·</span>
+              <span style={{ color: "var(--olm-primary)", fontWeight: 600 }}>{String(c.h).padStart(2,"0")}:{String(c.m).padStart(2,"0")}:{String(c.s).padStart(2,"0")}</span>
+            </div>
+
+            {/* The inviting pin — center of map */}
+            <div style={{ position: "relative", marginTop: 68, width: 200, height: 200 }}>
+              {/* outer pulses */}
+              {[0, 1, 2].map(i => (
+                <div key={i} style={{
+                  position: "absolute", inset: 0, margin: "auto",
+                  width: 80, height: 80, borderRadius: "50%",
+                  border: "1.5px solid rgba(245,108,115,0.5)",
+                  animation: `ringPulse 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) ${i * 0.85}s infinite`,
+                  pointerEvents: "none",
+                  top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+                }} />
+              ))}
+              {/* the pin itself — outer wrapper centers, inner runs pulse */}
+              <a href="#first-place" style={{
+                position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+                textDecoration: "none",
+              }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, animation: "pinPulseInner 2.4s ease-in-out infinite" }}>
+                <svg width="46" height="58" viewBox="0 0 32 40" fill="none">
+                  <path d="M16 0 C25 0, 32 7, 32 16 C32 28, 16 40, 16 40 C16 40, 0 28, 0 16 C0 7, 7 0, 16 0 Z"
+                        fill="#F56C73" stroke="#FBF5F0" strokeWidth="1.5"
+                        style={{ filter: "drop-shadow(0 8px 18px rgba(245,108,115,0.55))" }}/>
+                  <circle cx="16" cy="16" r="6" fill="#FBF5F0"/>
+                </svg>
+                <div style={{
+                  padding: "6px 12px", borderRadius: 999,
+                  background: "rgba(37,33,42,0.85)",
+                  border: "1px solid rgba(251,245,240,0.12)",
+                  backdropFilter: "blur(8px)",
+                  fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase",
+                  color: "var(--dfg-1)", fontWeight: 600,
+                  whiteSpace: "nowrap",
+                }}>
+                  toque pra começar
+                </div>
+                </div>
+              </a>
+            </div>
+
+            <div style={{
+              position: "absolute", bottom: 28, left: "50%", transform: "translateX(-50%)",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+              color: "var(--dfg-3)", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase",
+            }}>
+              <span>ou role pra baixo</span>
+              <svg width="16" height="20" viewBox="0 0 18 22" fill="none" style={{ animation: "bob 1.8s ease-in-out infinite" }}>
+                <path d="M9 2 v16 M3 13 l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    const App = () => {
+      const [activeIndex, setActiveIndex] = React.useState(0);
+      React.useEffect(() => {
+        const onScroll = () => {
+          const ys = Array.from(document.querySelectorAll("[data-place-section]"));
+          const vh = window.innerHeight;
+          let found = 0;
+          ys.forEach((el, i) => {
+            const r = el.getBoundingClientRect();
+            if (r.top < vh * 0.55 && r.bottom > vh * 0.25) found = i;
+          });
+          setActiveIndex(found);
+        };
+        window.addEventListener("scroll", onScroll, { passive: true });
+        onScroll();
+        return () => window.removeEventListener("scroll", onScroll);
+      }, []);
+
+      return (
+        <main>
+          <CoverMap
+            names="Ana e Lucas"
+            opening="Começou num café em Alfama, nunca mais parou."
+            startDate="2023-02-14"
+          />
+          {journey.map((p, i) => (
+            <React.Fragment key={p.id}>
+              <div data-place-section id={i === 0 ? "first-place" : undefined}>
+                <PlaceSection place={p} index={i} activeIndex={activeIndex} total={journey.length} />
+              </div>
+              {i < journey.length - 1 && (
+                <TravelTransition
+                  fromName={p.name.split(",")[0]}
+                  toName={journey[i+1].name.split(",")[0]}
+                  variant={i % 3}
+                />
+              )}
+            </React.Fragment>
+          ))}
+          <FinalMap />
+        </main>
+      );
+    };
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

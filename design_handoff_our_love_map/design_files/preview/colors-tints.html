@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Colors — Tints</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--olm-bg); font-family: var(--font-sans); color: var(--fg-2); }
+  .card { padding: 22px 28px; display: flex; flex-direction: column; gap: 14px; }
+  .scale { display: grid; grid-template-columns: 90px repeat(4, 1fr); gap: 10px; align-items: center; }
+  .label { font-size: 12px; font-weight: 600; color: var(--fg-1); }
+  .stop { height: 40px; border-radius: var(--r-sm); display: flex; align-items: flex-end; justify-content: flex-end; padding: 6px 8px; font-family: var(--font-mono); font-size: 10px; color: rgba(0,0,0,0.45); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="scale">
+      <div class="label">Primary</div>
+      <div class="stop" style="background:#FDDDDF">100</div>
+      <div class="stop" style="background:#FAA2A7">300</div>
+      <div class="stop" style="background:#F56C73; color:#fff">500</div>
+      <div class="stop" style="background:#E85860; color:#fff">600</div>
+    </div>
+    <div class="scale">
+      <div class="label">Title</div>
+      <div class="stop" style="background:#DDDAEB">100</div>
+      <div class="stop" style="background:#8884B3; color:#fff">300</div>
+      <div class="stop" style="background:#413C7B; color:#fff">500</div>
+      <div class="stop" style="background:#322E60; color:#fff">600</div>
+    </div>
+    <div class="scale">
+      <div class="label">Accent</div>
+      <div class="stop" style="background:#EFDEFD">100</div>
+      <div class="stop" style="background:#D9ADFA">300</div>
+      <div class="stop" style="background:#BF77F6; color:#fff">500</div>
+      <div class="stop" style="background:#9B54D4; color:#fff">600</div>
+    </div>
+  </div>
+</body>
+</html>

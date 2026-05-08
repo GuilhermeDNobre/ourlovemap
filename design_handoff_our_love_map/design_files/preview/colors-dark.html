@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Colors — Dark surfaces</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--olm-dark); font-family: var(--font-sans); color: var(--dfg-2); }
+  .card { padding: 24px 28px; }
+  .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .swatch { border-radius: var(--r-md); overflow: hidden; box-shadow: 0 1px 0 rgba(255,255,255,0.04); background: rgba(255,255,255,0.03); border: 1px solid rgba(251,245,240,0.08); }
+  .swatch .fill { height: 64px; }
+  .swatch .meta { padding: 8px 12px 10px; }
+  .name { font-size: 12px; font-weight: 600; color: var(--dfg-1); letter-spacing: -0.01em; }
+  .hex { font-size: 11px; color: var(--dfg-3); font-family: var(--font-mono); margin-top: 2px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="row">
+      <div class="swatch"><div class="fill" style="background:#25212A"></div><div class="meta"><div class="name">Dark base</div><div class="hex">#25212A</div></div></div>
+      <div class="swatch"><div class="fill" style="background:#332E3A"></div><div class="meta"><div class="name">Elevated</div><div class="hex">#332E3A</div></div></div>
+      <div class="swatch"><div class="fill" style="background:#453F4E"></div><div class="meta"><div class="name">Raised</div><div class="hex">#453F4E</div></div></div>
+      <div class="swatch"><div class="fill" style="background:#5A5363"></div><div class="meta"><div class="name">Border</div><div class="hex">#5A5363</div></div></div>
+    </div>
+  </div>
+</body>
+</html>
