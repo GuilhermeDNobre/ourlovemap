@@ -33,7 +33,8 @@
       "Bash(python -m json.tool)",
       "Bash(curl -s --request GET --url https://api.abacatepay.com/v1/customer/list --header 'accept: application/json' --header 'authorization: Bearer abc_dev_LEAw322DfW5Xm5nnxhLhqZGj')",
       "Bash(curl -s --request GET --url https://api.abacatepay.com/v1/billing/list --header 'accept: application/json' --header 'authorization: Bearer abc_dev_LEAw322DfW5Xm5nnxhLhqZGj')",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npm show *)"
     ]
   }
 }

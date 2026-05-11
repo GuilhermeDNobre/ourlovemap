@@ -1,0 +1,73 @@
+import type { Config } from 'tailwindcss';
+
+const config: Config = {
+  content: ['./index.html', './src/**/*.{ts,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        'olm-primary': 'var(--olm-primary)',
+        'olm-primary-600': 'var(--olm-primary-600)',
+        'olm-primary-300': 'var(--olm-primary-300)',
+        'olm-primary-100': 'var(--olm-primary-100)',
+        'olm-title': 'var(--olm-title)',
+        'olm-title-600': 'var(--olm-title-600)',
+        'olm-title-300': 'var(--olm-title-300)',
+        'olm-accent': 'var(--olm-accent)',
+        'olm-accent-300': 'var(--olm-accent-300)',
+        'olm-accent-100': 'var(--olm-accent-100)',
+        'olm-dark': 'var(--olm-dark)',
+        'olm-dark-800': 'var(--olm-dark-800)',
+        'olm-dark-700': 'var(--olm-dark-700)',
+        'olm-dark-600': 'var(--olm-dark-600)',
+        'olm-bg': 'var(--olm-bg)',
+        'olm-bg-elevated': 'var(--olm-bg-elevated)',
+        'olm-surface': 'var(--olm-surface)',
+        'olm-surface-soft': 'var(--olm-surface-soft)',
+        'olm-success': 'var(--olm-success)',
+        'olm-warning': 'var(--olm-warning)',
+        'olm-error': 'var(--olm-error)',
+        'fg-1': 'var(--fg-1)',
+        'fg-2': 'var(--fg-2)',
+        'fg-3': 'var(--fg-3)',
+        'fg-4': 'var(--fg-4)',
+        'fg-inverse': 'var(--fg-inverse)',
+        'dfg-1': 'var(--dfg-1)',
+        'dfg-2': 'var(--dfg-2)',
+        'dfg-3': 'var(--dfg-3)',
+        'dfg-4': 'var(--dfg-4)',
+      },
+      boxShadow: {
+        sm: 'var(--sh-sm)',
+        md: 'var(--sh-md)',
+        lg: 'var(--sh-lg)',
+        xl: 'var(--sh-xl)',
+        'glow-primary': 'var(--sh-glow-primary)',
+        'glow-accent': 'var(--sh-glow-accent)',
+        'dsh-sm': 'var(--dsh-sm)',
+        'dsh-md': 'var(--dsh-md)',
+        'dsh-glow': 'var(--dsh-glow)',
+      },
+      borderRadius: {
+        xs: 'var(--r-xs)',
+        sm: 'var(--r-sm)',
+        md: 'var(--r-md)',
+        lg: 'var(--r-lg)',
+        xl: 'var(--r-xl)',
+        '2xl': 'var(--r-2xl)',
+        pill: 'var(--r-pill)',
+      },
+      fontFamily: {
+        serif: 'var(--font-serif)',
+        sans: 'var(--font-sans)',
+      },
+      transitionTimingFunction: {
+        emphasized: 'var(--ease-emphasized)',
+        standard: 'var(--ease-standard)',
+        'soft-spring': 'var(--ease-soft-spring)',
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;

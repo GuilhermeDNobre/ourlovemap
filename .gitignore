@@ -1,11 +1,38 @@
-./backend/node_modules
-./frontend/node_modules
+# Dependencies
+backend/node_modules
+frontend/node_modules
 
-./backend/dist/
-./frontend/dist/
+# Build outputs
+backend/dist/
+frontend/dist/
 
-./backend/.env
-./frontend/.env
+# Vite cache
+frontend/.vite/
 
-./backend/*.log
-./frontend/*.log
+# TypeScript incremental build
+backend/*.tsbuildinfo
+frontend/*.tsbuildinfo
+
+# Environment variables
+backend/.env
+frontend/.env
+backend/.env.local
+frontend/.env.local
+backend/.env.*.local
+frontend/.env.*.local
+
+# Logs
+backend/*.log
+frontend/*.log
+
+# Test coverage
+backend/coverage/
+frontend/coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
