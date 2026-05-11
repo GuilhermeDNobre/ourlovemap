@@ -3,7 +3,7 @@
 ## Tarefas
 
 - [x] 1.0 Setup do projeto frontend
-- [ ] 2.0 Design system e componentes UI base
+- [x] 2.0 Design system e componentes UI base
 - [ ] 3.0 Landing Page
 - [ ] 4.0 Wizard — Infraestrutura + Steps 1 e 2
 - [ ] 5.0 Wizard — Steps 3 e 4 + validação Zod completa

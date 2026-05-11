@@ -34,7 +34,9 @@
       "Bash(curl -s --request GET --url https://api.abacatepay.com/v1/customer/list --header 'accept: application/json' --header 'authorization: Bearer abc_dev_LEAw322DfW5Xm5nnxhLhqZGj')",
       "Bash(curl -s --request GET --url https://api.abacatepay.com/v1/billing/list --header 'accept: application/json' --header 'authorization: Bearer abc_dev_LEAw322DfW5Xm5nnxhLhqZGj')",
       "Bash(curl:*)",
-      "Bash(npm show *)"
+      "Bash(npm show *)",
+      "Bash(git *)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.get\\('dependencies',{}\\).items\\(\\) if 'framer' in k or 'motion' in k}, indent=2\\)\\)\")"
     ]
   }
 }

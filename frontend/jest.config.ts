@@ -13,6 +13,7 @@ const config: Config = {
           moduleResolution: 'node',
           allowImportingTsExtensions: false,
           noEmit: false,
+          esModuleInterop: true,
         },
         diagnostics: false,
       },
