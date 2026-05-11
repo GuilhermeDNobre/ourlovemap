@@ -22,6 +22,8 @@ const config: Config = {
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': '<rootDir>/src/__mocks__/style-mock.ts',
     '\\.(svg|png|jpg|gif|ttf|woff|woff2|eot)$': '<rootDir>/src/__mocks__/file-mock.ts',
+    '^@maptiler/geocoding-control(.*)$': '<rootDir>/src/__mocks__/geocoding-control-mock.ts',
+    '^.*/lib/client-env$': '<rootDir>/src/__mocks__/client-env-mock.ts',
   },
   testMatch: ['**/__tests__/**/*.test.{ts,tsx}', '**/*.test.{ts,tsx}'],
 };
