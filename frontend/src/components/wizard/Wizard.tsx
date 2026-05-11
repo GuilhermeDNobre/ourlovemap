@@ -1,33 +1,34 @@
 import { useWizardStore } from '../../stores/wizard-store';
+import type { Place } from '../../stores/wizard-store';
 import { ProgressDots } from './ProgressDots';
 import { LivePreview } from './LivePreview';
 import { SlugCard } from './SlugCard';
 import { PlanSelector } from './PlanSelector';
 import { Step1Voces } from './steps/Step1Voces';
 import { Step2Localizacoes } from './steps/Step2Localizacoes';
+import { Step3Musica } from './steps/Step3Musica';
+import { Step4Envio } from './steps/Step4Envio';
+import { step2Schema } from '../../lib/wizard-schema';
 
 const STEP_TITLES = ['Vocês', 'Localizações', 'Música', 'Envio'];
 
 interface StepState {
-  names: string;
-  startDate: string;
-  placesCount: number;
+  places: Place[];
 }
 
 function canProceedFromStep(step: number, state: StepState): boolean {
-  if (step === 1) return state.names.trim().length > 0 && state.startDate.length > 0;
-  if (step === 2) return state.placesCount > 0;
+  if (step === 2) return step2Schema.safeParse({ places: state.places }).success;
   return true;
 }
 
 export function Wizard() {
-  const { step, setStep, names, startDate, places } = useWizardStore();
+  const { step, setStep, names, places } = useWizardStore();
   if (step === 0) {
     return <PlanSelector onConfirm={() => setStep(1)} />;
   }
   const goNext = () => setStep(Math.min(step + 1, 4));
   const goBack = () => setStep(Math.max(step - 1, 1));
-  const stepState: StepState = { names, startDate, placesCount: places.length };
+  const stepState: StepState = { places };
   const canProceed = canProceedFromStep(step, stepState);
   return (
     <div className="min-h-screen bg-olm-bg">
@@ -44,42 +45,8 @@ export function Wizard() {
             {step === 2 && (
               <Step2Localizacoes onNext={goNext} onBack={goBack} canProceed={canProceed} />
             )}
-            {step === 3 && (
-              <div className="flex flex-col gap-4">
-                <p className="text-fg-2">Step 3 — Música (próxima tarefa)</p>
-                <div className="flex justify-between">
-                  <button
-                    type="button"
-                    onClick={goBack}
-                    className="text-fg-2 text-sm underline"
-                  >
-                    Voltar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={goNext}
-                    disabled={!canProceed}
-                    className="bg-olm-primary text-white px-6 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50"
-                  >
-                    Continuar
-                  </button>
-                </div>
-              </div>
-            )}
-            {step === 4 && (
-              <div className="flex flex-col gap-4">
-                <p className="text-fg-2">Step 4 — Envio (próxima tarefa)</p>
-                <div className="flex justify-between">
-                  <button
-                    type="button"
-                    onClick={goBack}
-                    className="text-fg-2 text-sm underline"
-                  >
-                    Voltar
-                  </button>
-                </div>
-              </div>
-            )}
+            {step === 3 && <Step3Musica onNext={goNext} onBack={goBack} />}
+            {step === 4 && <Step4Envio onBack={goBack} onFinalize={goNext} />}
           </div>
           <div className="flex-1 md:sticky md:top-8 flex flex-col gap-4" style={{ minWidth: 220 }}>
             <LivePreview />
