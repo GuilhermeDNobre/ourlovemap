@@ -28,6 +28,7 @@ const config: Config = {
     '^gsap$': '<rootDir>/src/__mocks__/gsap-mock.ts',
     '^gsap/(.*)$': '<rootDir>/src/__mocks__/gsap-plugins-mock.ts',
     '^react-intersection-observer$': '<rootDir>/src/__mocks__/intersection-observer-mock.ts',
+    '^react-youtube$': '<rootDir>/src/__mocks__/react-youtube-mock.tsx',
   },
   testMatch: ['**/__tests__/**/*.test.{ts,tsx}', '**/*.test.{ts,tsx}'],
 };

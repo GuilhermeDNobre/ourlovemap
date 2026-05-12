@@ -15,9 +15,10 @@ const MAP_DATA = {
   coupleName: 'Ana e João',
   opening: 'Nossa história',
   relationshipStartDate: '2020-01-01',
-  youtubeVideoId: null,
-  youtubeStartTime: null,
-  youtubeEndTime: null,
+  youtubeVideoId: 'abc123',
+  youtubeStartTime: 10,
+  youtubeEndTime: 60,
+  youtubeLoop: true,
   locations: [
     {
       title: 'Café do Amor',
@@ -82,7 +83,7 @@ describe('PublicMap', () => {
     expect(screen.getByRole('link', { name: /Fazer upgrade para Premium/i })).toBeInTheDocument();
   });
 
-  it('should render CoverScreen opening and PlaceSection titles on 200', async () => {
+  it('should render CoverScreen, PlaceSection titles, TravelTransition, MusicLayer and FinalMapScreen on 200', async () => {
     mockGet.mockResolvedValue({ data: MAP_DATA });
     render(<PublicMap />, { wrapper: makeWrapper() });
     await waitFor(() => {
@@ -90,5 +91,16 @@ describe('PublicMap', () => {
     });
     expect(screen.getAllByText(/Café do Amor/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Parque Ibirapuera/).length).toBeGreaterThan(0);
+    expect(screen.getByTestId('youtube-player')).toBeInTheDocument();
+    expect(screen.getByText(/mapa do amor/)).toBeInTheDocument();
+  });
+
+  it('should not render MusicLayer YouTube player when youtubeVideoId is null', async () => {
+    mockGet.mockResolvedValue({ data: { ...MAP_DATA, youtubeVideoId: null } });
+    render(<PublicMap />, { wrapper: makeWrapper() });
+    await waitFor(() => {
+      expect(screen.getByText('Nossa história')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('youtube-player')).not.toBeInTheDocument();
   });
 });

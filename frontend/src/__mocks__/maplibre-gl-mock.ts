@@ -24,7 +24,21 @@ const createMarkerInstance = () => {
   };
 };
 
+const createPopupInstance = () => ({
+  setLngLat: jest.fn().mockReturnThis(),
+  setDOMContent: jest.fn().mockReturnThis(),
+  addTo: jest.fn().mockReturnThis(),
+  remove: jest.fn(),
+});
+
+const createBoundsInstance = () => ({
+  extend: jest.fn().mockReturnThis(),
+  isEmpty: jest.fn().mockReturnValue(false),
+});
+
 const Marker = jest.fn().mockImplementation(createMarkerInstance);
+const Popup = jest.fn().mockImplementation(createPopupInstance);
+const LngLatBounds = jest.fn().mockImplementation(createBoundsInstance);
 const NavigationControl = jest.fn();
 
-export default { Map, Marker, NavigationControl };
+export default { Map, Marker, Popup, LngLatBounds, NavigationControl };

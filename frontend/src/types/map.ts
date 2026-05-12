@@ -15,5 +15,6 @@ export interface MapApiResponse {
   youtubeVideoId: string | null;
   youtubeStartTime: number | null;
   youtubeEndTime: number | null;
+  youtubeLoop: boolean | null;
   locations: ApiLocation[];
 }

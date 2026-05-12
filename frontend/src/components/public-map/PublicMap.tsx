@@ -1,17 +1,31 @@
-import { Fragment } from 'react';
+import { Fragment, useEffect } from 'react';
 import { isAxiosError } from 'axios';
 import { useMapData } from '../../hooks/use-map-data';
 import { useActivePlace } from '../../hooks/use-active-place';
+import { useMusicPlayer } from '../../hooks/use-music-player';
 import { AccessError } from './AccessError';
 import { CoverScreen } from './CoverScreen';
 import { PlaceSection } from './PlaceSection';
 import { TravelTransition } from './TravelTransition';
+import { MusicLayer } from './MusicLayer';
+import { FinalMapScreen } from './FinalMapScreen';
 
 type Variant = 0 | 1 | 2;
 
 export function PublicMap() {
   const { data, isLoading, isError, error } = useMapData();
   const { activeIndex, updateVisibility } = useActivePlace();
+  const { playerRef, isBlocked, unblock, onAutoplayBlocked, handleEnd } = useMusicPlayer({
+    startTime: data?.youtubeStartTime ?? 0,
+    loop: data?.youtubeLoop ?? false,
+  });
+
+  useEffect(() => {
+    const playOnScroll = () => { playerRef.current?.playVideo(); };
+    window.addEventListener('scroll', playOnScroll, { once: true });
+    return () => window.removeEventListener('scroll', playOnScroll);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (isLoading) {
     return (
@@ -39,7 +53,17 @@ export function PublicMap() {
   const sortedLocations = [...data.locations].sort((a, b) => a.order - b.order);
 
   return (
-    <div style={{ overflowX: 'hidden' }}>
+    <div id="top" style={{ overflowX: 'hidden' }}>
+      <MusicLayer
+        videoId={data.youtubeVideoId}
+        startTime={data.youtubeStartTime ?? 0}
+        endTime={data.youtubeEndTime ?? 0}
+        playerRef={playerRef}
+        isBlocked={isBlocked}
+        unblock={unblock}
+        onAutoplayBlocked={onAutoplayBlocked}
+        onEnd={handleEnd}
+      />
       <CoverScreen
         coupleName={data.coupleName}
         opening={data.opening}
@@ -54,15 +78,14 @@ export function PublicMap() {
             allLocations={sortedLocations}
             onVisibilityChange={updateVisibility}
           />
-          {index < sortedLocations.length - 1 && (
-            <TravelTransition
-              fromTitle={location.title}
-              toTitle={sortedLocations[index + 1].title}
-              variant={(index % 3) as Variant}
-            />
-          )}
+          <TravelTransition
+            fromTitle={location.title}
+            toTitle={index < sortedLocations.length - 1 ? sortedLocations[index + 1].title : 'nosso mapa'}
+            variant={(index % 3) as Variant}
+          />
         </Fragment>
       ))}
+      <FinalMapScreen locations={sortedLocations} />
     </div>
   );
 }

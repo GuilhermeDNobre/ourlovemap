@@ -9,4 +9,4 @@
 - [x] 5.0 Wizard — Steps 3 e 4 + validação Zod completa
 - [x] 6.0 Wizard — Fluxo de pagamento
 - [x] 7.0 Página pública — Cover, PlaceSection e TravelTransition
-- [ ] 8.0 Página pública — FinalMapScreen e Player de música
+- [x] 8.0 Página pública — FinalMapScreen e Player de música

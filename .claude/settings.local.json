@@ -49,7 +49,8 @@
       "Bash(find src/__tests__/public-map -name \"*.test.*\")",
       "Bash(dir src/__tests__\\\\public-map)",
       "Bash(dir D:\\\\temp\\\\ws-vscode\\\\ourlovemap\\\\tasks\\\\prd-frontend-our-love-map *)",
-      "Bash(dir D:\\\\temp\\\\ws-vscode\\\\ourlovemap\\\\tasks\\\\prd-frontend-our-love-map\\\\reviews *)"
+      "Bash(dir D:\\\\temp\\\\ws-vscode\\\\ourlovemap\\\\tasks\\\\prd-frontend-our-love-map\\\\reviews *)",
+      "Bash(grep *)"
     ]
   }
 }
