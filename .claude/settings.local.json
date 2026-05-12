@@ -50,7 +50,11 @@
       "Bash(dir src/__tests__\\\\public-map)",
       "Bash(dir D:\\\\temp\\\\ws-vscode\\\\ourlovemap\\\\tasks\\\\prd-frontend-our-love-map *)",
       "Bash(dir D:\\\\temp\\\\ws-vscode\\\\ourlovemap\\\\tasks\\\\prd-frontend-our-love-map\\\\reviews *)",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\temp\\\\ws-vscode\\\\ourlovemap\\\\backend\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(npm ls *)",
+      "Bash(npm audit *)"
     ]
   }
 }

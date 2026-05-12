@@ -20,6 +20,7 @@ interface ParsedLocationField {
   title?: string;
   description?: string;
   message?: string;
+  address?: string;
   latitude?: string;
   longitude?: string;
   order?: string;
@@ -132,6 +133,7 @@ async function buildLocations(
         title: loc.title ?? '',
         description: loc.description,
         message: loc.message,
+        address: loc.address,
         photoUrl,
         latitude: parseFloat(loc.latitude ?? '0'),
         longitude: parseFloat(loc.longitude ?? '0'),
@@ -163,10 +165,12 @@ function registerByTokenRoute(fastify: FastifyInstance): void {
           type: 'object',
           properties: {
             coupleName: { type: 'string' },
+            opening: { type: 'string', nullable: true },
             relationshipStartDate: { type: 'string', format: 'date' },
             youtubeVideoId: { type: 'string', nullable: true },
             youtubeStartTime: { type: 'integer', nullable: true },
             youtubeEndTime: { type: 'integer', nullable: true },
+            youtubeLoop: { type: 'boolean', nullable: true },
             locations: {
               type: 'array',
               items: { $ref: 'https://ourlovemap.com/schemas/Location#' },
@@ -206,15 +210,17 @@ function registerByTokenRoute(fastify: FastifyInstance): void {
     const locations = await getLocationsByMapId(map.id);
     return reply.send({
       coupleName: map.coupleName,
+      opening: map.opening ?? null,
       relationshipStartDate: map.relationshipStartDate,
-      youtubeVideoId: map.youtubeVideoId,
-      youtubeStartTime: map.youtubeStartTime,
-      youtubeEndTime: map.youtubeEndTime,
+      youtubeVideoId: map.youtubeVideoId ?? null,
+      youtubeStartTime: map.youtubeStartTime ?? null,
+      youtubeEndTime: map.youtubeEndTime ?? null,
+      youtubeLoop: map.youtubeLoop ?? null,
       locations: locations.map(loc => ({
         title: loc.title,
-        description: loc.description,
-        message: loc.message,
-        photoUrl: loc.photoUrl,
+        description: loc.description ?? null,
+        address: loc.address ?? null,
+        photoUrl: loc.photoUrl ?? null,
         latitude: loc.latitude,
         longitude: loc.longitude,
         order: loc.order,
@@ -265,6 +271,7 @@ export default async function mapRoutes(fastify: FastifyInstance): Promise<void>
       return reply.code(400).send({ error: 'youtube_url is not a valid YouTube URL' });
     }
     const youtubeVideoId = extractedId ?? undefined;
+    const youtubeLoop = fields.youtube_loop === 'true' ? true : fields.youtube_loop === 'false' ? false : undefined;
     const mapId = new Types.ObjectId().toString();
     const locations = await buildLocations(locationFields, files, mapId);
     const map = await createMap({
@@ -275,10 +282,12 @@ export default async function mapRoutes(fastify: FastifyInstance): Promise<void>
       email: fields.email,
       plan,
       relationshipStartDate: fields.relationship_start_date,
+      opening: fields.opening || undefined,
       locations,
       youtubeVideoId,
       youtubeStartTime: fields.youtube_start_time ? parseInt(fields.youtube_start_time, 10) : undefined,
       youtubeEndTime: fields.youtube_end_time ? parseInt(fields.youtube_end_time, 10) : undefined,
+      youtubeLoop,
     });
     request.log.info({ mapId: map.id, plan: fields.plan }, 'Map created');
     try {

@@ -10,3 +10,4 @@
 - [x] 6.0 Wizard — Fluxo de pagamento
 - [x] 7.0 Página pública — Cover, PlaceSection e TravelTransition
 - [x] 8.0 Página pública — FinalMapScreen e Player de música
+- [ ] 9.0 Correções de tipos e envio de `youtubeLoop`
