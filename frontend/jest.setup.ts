@@ -3,6 +3,12 @@ import { TextDecoder, TextEncoder } from 'util';
 
 Object.assign(global, { TextDecoder, TextEncoder });
 
+Object.defineProperty(navigator, 'clipboard', {
+  value: { writeText: jest.fn() },
+  writable: true,
+  configurable: true,
+});
+
 if (typeof globalThis.crypto === 'undefined' || typeof globalThis.crypto.randomUUID === 'undefined') {
   Object.defineProperty(globalThis, 'crypto', {
     value: {

@@ -1,19 +1,39 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactNode } from 'react';
 import { Step4Envio } from '../../components/wizard/steps/Step4Envio';
 import { useWizardStore } from '../../stores/wizard-store';
 
+const mockPost = jest.fn();
+
+jest.mock('../../lib/api', () => ({
+  __esModule: true,
+  default: { post: (...args: unknown[]) => mockPost(...args) },
+}));
+
 beforeEach(() => {
   useWizardStore.getState().reset();
+  jest.clearAllMocks();
+  mockPost.mockResolvedValue({ data: { mapId: 'test-map-id' } });
 });
 
-function renderStep(onBack = jest.fn(), onFinalize = jest.fn()) {
-  return render(
-    <MemoryRouter>
-      <Step4Envio onBack={onBack} onFinalize={onFinalize} />
-    </MemoryRouter>,
-  );
+function makeWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: { mutations: { retry: false } },
+  });
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>{children}</MemoryRouter>
+      </QueryClientProvider>
+    );
+  };
+}
+
+function renderStep(onBack = jest.fn()) {
+  return render(<Step4Envio onBack={onBack} />, { wrapper: makeWrapper() });
 }
 
 describe('Step4Envio', () => {
@@ -98,20 +118,18 @@ describe('Step4Envio', () => {
     expect(screen.getByText(/APENAS para esse email/i)).toBeInTheDocument();
   });
 
-  it('should call onFinalize after valid form submission', async () => {
-    const onFinalize = jest.fn();
+  it('should call POST /api/maps after valid form submission', async () => {
     const user = userEvent.setup();
-    render(
-      <MemoryRouter>
-        <Step4Envio onBack={jest.fn()} onFinalize={onFinalize} />
-      </MemoryRouter>,
-    );
+    renderStep();
     const [emailInput, confirmInput] = screen.getAllByPlaceholderText('seu@email.com');
     await user.type(emailInput, 'test@example.com');
     await user.type(confirmInput, 'test@example.com');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Finalizar compra/i })).not.toBeDisabled();
+    });
     await user.click(screen.getByRole('button', { name: /Finalizar compra/i }));
     await waitFor(() => {
-      expect(onFinalize).toHaveBeenCalled();
+      expect(mockPost).toHaveBeenCalledWith('/api/maps', expect.any(FormData));
     });
   });
 });

@@ -4,6 +4,7 @@ import { ProgressDots } from './ProgressDots';
 import { LivePreview } from './LivePreview';
 import { SlugCard } from './SlugCard';
 import { PlanSelector } from './PlanSelector';
+import { PaymentModal } from './PaymentModal';
 import { Step1Voces } from './steps/Step1Voces';
 import { Step2Localizacoes } from './steps/Step2Localizacoes';
 import { Step3Musica } from './steps/Step3Musica';
@@ -22,7 +23,7 @@ function canProceedFromStep(step: number, state: StepState): boolean {
 }
 
 export function Wizard() {
-  const { step, setStep, names, places } = useWizardStore();
+  const { step, setStep, setField, names, places, mapId } = useWizardStore();
   if (step === 0) {
     return <PlanSelector onConfirm={() => setStep(1)} />;
   }
@@ -30,6 +31,7 @@ export function Wizard() {
   const goBack = () => setStep(Math.max(step - 1, 1));
   const stepState: StepState = { places };
   const canProceed = canProceedFromStep(step, stepState);
+  const handleModalClose = () => setField('mapId', null);
   return (
     <div className="min-h-screen bg-olm-bg">
       <div className="max-w-[1100px] mx-auto px-6 py-10">
@@ -46,7 +48,7 @@ export function Wizard() {
               <Step2Localizacoes onNext={goNext} onBack={goBack} canProceed={canProceed} />
             )}
             {step === 3 && <Step3Musica onNext={goNext} onBack={goBack} />}
-            {step === 4 && <Step4Envio onBack={goBack} onFinalize={goNext} />}
+            {step === 4 && <Step4Envio onBack={goBack} />}
           </div>
           <div className="flex-1 md:sticky md:top-8 flex flex-col gap-4" style={{ minWidth: 220 }}>
             <LivePreview />
@@ -54,6 +56,13 @@ export function Wizard() {
           </div>
         </div>
       </div>
+      {mapId && (
+        <PaymentModal
+          isOpen
+          onClose={handleModalClose}
+          mapId={mapId}
+        />
+      )}
     </div>
   );
 }

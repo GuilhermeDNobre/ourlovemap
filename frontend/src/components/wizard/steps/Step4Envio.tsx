@@ -1,8 +1,11 @@
+import { isAxiosError } from 'axios';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useWizardStore } from '../../../stores/wizard-store';
 import { step4Schema } from '../../../lib/wizard-schema';
+import { buildMapFormData } from '../../../lib/build-map-form-data';
+import { useCreateMap } from '../../../hooks/use-create-map';
 import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
 
@@ -10,11 +13,12 @@ type Step4Fields = z.infer<typeof step4Schema>;
 
 interface Step4EnvioProps {
   onBack: () => void;
-  onFinalize: () => void;
 }
 
-export function Step4Envio({ onBack, onFinalize }: Step4EnvioProps) {
-  const { names, places, plan, music, email, emailConfirm, setPlan, setField } = useWizardStore();
+export function Step4Envio({ onBack }: Step4EnvioProps) {
+  const store = useWizardStore();
+  const { names, places, plan, music, email, emailConfirm, setPlan, setField } = store;
+  const createMap = useCreateMap();
   const {
     control,
     handleSubmit,
@@ -31,8 +35,13 @@ export function Step4Envio({ onBack, onFinalize }: Step4EnvioProps) {
   const onFormSubmit = (data: Step4Fields) => {
     setField('email', data.email);
     setField('emailConfirm', data.emailConfirm);
-    onFinalize();
+    const formData = buildMapFormData({ ...store, email: data.email, emailConfirm: data.emailConfirm });
+    createMap.mutate(formData);
   };
+
+  const backendError = createMap.error
+    ? getBackendErrorMessage(createMap.error, places.length, plan)
+    : null;
 
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="flex flex-col gap-5">
@@ -129,14 +138,38 @@ export function Step4Envio({ onBack, onFinalize }: Step4EnvioProps) {
           </button>
         </div>
       </div>
+      {backendError && (
+        <p className="text-sm text-olm-error rounded-lg border border-olm-error/30 bg-olm-error/5 px-3 py-2" role="alert">
+          {backendError}
+        </p>
+      )}
       <div className="flex justify-between pt-2">
         <Button variant="ghost" size="md" onClick={onBack} type="button">
           Voltar
         </Button>
-        <Button type="submit" variant="primary" size="lg" disabled={!canFinalize}>
-          Finalizar compra
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          disabled={!canFinalize || createMap.isPending}
+        >
+          {createMap.isPending ? 'Enviando...' : 'Finalizar compra'}
         </Button>
       </div>
     </form>
   );
+}
+
+function getBackendErrorMessage(error: unknown, placesCount: number, plan: string): string {
+  const status = isAxiosError(error) ? error.response?.status : undefined;
+  if (status === 422 && plan === 'basic' && placesCount > 3) {
+    return `Você tem ${placesCount} lugares, mas o plano Basic permite apenas 3. Altere para Premium.`;
+  }
+  if (status === 422) {
+    return 'Dados inválidos. Verifique as informações e tente novamente.';
+  }
+  if (status === 400) {
+    return 'Requisição inválida. Verifique os campos e tente novamente.';
+  }
+  return 'Erro ao processar pedido. Tente novamente.';
 }
