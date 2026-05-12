@@ -1,6 +1,19 @@
 import '@testing-library/jest-dom';
 import { TextDecoder, TextEncoder } from 'util';
 
+if (typeof SVGElement !== 'undefined') {
+  Object.defineProperty(SVGElement.prototype, 'getTotalLength', {
+    value: () => 100,
+    configurable: true,
+    writable: true,
+  });
+  Object.defineProperty(SVGElement.prototype, 'getPointAtLength', {
+    value: () => ({ x: 0, y: 0 }),
+    configurable: true,
+    writable: true,
+  });
+}
+
 Object.assign(global, { TextDecoder, TextEncoder });
 
 Object.defineProperty(navigator, 'clipboard', {
