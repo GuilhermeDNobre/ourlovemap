@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import type { FastifyInstance, FastifyServerOptions } from 'fastify';
+import cors from '@fastify/cors';
 import mongodbPlugin from './plugins/mongodb-plugin.js';
 import multipartPlugin from './plugins/multipart-plugin.js';
 import posthogPlugin from './plugins/posthog-plugin.js';
@@ -32,6 +33,7 @@ export function buildApp(options: FastifyServerOptions = { logger: true }): Fast
     });
   });
 
+  fastify.register(cors, { origin: ['https://ourlovemap.com.br', 'http://localhost:5173'] });
   fastify.register(swaggerPlugin);
   fastify.register(mongodbPlugin);
   fastify.register(multipartPlugin);
