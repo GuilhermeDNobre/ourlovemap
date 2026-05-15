@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
 
 export interface PaymentStatus {
-  status: 'pending_payment' | 'active' | 'payment_failed';
+  status: 'pending_payment' | 'active' | 'payment_failed' | 'expired';
 }
 
 export function usePaymentPolling(mapId: string | null) {
@@ -23,5 +23,6 @@ export function usePaymentPolling(mapId: string | null) {
     ...query,
     isActive: query.data?.status === 'active',
     isFailed: query.data?.status === 'payment_failed',
+    isExpired: query.data?.status === 'expired',
   };
 }

@@ -1,3 +1,4 @@
+
 # Tarefa 9.0: Correções de tipos e envio de `youtubeLoop`
 
 <critical>Ler os arquivos de prd.md e techspec.md desta pasta antes de começar. Se você não ler esses arquivos sua tarefa será invalidada.</critical>

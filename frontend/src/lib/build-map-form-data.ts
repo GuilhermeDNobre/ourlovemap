@@ -15,6 +15,7 @@ export function buildMapFormData(store: WizardStore): FormData {
     formData.append('youtube_url', `https://www.youtube.com/watch?v=${store.music.videoId}`);
     formData.append('youtube_start_time', String(store.music.startTime));
     formData.append('youtube_end_time', String(store.music.endTime));
+    formData.append('youtube_loop', String(store.music.loop));
   }
   store.places.forEach((place, i) => {
     formData.append(`locations[${i}][title]`, place.title);

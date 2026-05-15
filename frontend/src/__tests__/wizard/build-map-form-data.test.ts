@@ -69,6 +69,28 @@ describe('buildMapFormData', () => {
     expect(form.get('youtube_end_time')).toBe('40');
   });
 
+  it('should append youtube_loop as true when music.loop is true', () => {
+    const store = makeStore({
+      music: { videoId: 'dQw4w9WgXcQ', query: 'Never Gonna', startTime: 10, endTime: 40, loop: true },
+    });
+    const form = buildMapFormData(store);
+    expect(form.get('youtube_loop')).toBe('true');
+  });
+
+  it('should append youtube_loop as false when music.loop is false', () => {
+    const store = makeStore({
+      music: { videoId: 'dQw4w9WgXcQ', query: 'Never Gonna', startTime: 10, endTime: 40, loop: false },
+    });
+    const form = buildMapFormData(store);
+    expect(form.get('youtube_loop')).toBe('false');
+  });
+
+  it('should not append youtube_loop when no music is selected', () => {
+    const store = makeStore({ music: { videoId: '', query: '', startTime: 0, endTime: 0, loop: false } });
+    const form = buildMapFormData(store);
+    expect(form.get('youtube_loop')).toBeNull();
+  });
+
   it('should append locations with bracket notation', () => {
     const store = makeStore({
       places: [

@@ -54,7 +54,11 @@
       "Bash(Get-ChildItem -Path \"D:\\\\temp\\\\ws-vscode\\\\ourlovemap\\\\backend\" -Recurse -Directory)",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(npm ls *)",
-      "Bash(npm audit *)"
+      "Bash(npm audit *)",
+      "Bash(cat jest.config.ts)",
+      "Bash(cat jest.config.js)",
+      "Bash(python3 -c \"import sys,json; cfg=json.load\\(sys.stdin\\); print\\(json.dumps\\(cfg.get\\('jest', cfg.get\\('scripts', {}\\)\\), indent=2\\)\\)\")",
+      "Bash(Get-ChildItem *)"
     ]
   }
 }

@@ -2,6 +2,7 @@ export interface ApiLocation {
   title: string;
   description: string | null;
   message: string | null;
+  address?: string | null;
   photoUrl: string | null;
   latitude: number;
   longitude: number;
