@@ -56,15 +56,16 @@ export interface AbacatePayBillingProduct {
   quantity: number;
 }
 
+export interface AbacatePayBillingData {
+  id: string;
+  products?: AbacatePayBillingProduct[];
+}
+
 export interface AbacatePayWebhookEvent {
   event: string;
   data: {
     id?: string;
-    amount?: number;
-    status?: string;
-    devMode?: boolean;
-    url?: string;
-    products?: AbacatePayBillingProduct[];
+    billing?: AbacatePayBillingData;
   };
 }
 
@@ -164,9 +165,16 @@ async function resolveMapFromEvent(
     return map;
   }
   if (event.event === 'billing.paid') {
-    const mapId = event.data?.products?.[0]?.externalId;
+    const billing = event.data?.billing;
+    const billingId = billing?.id;
+    if (billingId) {
+      const map = await getMapByPaymentId(billingId);
+      if (!map) log.warn({ billingId }, 'Map not found for webhook event');
+      return map;
+    }
+    const mapId = billing?.products?.[0]?.externalId;
     if (!mapId) {
-      log.warn({ event: event.event, data: event.data }, 'Webhook billing.paid has no payment id or product externalId');
+      log.warn({ event: event.event, data: event.data }, 'Webhook billing.paid has no billing id or product externalId');
       return null;
     }
     const map = await getMapById(mapId);

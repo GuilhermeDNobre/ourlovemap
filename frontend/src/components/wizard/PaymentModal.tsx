@@ -126,7 +126,7 @@ export function PaymentModal({ isOpen, onClose, mapId }: PaymentModalProps) {
           <h3 className="font-semibold text-olm-title text-base">Pague com PIX</h3>
           <div className="flex justify-center">
             <img
-              src={`data:image/png;base64,${pixData.brCodeBase64}`}
+              src={pixData.brCodeBase64}
               alt="QR Code PIX"
               className="w-48 h-48 rounded-lg border border-olm-surface"
             />

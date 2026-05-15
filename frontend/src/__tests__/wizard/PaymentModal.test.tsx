@@ -17,7 +17,7 @@ jest.mock('../../lib/api', () => ({
 
 const PIX_RESPONSE = {
   brCode: 'PIX_CODE_STRING',
-  brCodeBase64: 'aW1hZ2VkYXRh',
+  brCodeBase64: 'data:image/png;base64,aW1hZ2VkYXRh',
   expiresAt: new Date(Date.now() + 600000).toISOString(),
 };
 
