@@ -59,7 +59,9 @@
       "Bash(cat jest.config.js)",
       "Bash(python3 -c \"import sys,json; cfg=json.load\\(sys.stdin\\); print\\(json.dumps\\(cfg.get\\('jest', cfg.get\\('scripts', {}\\)\\), indent=2\\)\\)\")",
       "Bash(Get-ChildItem *)",
-      "Bash(findstr /i cors)"
+      "Bash(findstr /i cors)",
+      "Bash(fly secrets *)",
+      "Bash(fly logs *)"
     ]
   }
 }
