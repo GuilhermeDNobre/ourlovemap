@@ -10,6 +10,7 @@ export interface LocationInput {
   title: string;
   description?: string;
   message?: string;
+  address?: string;
   photoUrl?: string;
   latitude: number;
   longitude: number;
@@ -24,10 +25,12 @@ export interface CreateMapData {
   email: string;
   plan: Plan;
   relationshipStartDate: string;
+  opening?: string;
   locations: LocationInput[];
   youtubeVideoId?: string;
   youtubeStartTime?: number;
   youtubeEndTime?: number;
+  youtubeLoop?: boolean;
 }
 
 export interface MapRecord {
@@ -39,11 +42,13 @@ export interface MapRecord {
   email: string;
   plan: Plan;
   relationshipStartDate: string;
+  opening: string | null;
   token: string | null;
   status: MapStatus;
   youtubeVideoId: string | null;
   youtubeStartTime: number | null;
   youtubeEndTime: number | null;
+  youtubeLoop: boolean | null;
   paymentId: string | null;
   checkoutUrl: string | null;
   expiresAt: string | null;
@@ -56,6 +61,7 @@ export interface Location {
   title: string;
   description: string | null;
   message: string | null;
+  address: string | null;
   photoUrl: string | null;
   latitude: number;
   longitude: number;
@@ -88,11 +94,13 @@ function toMapRecord(doc: MapDocument): MapRecord {
     relationshipStartDate: doc.relationshipStartDate instanceof Date
       ? doc.relationshipStartDate.toISOString().split('T')[0]
       : String(doc.relationshipStartDate),
+    opening: doc.opening ?? null,
     token: doc.token ?? null,
     status: doc.status,
     youtubeVideoId: doc.youtubeVideoId ?? null,
     youtubeStartTime: doc.youtubeStartTime ?? null,
     youtubeEndTime: doc.youtubeEndTime ?? null,
+    youtubeLoop: doc.youtubeLoop ?? null,
     paymentId: doc.paymentId ?? null,
     checkoutUrl: doc.checkoutUrl ?? null,
     expiresAt: doc.expiresAt ? doc.expiresAt.toISOString() : null,
@@ -107,6 +115,7 @@ function toLocation(doc: LocationDocument): Location {
     title: doc.title,
     description: doc.description ?? null,
     message: doc.message ?? null,
+    address: doc.address ?? null,
     photoUrl: doc.photoUrl ?? null,
     latitude: doc.latitude,
     longitude: doc.longitude,
@@ -131,16 +140,19 @@ export async function createMap(data: CreateMapData): Promise<MapRecord> {
     email: data.email,
     plan: data.plan,
     relationshipStartDate: new Date(data.relationshipStartDate),
+    opening: data.opening,
     status: 'pending_payment',
     youtubeVideoId: data.youtubeVideoId,
     youtubeStartTime: data.youtubeStartTime,
     youtubeEndTime: data.youtubeEndTime,
+    youtubeLoop: data.youtubeLoop,
   });
   const locationDocs = data.locations.map(loc => ({
     mapId: doc._id,
     title: loc.title,
     description: loc.description,
     message: loc.message,
+    address: loc.address,
     photoUrl: loc.photoUrl,
     latitude: loc.latitude,
     longitude: loc.longitude,

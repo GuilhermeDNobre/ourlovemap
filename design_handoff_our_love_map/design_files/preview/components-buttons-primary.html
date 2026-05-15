@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Buttons — Primary</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--olm-bg); font-family: var(--font-sans); color: var(--fg-2); }
+  .card { padding: 26px 28px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .btn { font-family: var(--font-sans); font-weight: 600; font-size: 15px; padding: 12px 22px; border-radius: 999px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; letter-spacing: -0.01em; }
+  .primary { background: var(--olm-primary); color: #fff; box-shadow: var(--sh-glow-primary); }
+  .primary:hover { background: var(--olm-primary-600); }
+  .primary.pressed { transform: scale(0.98); background: var(--olm-primary-600); }
+  .primary.disabled { background: #F9C3C7; color: #fff; box-shadow: none; cursor: not-allowed; }
+  .lbl { font-family: var(--font-mono); font-size: 10px; color: var(--fg-4); letter-spacing: 0.05em; text-transform: uppercase; margin-top: 4px; display:block; text-align:center;}
+  .col { display:flex; flex-direction: column; align-items: center; }
+  svg { width: 16px; height: 16px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="col"><button class="btn primary">Criar meu mapa <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button><span class="lbl">Default</span></div>
+    <div class="col"><button class="btn primary pressed">Criar meu mapa</button><span class="lbl">Pressed</span></div>
+    <div class="col"><button class="btn primary disabled">Criar meu mapa</button><span class="lbl">Disabled</span></div>
+  </div>
+</body>
+</html>

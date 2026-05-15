@@ -21,7 +21,7 @@ const swaggerPlugin: FastifyPluginAsync = async (fastify) => {
     properties: {
       title: { type: 'string', description: 'Location name' },
       description: { type: 'string', nullable: true, description: 'Short description of the location' },
-      message: { type: 'string', nullable: true, description: 'Affectionate message for this location' },
+      address: { type: 'string', nullable: true, description: 'Formatted address from Maptiler autocomplete' },
       photoUrl: { type: 'string', nullable: true, description: 'Public URL of the uploaded photo' },
       latitude: { type: 'number', description: 'Latitude coordinate' },
       longitude: { type: 'number', description: 'Longitude coordinate' },

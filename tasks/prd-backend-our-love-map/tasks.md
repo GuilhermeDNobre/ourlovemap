@@ -12,3 +12,5 @@
 - [x] 8.0 Webhook, retry e polling de pagamento
 - [x] 9.0 QR Code da página e email de entrega
 - [x] 10.0 Endpoint público GET /api/maps/by-token + observabilidade
+- [x] 11.0 Campos `opening` e `youtubeLoop` — modelo, POST e GET by-token
+- [x] 12.0 Campo `address` nas localizações — modelo, POST e GET by-token

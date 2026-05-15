@@ -1,0 +1,230 @@
+/* ============================================================
+   Our Love Map — Design Tokens
+   Fonts: DM Serif Display (headings), Plus Jakarta Sans (UI/body)
+   ============================================================ */
+
+@font-face {
+  font-family: 'DM Serif Display';
+  src: url('./fonts/DMSerifDisplay-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'DM Serif Display';
+  src: url('./fonts/DMSerifDisplay-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-synthesis: style;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('./fonts/PlusJakartaSans-VariableFont_wght.ttf') format('truetype-variations');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* ---------- Core brand palette ---------- */
+  --olm-primary:       #F56C73;
+  --olm-primary-600:   #E85860;
+  --olm-primary-300:   #FAA2A7;
+  --olm-primary-100:   #FDDDDF;
+
+  --olm-title:         #413C7B;
+  --olm-title-600:     #322E60;
+  --olm-title-300:     #8884B3;
+
+  --olm-accent:        #BF77F6;
+  --olm-accent-300:    #D9ADFA;
+  --olm-accent-100:    #EFDEFD;
+
+  --olm-dark:          #25212A;
+  --olm-dark-800:      #332E3A;
+  --olm-dark-700:      #453F4E;
+  --olm-dark-600:      #5A5363;
+
+  --olm-bg:            #FBF5F0;
+  --olm-bg-elevated:   #FFFFFF;
+  --olm-surface:       #DBD9E1;
+  --olm-surface-soft:  #EDEBF0;
+
+  --olm-success:       #6FB58A;
+  --olm-warning:       #E7B768;
+  --olm-error:         #D85560;
+
+  /* ---------- Semantic foreground (light theme) ---------- */
+  --fg-1:              var(--olm-title);
+  --fg-2:              #2E2A4A;
+  --fg-3:              #6B6788;
+  --fg-4:              #A4A1B8;
+  --fg-inverse:        #FBF5F0;
+
+  /* ---------- Semantic foreground (dark theme) ---------- */
+  --dfg-1:             #FBF5F0;
+  --dfg-2:             #E3DFEB;
+  --dfg-3:             #A09AB0;
+  --dfg-4:             #6E6877;
+
+  /* ---------- Type ---------- */
+  --font-serif:        'DM Serif Display', 'Cormorant Garamond', Georgia, serif;
+  --font-sans:         'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:         'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  --fs-display:        clamp(2.75rem, 6vw, 4.5rem);
+  --fs-h1:             clamp(2.25rem, 4.5vw, 3.25rem);
+  --fs-h2:             clamp(1.75rem, 3vw, 2.25rem);
+  --fs-h3:             1.5rem;
+  --fs-h4:             1.25rem;
+  --fs-lead:           1.125rem;
+  --fs-body:           1rem;
+  --fs-sm:             0.875rem;
+  --fs-xs:             0.75rem;
+  --fs-eyebrow:        0.8125rem;
+
+  --lh-tight:          1.05;
+  --lh-snug:           1.2;
+  --lh-normal:         1.5;
+  --lh-relaxed:        1.7;
+
+  --tracking-tight:    -0.02em;
+  --tracking-normal:   0;
+  --tracking-wide:     0.06em;
+  --tracking-eyebrow:  0.14em;
+
+  /* ---------- Spacing (4px base) ---------- */
+  --s-0:  0;
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  20px;
+  --s-6:  24px;
+  --s-8:  32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+  --s-20: 80px;
+  --s-24: 96px;
+
+  /* ---------- Radii ---------- */
+  --r-xs:   6px;
+  --r-sm:   10px;
+  --r-md:   14px;
+  --r-lg:   20px;
+  --r-xl:   28px;
+  --r-2xl:  36px;
+  --r-pill: 999px;
+
+  /* ---------- Shadows ---------- */
+  --sh-xs:  0 1px 2px rgba(65, 60, 123, 0.06);
+  --sh-sm:  0 2px 6px rgba(65, 60, 123, 0.08);
+  --sh-md:  0 8px 20px rgba(65, 60, 123, 0.10), 0 2px 4px rgba(65, 60, 123, 0.06);
+  --sh-lg:  0 18px 36px rgba(65, 60, 123, 0.14), 0 4px 8px rgba(65, 60, 123, 0.08);
+  --sh-xl:  0 32px 60px rgba(65, 60, 123, 0.18);
+  --sh-glow-primary: 0 10px 30px rgba(245, 108, 115, 0.35);
+  --sh-glow-accent:  0 10px 30px rgba(191, 119, 246, 0.35);
+
+  --dsh-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --dsh-md: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --dsh-glow: 0 0 40px rgba(191, 119, 246, 0.25);
+
+  /* ---------- Motion ---------- */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-soft-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast:  150ms;
+  --dur-base:  240ms;
+  --dur-slow:  420ms;
+}
+
+/* ============================================================
+   Semantic typography
+   ============================================================ */
+.olm-display,
+h1.olm {
+  font-family: var(--font-serif);
+  font-size: var(--fs-display);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg-1);
+  font-weight: 400;
+}
+
+.olm-h1 {
+  font-family: var(--font-serif);
+  font-size: var(--fs-h1);
+  line-height: var(--lh-snug);
+  color: var(--fg-1);
+}
+
+.olm-h2 {
+  font-family: var(--font-serif);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-snug);
+  color: var(--fg-1);
+}
+
+.olm-h3 {
+  font-family: var(--font-sans);
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  line-height: var(--lh-snug);
+  color: var(--fg-1);
+  letter-spacing: -0.01em;
+}
+
+.olm-h4 {
+  font-family: var(--font-sans);
+  font-size: var(--fs-h4);
+  font-weight: 600;
+  color: var(--fg-1);
+}
+
+.olm-eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--olm-primary);
+}
+
+.olm-lead {
+  font-family: var(--font-sans);
+  font-size: var(--fs-lead);
+  line-height: var(--lh-relaxed);
+  color: var(--fg-2);
+}
+
+.olm-body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-relaxed);
+  color: var(--fg-2);
+}
+
+.olm-small {
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  color: var(--fg-3);
+}
+
+.olm-caption {
+  font-family: var(--font-sans);
+  font-size: var(--fs-xs);
+  color: var(--fg-4);
+  letter-spacing: 0.02em;
+}
+
+.olm-emphasis {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--olm-primary);
+}

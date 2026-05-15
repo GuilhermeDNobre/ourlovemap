@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Type — Eyebrow & captions</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--olm-bg); font-family: var(--font-sans); color: var(--fg-2); }
+  .card { padding: 24px 28px; display: flex; flex-direction: column; gap: 14px; }
+  .eyebrow { font-size: 13px; font-weight: 600; color: var(--olm-primary); letter-spacing: 0.14em; text-transform: uppercase; }
+  .lead { font-size: 18px; line-height: 1.55; color: var(--fg-2); max-width: 580px; }
+  .small { font-size: 14px; color: var(--fg-3); }
+  .caption { font-size: 12px; color: var(--fg-4); letter-spacing: 0.02em; }
+  .tag { font-family: var(--font-mono); font-size: 10px; color: var(--fg-4); letter-spacing: 0.06em; margin-left: 8px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="eyebrow">Para vocês dois <span class="tag">Eyebrow · 13/600/0.14em</span></div>
+    <div class="lead">Um lugar na internet que guarda os seus lugares. Adicione fotos, mensagens, datas — e envie por QR. <span class="tag">Lead · 18/1.55</span></div>
+    <div class="small">Funciona em qualquer celular. Sem login para quem recebe. <span class="tag">Small · 14</span></div>
+    <div class="caption">Foto enviada em 12 de março · Lisboa, Portugal <span class="tag">Caption · 12</span></div>
+  </div>
+</body>
+</html>

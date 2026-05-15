@@ -6,6 +6,7 @@ export interface LocationDocument extends Document {
   title: string;
   description?: string;
   message?: string;
+  address?: string;
   photoUrl?: string;
   latitude: number;
   longitude: number;
@@ -17,6 +18,7 @@ const locationSchema = new Schema<LocationDocument>({
   title: { type: String, required: true },
   description: { type: String },
   message: { type: String },
+  address: { type: String },
   photoUrl: { type: String },
   latitude: { type: Number, required: true },
   longitude: { type: Number, required: true },

@@ -33,7 +33,32 @@
       "Bash(python -m json.tool)",
       "Bash(curl -s --request GET --url https://api.abacatepay.com/v1/customer/list --header 'accept: application/json' --header 'authorization: Bearer abc_dev_LEAw322DfW5Xm5nnxhLhqZGj')",
       "Bash(curl -s --request GET --url https://api.abacatepay.com/v1/billing/list --header 'accept: application/json' --header 'authorization: Bearer abc_dev_LEAw322DfW5Xm5nnxhLhqZGj')",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npm show *)",
+      "Bash(git *)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.get\\('dependencies',{}\\).items\\(\\) if 'framer' in k or 'motion' in k}, indent=2\\)\\)\")",
+      "Bash(grep -n \"^\\\\s*$\" src/components/landing/BentoFeatures.tsx)",
+      "Bash(grep -n \"^\\\\s*$\" src/components/landing/DarkMockup.tsx)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(list\\(d.get\\('dependencies',{}\\).keys\\(\\)\\)\\)\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('exports',{}\\), indent=2\\)\\)\")",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(npm list *)",
+      "Bash(New-Item -ItemType Directory -Path \"D:\\\\temp\\\\ws-vscode\\\\ourlovemap\\\\frontend\\\\src\\\\__tests__\\\\public-map\" -Force)",
+      "Bash(Out-Null)",
+      "Bash(Write-Host \"done\")",
+      "Bash(find src/__tests__/public-map -name \"*.test.*\")",
+      "Bash(dir src/__tests__\\\\public-map)",
+      "Bash(dir D:\\\\temp\\\\ws-vscode\\\\ourlovemap\\\\tasks\\\\prd-frontend-our-love-map *)",
+      "Bash(dir D:\\\\temp\\\\ws-vscode\\\\ourlovemap\\\\tasks\\\\prd-frontend-our-love-map\\\\reviews *)",
+      "Bash(grep *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\temp\\\\ws-vscode\\\\ourlovemap\\\\backend\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(npm ls *)",
+      "Bash(npm audit *)",
+      "Bash(cat jest.config.ts)",
+      "Bash(cat jest.config.js)",
+      "Bash(python3 -c \"import sys,json; cfg=json.load\\(sys.stdin\\); print\\(json.dumps\\(cfg.get\\('jest', cfg.get\\('scripts', {}\\)\\), indent=2\\)\\)\")",
+      "Bash(Get-ChildItem *)"
     ]
   }
 }

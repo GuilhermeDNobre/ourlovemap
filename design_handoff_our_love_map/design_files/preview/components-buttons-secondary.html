@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Buttons — Secondary</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--olm-bg); font-family: var(--font-sans); color: var(--fg-2); }
+  .card { padding: 26px 28px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .btn { font-family: var(--font-sans); font-weight: 600; font-size: 15px; padding: 12px 22px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; letter-spacing: -0.01em; }
+  .secondary { background: transparent; color: var(--olm-title); border: 1.5px solid var(--olm-title); }
+  .ghost { background: transparent; color: var(--olm-title); border: none; padding-left: 8px; padding-right: 8px; }
+  .ghost:hover { color: var(--olm-primary); }
+  .text { background: transparent; color: var(--olm-primary); border: none; padding-left: 0; padding-right: 0; }
+  .lbl { font-family: var(--font-mono); font-size: 10px; color: var(--fg-4); letter-spacing: 0.05em; text-transform: uppercase; margin-top: 4px; display:block; text-align:center;}
+  .col { display:flex; flex-direction: column; align-items: center; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="col"><button class="btn secondary">Ver exemplo</button><span class="lbl">Secondary</span></div>
+    <div class="col"><button class="btn ghost">← Voltar</button><span class="lbl">Ghost</span></div>
+    <div class="col"><button class="btn text">Saiba mais →</button><span class="lbl">Text</span></div>
+  </div>
+</body>
+</html>

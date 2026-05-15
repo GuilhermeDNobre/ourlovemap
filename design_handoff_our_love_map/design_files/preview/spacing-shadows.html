@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Shadows</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--olm-bg); font-family: var(--font-sans); color: var(--fg-2); }
+  .card { padding: 30px 28px 34px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; }
+  .ex { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .box { width: 84px; height: 54px; background: #fff; border-radius: 14px; }
+  .name { font-family: var(--font-mono); font-size: 11px; color: var(--fg-1); font-weight: 600; }
+  .val { font-size: 10px; color: var(--fg-3); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="ex"><div class="box" style="box-shadow: var(--sh-xs)"></div><div class="name">--sh-xs</div></div>
+    <div class="ex"><div class="box" style="box-shadow: var(--sh-sm)"></div><div class="name">--sh-sm</div></div>
+    <div class="ex"><div class="box" style="box-shadow: var(--sh-md)"></div><div class="name">--sh-md</div></div>
+    <div class="ex"><div class="box" style="box-shadow: var(--sh-lg)"></div><div class="name">--sh-lg</div></div>
+    <div class="ex"><div class="box" style="box-shadow: var(--sh-glow-primary); background:#F56C73"></div><div class="name">glow-primary</div></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Card — Dark / Polaroid</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--olm-dark); font-family: var(--font-sans); color: var(--dfg-2); }
+  .wrap { padding: 24px 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: center; }
+  .dark-card { background: var(--olm-dark-800); border: 1px solid rgba(251,245,240,0.08); border-radius: 20px; padding: 18px; display: flex; gap: 14px; align-items: center; box-shadow: 0 0 40px rgba(191,119,246,0.12); }
+  .pin { width: 44px; height: 44px; border-radius: 999px; background: var(--olm-primary); display:flex; align-items:center; justify-content:center; color:#fff; flex-shrink: 0; box-shadow: 0 6px 18px rgba(245,108,115,0.45); }
+  .title { font-family: var(--font-serif); font-size: 20px; color: var(--dfg-1); line-height: 1.15; }
+  .meta { font-size: 12px; color: var(--dfg-3); margin-top: 4px; }
+
+  .polaroid { background: #FBF5F0; border-radius: 4px; padding: 10px 10px 36px; box-shadow: 0 16px 40px rgba(0,0,0,0.45); transform: rotate(-3deg); width: 180px; margin: 0 auto; position: relative; }
+  .polaroid .photo { aspect-ratio: 1; background: linear-gradient(135deg, #FAA2A7, #BF77F6, #413C7B); border-radius: 2px; }
+  .polaroid .cap { position: absolute; bottom: 10px; left: 0; right: 0; text-align: center; font-family: var(--font-serif); font-style: italic; font-size: 14px; color: var(--olm-title); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="dark-card">
+      <div class="pin">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <div>
+        <div class="title">Lisboa, Alfama</div>
+        <div class="meta">14 · 02 · 2023 · 3 fotos</div>
+      </div>
+    </div>
+    <div class="polaroid"><div class="photo"></div><div class="cap">nosso primeiro café</div></div>
+  </div>
+</body>
+</html>

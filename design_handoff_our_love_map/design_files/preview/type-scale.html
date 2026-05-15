@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Type — Scale</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--olm-bg); font-family: var(--font-sans); color: var(--fg-2); }
+  .card { padding: 22px 28px; display: grid; grid-template-columns: 86px 1fr; gap: 10px 18px; align-items: baseline; }
+  .tag { font-family: var(--font-mono); font-size: 11px; color: var(--fg-4); letter-spacing: 0.04em; text-transform: uppercase; }
+  .serif { font-family: var(--font-serif); color: var(--olm-title); line-height: 1.1; }
+  .sans { font-family: var(--font-sans); color: var(--fg-1); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="tag">H1 · Serif</div><div class="serif" style="font-size:40px">Vocês, em um mapa</div>
+    <div class="tag">H2 · Serif</div><div class="serif" style="font-size:28px">Momentos marcantes</div>
+    <div class="tag">H3 · Sans</div><div class="sans" style="font-size:22px; font-weight:600">Adicionar lugar</div>
+    <div class="tag">H4 · Sans</div><div class="sans" style="font-size:18px; font-weight:600">Detalhes da foto</div>
+    <div class="tag">Body · Sans</div><div class="sans" style="font-size:15px; color:var(--fg-2)">Conte onde tudo começou — o primeiro encontro, a primeira viagem.</div>
+  </div>
+</body>
+</html>

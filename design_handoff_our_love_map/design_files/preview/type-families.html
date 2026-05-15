@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Type — Families</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: var(--olm-bg); font-family: var(--font-sans); color: var(--fg-2); }
+  .card { padding: 22px 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .family { display: flex; flex-direction: column; gap: 6px; }
+  .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--olm-primary); font-weight: 600; }
+  .name { font-size: 13px; color: var(--fg-3); font-family: var(--font-mono); }
+  .serif-spec { font-family: var(--font-serif); font-size: 44px; color: var(--olm-title); line-height: 1; margin-top: 2px; }
+  .serif-italic { font-family: var(--font-serif); font-style: italic; font-size: 22px; color: var(--olm-primary); }
+  .sans-spec { font-family: var(--font-sans); font-size: 36px; color: var(--olm-title); font-weight: 700; line-height: 1; margin-top: 2px; }
+  .weights { display: flex; gap: 12px; font-family: var(--font-sans); color: var(--fg-2); font-size: 14px; align-items: baseline; }
+  .weights span { display:block; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="family">
+      <div class="label">Headings</div>
+      <div class="name">DM Serif Display</div>
+      <div class="serif-spec">Aa Áá Çç</div>
+      <div class="serif-italic">momentos, juntos</div>
+    </div>
+    <div class="family">
+      <div class="label">UI / Body</div>
+      <div class="name">Plus Jakarta Sans</div>
+      <div class="sans-spec">Aa Áá Çç</div>
+      <div class="weights">
+        <span style="font-weight:300">300</span>
+        <span style="font-weight:400">400</span>
+        <span style="font-weight:500">500</span>
+        <span style="font-weight:600">600</span>
+        <span style="font-weight:700">700</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

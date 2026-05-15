@@ -14,9 +14,11 @@ export interface MapDocument extends Document {
   relationshipStartDate: Date;
   token?: string;
   status: MapStatus;
+  opening?: string;
   youtubeVideoId?: string;
   youtubeStartTime?: number;
   youtubeEndTime?: number;
+  youtubeLoop?: boolean;
   paymentId?: string;
   checkoutUrl?: string;
   expiresAt?: Date;
@@ -39,9 +41,11 @@ const mapSchema = new Schema<MapDocument>(
       enum: ['pending_payment', 'active', 'expired', 'payment_failed'],
       default: 'pending_payment',
     },
+    opening: { type: String },
     youtubeVideoId: { type: String },
     youtubeStartTime: { type: Number },
     youtubeEndTime: { type: Number },
+    youtubeLoop: { type: Boolean },
     paymentId: { type: String },
     checkoutUrl: { type: String },
     expiresAt: { type: Date },

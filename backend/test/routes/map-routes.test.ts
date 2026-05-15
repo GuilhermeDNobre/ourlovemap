@@ -237,6 +237,120 @@ describe('POST /api/maps', () => {
 
     expect(response.statusCode).toBe(400);
   });
+
+  it('should pass opening to createMap when provided', async () => {
+    const app = buildApp();
+    (uploadPhoto as jest.Mock).mockResolvedValue('https://storage.example.com/photo.jpg');
+    (createMap as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment' });
+
+    const fields = { ...buildValidFields(), opening: 'Você é meu lar' };
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/maps',
+      headers: { 'content-type': `multipart/form-data; boundary=${BOUNDARY}` },
+      payload: buildMultipartBody(fields),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(createMap).toHaveBeenCalledWith(
+      expect.objectContaining({ opening: 'Você é meu lar' }),
+    );
+  });
+
+  it('should not pass opening to createMap when opening is empty string', async () => {
+    const app = buildApp();
+    (uploadPhoto as jest.Mock).mockResolvedValue('https://storage.example.com/photo.jpg');
+    (createMap as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment' });
+
+    const fields = { ...buildValidFields(), opening: '' };
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/maps',
+      headers: { 'content-type': `multipart/form-data; boundary=${BOUNDARY}` },
+      payload: buildMultipartBody(fields),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(createMap).toHaveBeenCalledWith(
+      expect.objectContaining({ opening: undefined }),
+    );
+  });
+
+  it('should pass youtubeLoop true to createMap when youtube_loop is "true"', async () => {
+    const app = buildApp();
+    (uploadPhoto as jest.Mock).mockResolvedValue('https://storage.example.com/photo.jpg');
+    (createMap as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment' });
+
+    const fields = {
+      ...buildValidFields(),
+      youtube_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      youtube_start_time: '10',
+      youtube_end_time: '60',
+      youtube_loop: 'true',
+    };
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/maps',
+      headers: { 'content-type': `multipart/form-data; boundary=${BOUNDARY}` },
+      payload: buildMultipartBody(fields),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(createMap).toHaveBeenCalledWith(
+      expect.objectContaining({ youtubeLoop: true }),
+    );
+  });
+
+  it('should pass youtubeLoop false to createMap when youtube_loop is "false"', async () => {
+    const app = buildApp();
+    (uploadPhoto as jest.Mock).mockResolvedValue('https://storage.example.com/photo.jpg');
+    (createMap as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment' });
+
+    const fields = {
+      ...buildValidFields(),
+      youtube_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      youtube_start_time: '10',
+      youtube_end_time: '60',
+      youtube_loop: 'false',
+    };
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/maps',
+      headers: { 'content-type': `multipart/form-data; boundary=${BOUNDARY}` },
+      payload: buildMultipartBody(fields),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(createMap).toHaveBeenCalledWith(
+      expect.objectContaining({ youtubeLoop: false }),
+    );
+  });
+
+  it('should pass address to createMap when provided in location', async () => {
+    const app = buildApp();
+    (uploadPhoto as jest.Mock).mockResolvedValue('https://storage.example.com/photo.jpg');
+    (createMap as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment' });
+
+    const fields = {
+      ...buildValidFields(),
+      'locations[0][address]': 'Rua Augusta, 1000, São Paulo',
+    };
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/maps',
+      headers: { 'content-type': `multipart/form-data; boundary=${BOUNDARY}` },
+      payload: buildMultipartBody(fields),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(createMap).toHaveBeenCalledWith(
+      expect.objectContaining({
+        locations: expect.arrayContaining([
+          expect.objectContaining({ address: 'Rua Augusta, 1000, São Paulo' }),
+        ]),
+      }),
+    );
+  });
 });
 
 describe('GET /api/maps/by-token', () => {
@@ -248,11 +362,13 @@ describe('GET /api/maps/by-token', () => {
       email: 'carol@example.com',
       plan: 'basic',
       relationshipStartDate: '2020-06-15',
+      opening: null,
       token: 'tok01',
       status: 'active',
       youtubeVideoId: 'dQw4w9WgXcQ',
       youtubeStartTime: 30,
       youtubeEndTime: 90,
+      youtubeLoop: null,
       paymentId: null,
       checkoutUrl: null,
       expiresAt: null,
@@ -260,7 +376,7 @@ describe('GET /api/maps/by-token', () => {
     };
   }
 
-  function buildLocations() {
+  function buildLocations(overrides: Record<string, unknown> = {}) {
     return [
       {
         id: 'loc-1',
@@ -268,10 +384,12 @@ describe('GET /api/maps/by-token', () => {
         title: 'Nossa primeira vez',
         description: 'Um lugar especial',
         message: 'Te amo',
+        address: null,
         photoUrl: 'https://storage.example.com/photo.jpg',
         latitude: -23.5,
         longitude: -46.6,
         order: 1,
+        ...overrides,
       },
     ];
   }
@@ -297,6 +415,36 @@ describe('GET /api/maps/by-token', () => {
     expect(body.locations[0].photoUrl).toBe('https://storage.example.com/photo.jpg');
     expect(getMapByToken).toHaveBeenCalledWith('tok01');
     expect(getLocationsByMapId).toHaveBeenCalledWith('map-1');
+  });
+
+  it('should return opening and youtubeLoop in response when set', async () => {
+    const app = buildApp();
+    (getMapByToken as jest.Mock).mockResolvedValue({
+      ...buildActiveMap(),
+      opening: 'Você é meu lar',
+      youtubeLoop: true,
+    });
+    (getLocationsByMapId as jest.Mock).mockResolvedValue(buildLocations());
+
+    const response = await app.inject({ method: 'GET', url: '/api/maps/by-token?token=tok01' });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.opening).toBe('Você é meu lar');
+    expect(body.youtubeLoop).toBe(true);
+  });
+
+  it('should return opening: null and youtubeLoop: null when fields are not set', async () => {
+    const app = buildApp();
+    (getMapByToken as jest.Mock).mockResolvedValue(buildActiveMap());
+    (getLocationsByMapId as jest.Mock).mockResolvedValue(buildLocations());
+
+    const response = await app.inject({ method: 'GET', url: '/api/maps/by-token?token=tok01' });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.opening).toBeNull();
+    expect(body.youtubeLoop).toBeNull();
   });
 
   it('should return 401 when token query param is absent', async () => {
@@ -357,5 +505,29 @@ describe('GET /api/maps/by-token', () => {
 
     expect(response.statusCode).toBe(403);
     expect(getLocationsByMapId).not.toHaveBeenCalled();
+  });
+
+  it('should return address in location when it is set', async () => {
+    const app = buildApp();
+    (getMapByToken as jest.Mock).mockResolvedValue(buildActiveMap());
+    (getLocationsByMapId as jest.Mock).mockResolvedValue(
+      buildLocations({ address: 'Rua Augusta, 1000, São Paulo' }),
+    );
+
+    const response = await app.inject({ method: 'GET', url: '/api/maps/by-token?token=tok01' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().locations[0].address).toBe('Rua Augusta, 1000, São Paulo');
+  });
+
+  it('should return address: null in location when address is not set', async () => {
+    const app = buildApp();
+    (getMapByToken as jest.Mock).mockResolvedValue(buildActiveMap());
+    (getLocationsByMapId as jest.Mock).mockResolvedValue(buildLocations());
+
+    const response = await app.inject({ method: 'GET', url: '/api/maps/by-token?token=tok01' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().locations[0].address).toBeNull();
   });
 });
