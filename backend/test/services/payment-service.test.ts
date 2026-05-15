@@ -2,6 +2,7 @@ import type { FastifyBaseLogger } from 'fastify';
 
 jest.mock('axios');
 jest.mock('../../src/services/map-service.js', () => ({
+  getMapById: jest.fn(),
   getMapByPaymentId: jest.fn(),
   activateMap: jest.fn(),
   updatePaymentData: jest.fn(),
@@ -23,6 +24,7 @@ import {
   type WebhookProcessResult,
 } from '../../src/services/payment-service.js';
 import {
+  getMapById,
   getMapByPaymentId,
   activateMap,
   updatePaymentData,
@@ -159,7 +161,7 @@ describe('processWebhookEvent', () => {
     expect(result.mapId).toBe('map-1');
   });
 
-  it('should work for billing.paid (card payment) events', async () => {
+  it('should work for billing.paid (card payment) events when data.id is present', async () => {
     (getMapByPaymentId as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', plan: 'premium' });
     (activateMap as jest.Mock).mockResolvedValue({ id: 'map-1', slug: 'carol-e-andre', token: 'tok01', coupleName: 'Carol', email: 'carol@example.com' });
     (generateQrCode as jest.Mock).mockResolvedValue(Buffer.from('jpg'));
@@ -169,6 +171,23 @@ describe('processWebhookEvent', () => {
     const result = await processWebhookEvent(cardEvent, buildMockLog());
 
     expect(getMapByPaymentId).toHaveBeenCalledWith('bill_abc');
+    expect(result.wasActivated).toBe(true);
+  });
+
+  it('should use product externalId as fallback for billing.paid when data.id is absent', async () => {
+    (getMapById as jest.Mock).mockResolvedValue({ id: 'map-1', status: 'pending_payment', plan: 'premium' });
+    (activateMap as jest.Mock).mockResolvedValue({ id: 'map-1', slug: 'carol-e-andre', token: 'tok01', coupleName: 'Carol', email: 'carol@example.com' });
+    (generateQrCode as jest.Mock).mockResolvedValue(Buffer.from('jpg'));
+    (sendDeliveryEmail as jest.Mock).mockResolvedValue(undefined);
+
+    const cardEvent: AbacatePayWebhookEvent = {
+      event: 'billing.paid',
+      data: { amount: 2990, status: 'PAID', devMode: false, products: [{ id: 'prod_1', externalId: 'map-1', quantity: 1 }] },
+    };
+    const result = await processWebhookEvent(cardEvent, buildMockLog());
+
+    expect(getMapByPaymentId).not.toHaveBeenCalled();
+    expect(getMapById).toHaveBeenCalledWith('map-1');
     expect(result.wasActivated).toBe(true);
   });
 

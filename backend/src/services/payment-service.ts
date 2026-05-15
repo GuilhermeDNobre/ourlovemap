@@ -1,10 +1,12 @@
 import axios from 'axios';
 import type { FastifyBaseLogger } from 'fastify';
 import {
+  getMapById,
   getMapByPaymentId,
   activateMap,
   updatePaymentData,
   type Plan,
+  type MapRecord,
 } from './map-service.js';
 import { generateQrCode } from './qr-code-service.js';
 import { sendDeliveryEmail } from './email-service.js';
@@ -57,10 +59,10 @@ export interface AbacatePayBillingProduct {
 export interface AbacatePayWebhookEvent {
   event: string;
   data: {
-    id: string;
-    amount: number;
-    status: string;
-    devMode: boolean;
+    id?: string;
+    amount?: number;
+    status?: string;
+    devMode?: boolean;
     url?: string;
     products?: AbacatePayBillingProduct[];
   };
@@ -151,6 +153,30 @@ export interface WebhookProcessResult {
   mapId?: string;
 }
 
+async function resolveMapFromEvent(
+  event: AbacatePayWebhookEvent,
+  log: FastifyBaseLogger,
+): Promise<MapRecord | null> {
+  const paymentId = event.data?.id;
+  if (paymentId) {
+    const map = await getMapByPaymentId(paymentId);
+    if (!map) log.warn({ paymentId }, 'Map not found for webhook event');
+    return map;
+  }
+  if (event.event === 'billing.paid') {
+    const mapId = event.data?.products?.[0]?.externalId;
+    if (!mapId) {
+      log.warn({ event: event.event, data: event.data }, 'Webhook billing.paid has no payment id or product externalId');
+      return null;
+    }
+    const map = await getMapById(mapId);
+    if (!map) log.warn({ mapId }, 'Map not found for webhook event via product externalId');
+    return map;
+  }
+  log.warn({ event: event.event, data: event.data }, 'Webhook event has no payment id');
+  return null;
+}
+
 export async function processWebhookEvent(
   event: AbacatePayWebhookEvent,
   log: FastifyBaseLogger,
@@ -160,16 +186,8 @@ export async function processWebhookEvent(
     log.info({ event: event.event }, 'Webhook event ignored: not a paid event');
     return { wasActivated: false };
   }
-  const paymentId = event.data?.id;
-  if (!paymentId) {
-    log.warn({ event: event.event }, 'Webhook event has no payment id');
-    return { wasActivated: false };
-  }
-  const map = await getMapByPaymentId(paymentId);
-  if (!map) {
-    log.warn({ paymentId }, 'Map not found for webhook event');
-    return { wasActivated: false };
-  }
+  const map = await resolveMapFromEvent(event, log);
+  if (!map) return { wasActivated: false };
   if (map.status === 'active') {
     log.warn({ mapId: map.id }, 'Webhook event ignored: map already active');
     return { wasActivated: false };
