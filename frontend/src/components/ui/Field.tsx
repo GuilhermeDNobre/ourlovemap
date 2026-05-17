@@ -6,6 +6,7 @@ interface FieldProps {
   help?: string;
   children: ReactNode;
   className?: string;
+  required?: boolean;
 }
 
 export function Field({ label, error, help, children, className = '' }: FieldProps) {

@@ -23,7 +23,7 @@ export function PlaceSection({
 }: PlaceSectionProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const markersRef = useRef<Array<ReturnType<typeof maplibregl.Marker>>>([]);
+  const markersRef = useRef<maplibregl.Marker[]>([]);
   const cardRef = useRef<HTMLDivElement>(null);
   const tweenRef = useRef<{ kill: () => void } | null>(null);
 

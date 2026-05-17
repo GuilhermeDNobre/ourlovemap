@@ -1,5 +1,4 @@
 import { Check } from 'lucide-react';
-import { Eyebrow } from '../ui/Eyebrow';
 import { DarkMockup } from './DarkMockup';
 
 const FEATURES = [

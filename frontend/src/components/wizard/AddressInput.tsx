@@ -36,7 +36,7 @@ export function AddressInput({ apiKey, onPick }: AddressInputProps) {
       const event = e as PickEvent;
       const feature = event.detail?.feature;
       if (!feature?.geometry) return;
-      const geometry = feature.geometry as { coordinates: [number, number] };
+      const geometry = feature.geometry as unknown as { coordinates: [number, number] };
       const [lng, lat] = geometry.coordinates;
       const address = (feature as { place_name?: string }).place_name ?? '';
       onPick({ address, latitude: lat, longitude: lng });
