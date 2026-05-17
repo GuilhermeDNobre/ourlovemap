@@ -33,7 +33,15 @@ export function buildApp(options: FastifyServerOptions = { logger: true }): Fast
     });
   });
 
-  fastify.register(cors, { origin: ['https://ourlovemap.com.br', 'http://localhost:5173'] });
+  fastify.register(cors, {
+    origin: [
+      'https://ourlovemap.com.br',
+      'https://www.ourlovemap.com.br',
+      'https://ourlovemap.pages.dev',
+      'https://ourlovemap.com',
+      'http://localhost:5173',
+    ],
+  });
   fastify.register(swaggerPlugin);
   fastify.register(mongodbPlugin);
   fastify.register(multipartPlugin);
