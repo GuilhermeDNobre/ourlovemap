@@ -72,6 +72,7 @@ export function AddressInput({ onPick }: AddressInputProps) {
           font-family: inherit;
           margin-top: 4px;
           overflow: hidden;
+          z-index: 99999 !important;
         }
         .pac-item {
           padding: 8px 14px;
