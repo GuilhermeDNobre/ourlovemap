@@ -22,6 +22,7 @@ export function FinalMapScreen({ locations }: FinalMapScreenProps) {
       style: `https://api.maptiler.com/maps/dataviz-dark/style.json?key=${MAPTILER_API_KEY}`,
       interactive: true,
     });
+    setTimeout(() => map.resize(), 50);
     mapRef.current = map;
     map.on('load', () => {
       const bounds = new maplibregl.LngLatBounds();
@@ -112,7 +113,7 @@ export function FinalMapScreen({ locations }: FinalMapScreenProps) {
           <em style={{ color: '#E8775A' }}>mapa do amor</em>.
         </h2>
       </div>
-      <div ref={mapContainerRef} className="relative mx-auto w-full max-w-2xl flex-1" style={{ minHeight: 400 }} />
+      <div ref={mapContainerRef} className="relative mx-auto w-full max-w-2xl" style={{ height: 480 }} />
       <div className="relative text-center py-10 px-6 max-w-lg mx-auto w-full flex flex-col items-center gap-4">
         <p className="text-sm" style={{ color: 'rgba(251,245,240,0.6)', lineHeight: 1.55 }}>
           Mostra pro mundo — ou guarda só entre vocês.

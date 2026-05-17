@@ -18,6 +18,65 @@ function formatTime(seconds: number) {
   return `${m}:${s}`;
 }
 
+interface TimeRangeSliderProps {
+  start: number;
+  end: number;
+  min: number;
+  max: number;
+  minGap: number;
+  onStartChange: (v: number) => void;
+  onEndChange: (v: number) => void;
+}
+
+function TimeRangeSlider({ start, end, min, max, minGap, onStartChange, onEndChange }: TimeRangeSliderProps) {
+  const range = max - min;
+  const startPct = ((start - min) / range) * 100;
+  const endPct = ((end - min) / range) * 100;
+  const trackStyle = {
+    background: `linear-gradient(to right,
+      #E0DCE5 ${startPct}%,
+      #F56C73 ${startPct}%,
+      #F56C73 ${endPct}%,
+      #E0DCE5 ${endPct}%)`,
+  };
+  return (
+    <>
+      <style>{`
+        .tlrs { -webkit-appearance:none; appearance:none; width:100%; height:6px;
+          background:transparent; outline:none; position:absolute; top:50%; transform:translateY(-50%); margin:0; pointer-events:none; }
+        .tlrs::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:20px; height:20px;
+          border-radius:50%; background:#fff; border:2.5px solid #F56C73;
+          box-shadow:0 2px 6px rgba(245,108,115,0.35); cursor:pointer; pointer-events:all; }
+        .tlrs::-moz-range-thumb { width:20px; height:20px; border-radius:50%; background:#fff;
+          border:2.5px solid #F56C73; box-shadow:0 2px 6px rgba(245,108,115,0.35); cursor:pointer; pointer-events:all; }
+      `}</style>
+      <div className="relative h-10 flex items-center">
+        <div className="absolute inset-x-0 h-1.5 rounded-full" style={trackStyle} />
+        <input
+          type="range"
+          className="tlrs"
+          min={min}
+          max={max - minGap}
+          value={start}
+          onChange={(e) => onStartChange(Number(e.target.value))}
+          style={{ zIndex: startPct >= 50 ? 5 : 3 }}
+          aria-label="Tempo de início"
+        />
+        <input
+          type="range"
+          className="tlrs"
+          min={min + minGap}
+          max={max}
+          value={end}
+          onChange={(e) => onEndChange(Number(e.target.value))}
+          style={{ zIndex: startPct >= 50 ? 3 : 5 }}
+          aria-label="Tempo de fim"
+        />
+      </div>
+    </>
+  );
+}
+
 function isLikelyUrl(value: string) {
   return value.startsWith('http://') || value.startsWith('https://');
 }
@@ -173,37 +232,20 @@ export function Step3Musica({ onNext, onBack }: Step3MusicaProps) {
               <X size={18} />
             </button>
           </div>
-          <div className="flex flex-col gap-4 bg-white rounded-xl border border-olm-surface p-4">
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-between text-xs text-fg-3">
-                <span>Início</span>
-                <span className="font-mono">{formatTime(music.startTime)}</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={MAX_START_TIME}
-                value={music.startTime}
-                onChange={(e) => handleStartChange(Number(e.target.value))}
-                className="w-full accent-olm-primary"
-                aria-label="Tempo de início"
-              />
+          <div className="flex flex-col gap-3 bg-white rounded-xl border border-olm-surface p-4">
+            <div className="flex justify-between text-xs text-fg-3">
+              <span>Início <span className="font-mono text-olm-primary font-semibold">{formatTime(music.startTime)}</span></span>
+              <span>Fim <span className="font-mono text-olm-primary font-semibold">{formatTime(music.endTime)}</span></span>
             </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-between text-xs text-fg-3">
-                <span>Fim</span>
-                <span className="font-mono">{formatTime(music.endTime)}</span>
-              </div>
-              <input
-                type="range"
-                min={music.startTime + MIN_CLIP_DURATION}
-                max={MAX_END_TIME}
-                value={music.endTime}
-                onChange={(e) => handleEndChange(Number(e.target.value))}
-                className="w-full accent-olm-accent"
-                aria-label="Tempo de fim"
-              />
-            </div>
+            <TimeRangeSlider
+              start={music.startTime}
+              end={music.endTime}
+              min={0}
+              max={MAX_END_TIME}
+              minGap={MIN_CLIP_DURATION}
+              onStartChange={handleStartChange}
+              onEndChange={handleEndChange}
+            />
             <label className="flex items-center gap-3 cursor-pointer select-none">
               <input
                 type="checkbox"

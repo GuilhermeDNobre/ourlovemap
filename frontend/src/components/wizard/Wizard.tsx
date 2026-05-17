@@ -1,6 +1,8 @@
+import { Link } from 'react-router-dom';
 import { useWizardStore } from '../../stores/wizard-store';
 import type { Place } from '../../stores/wizard-store';
 import { ProgressDots } from './ProgressDots';
+import logoSrc from '../../assets/logo.svg';
 import { LivePreview } from './LivePreview';
 import { SlugCard } from './SlugCard';
 import { PlanSelector } from './PlanSelector';
@@ -34,6 +36,14 @@ export function Wizard() {
   const handleModalClose = () => setField('mapId', null);
   return (
     <div className="min-h-screen bg-olm-bg">
+      <header className="h-14 px-6 flex items-center border-b border-[rgba(65,60,123,0.08)] bg-olm-bg">
+        <Link to="/" className="inline-flex items-center gap-2 no-underline" aria-label="Voltar para home">
+          <img src={logoSrc} alt="" width={22} height={22} />
+          <span className="font-serif text-[18px] text-olm-title">
+            Our Love <em className="text-olm-primary">Map</em>
+          </span>
+        </Link>
+      </header>
       <div className="max-w-[1100px] mx-auto px-6 py-10">
         <div className="flex justify-center mb-10">
           <ProgressDots currentStep={step} />

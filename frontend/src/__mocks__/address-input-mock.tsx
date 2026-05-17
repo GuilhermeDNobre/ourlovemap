@@ -1,5 +1,4 @@
 interface AddressInputProps {
-  apiKey: string;
   onPick: (result: { address: string; latitude: number; longitude: number }) => void;
 }
 

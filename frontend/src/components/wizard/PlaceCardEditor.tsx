@@ -6,7 +6,6 @@ import type { Place } from '../../stores/wizard-store';
 import { Input } from '../ui/Input';
 import { Field } from '../ui/Field';
 import { AddressInput } from './AddressInput';
-import { MAPTILER_API_KEY } from '../../lib/client-env';
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 const ACCEPTED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -29,6 +28,7 @@ export function PlaceCardEditor({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: place.id });
   const [photoError, setPhotoError] = useState('');
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -49,9 +49,7 @@ export function PlaceCardEditor({
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processFile = useCallback((file: File) => {
     if (file.size > MAX_PHOTO_SIZE) {
       setPhotoError('Arquivo muito grande. Máximo: 5MB.');
       return;
@@ -62,6 +60,21 @@ export function PlaceCardEditor({
     }
     setPhotoError('');
     onUpdate({ photo: file });
+  }, [onUpdate]);
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+  const handleDragLeave = () => setIsDragOver(false);
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
   };
   return (
     <div
@@ -96,7 +109,7 @@ export function PlaceCardEditor({
             )}
           </div>
           <Field label="Endereço">
-            <AddressInput apiKey={MAPTILER_API_KEY} onPick={handleAddressPick} />
+            <AddressInput onPick={handleAddressPick} />
           </Field>
           <Field label="Nome do lugar">
             <Input
@@ -144,10 +157,18 @@ export function PlaceCardEditor({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-dashed border-olm-surface text-fg-3 text-sm hover:border-olm-primary hover:text-olm-primary transition-colors"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={[
+                  'flex items-center gap-2 px-4 py-2.5 rounded-lg border border-dashed text-sm transition-colors w-full',
+                  isDragOver
+                    ? 'border-olm-primary bg-olm-primary-100 text-olm-primary'
+                    : 'border-olm-surface text-fg-3 hover:border-olm-primary hover:text-olm-primary',
+                ].join(' ')}
               >
                 <ImagePlus size={16} />
-                Adicionar foto
+                {isDragOver ? 'Solte aqui para adicionar' : 'Adicionar foto ou arrastar'}
               </button>
             )}
             {photoError && (
