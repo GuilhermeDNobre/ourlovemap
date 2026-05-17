@@ -18,6 +18,8 @@ interface AddressInputProps {
 export function AddressInput({ onPick }: AddressInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const onPickRef = useRef(onPick);
+  onPickRef.current = onPick;
   const [locating, setLocating] = useState(false);
 
   useEffect(() => {
@@ -32,14 +34,13 @@ export function AddressInput({ onPick }: AddressInputProps) {
       autocomplete.addListener('place_changed', () => {
         const place = autocomplete.getPlace();
         if (!place.geometry?.location) return;
-        onPick({
+        onPickRef.current({
           address: place.formatted_address ?? place.name ?? '',
           latitude: place.geometry.location.lat(),
           longitude: place.geometry.location.lng(),
         });
       });
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleGeolocate = useCallback(() => {

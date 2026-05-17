@@ -2,7 +2,8 @@ import { useState } from 'react';
 import {
   DndContext,
   closestCenter,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -41,7 +42,10 @@ export function Step2Localizacoes({ onNext, onBack, canProceed = true }: Step2Lo
     useWizardStore();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const limit = plan === 'premium' ? PREMIUM_LIMIT : BASIC_LIMIT;
-  const sensors = useSensors(useSensor(PointerSensor));
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  );
   const handleAddPlace = () => {
     if (plan === 'basic' && places.length >= BASIC_LIMIT) {
       setShowUpgradeModal(true);
