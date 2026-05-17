@@ -1,4 +1,4 @@
-import { MapPin, Camera, Music, Calendar, Share2, QrCode } from 'lucide-react';
+import { MapPin, Camera, Music, Calendar, Share2, QrCode, type LucideIcon } from 'lucide-react';
 import { Eyebrow } from '../ui/Eyebrow';
 
 const BENTO_MAP_TILE_MIN_HEIGHT = 400;
@@ -11,7 +11,7 @@ const POLAROID_GRADIENTS = [
   'linear-gradient(135deg,#F56C73,#FAA2A7)',
 ];
 
-function DarkTileIcon({ Icon }: { Icon: React.ComponentType<{ size: number; strokeWidth: number }> }) {
+function DarkTileIcon({ Icon }: { Icon: LucideIcon }) {
   return (
     <div className="w-11 h-11 rounded-[14px] bg-[rgba(251,245,240,0.08)] text-white flex items-center justify-center mb-3.5">
       <Icon size={20} strokeWidth={1.75} />
@@ -19,7 +19,7 @@ function DarkTileIcon({ Icon }: { Icon: React.ComponentType<{ size: number; stro
   );
 }
 
-function LightTileIcon({ Icon }: { Icon: React.ComponentType<{ size: number; strokeWidth: number }> }) {
+function LightTileIcon({ Icon }: { Icon: LucideIcon }) {
   return (
     <div className="w-11 h-11 rounded-[14px] bg-olm-primary-100 text-olm-primary flex items-center justify-center mb-3.5">
       <Icon size={20} strokeWidth={1.75} />

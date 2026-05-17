@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Check } from 'lucide-react';
-import { useWizardStore, type Plan } from '../../stores/wizard-store';
+import { useWizardStore } from '../../stores/wizard-store';
 import { Button } from '../ui/Button';
 
 const BASIC_FEATURES = [
