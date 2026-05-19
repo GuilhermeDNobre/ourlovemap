@@ -1,5 +1,6 @@
 import { MapPin, Camera, Music, Calendar, Share2, QrCode, type LucideIcon } from 'lucide-react';
 import { Eyebrow } from '../ui/Eyebrow';
+import qrCodeSvg from '../../assets/lp/qr-code.svg';
 
 const BENTO_MAP_TILE_MIN_HEIGHT = 400;
 const BENTO_TILE_MIN_HEIGHT = 190;
@@ -198,31 +199,7 @@ export function BentoFeatures() {
                 className="w-24 h-24 p-2.5 bg-white border-[1.5px] border-olm-surface rounded-xl shrink-0"
                 aria-label="QR Code decorativo"
               >
-                <svg
-                  viewBox="0 0 21 21"
-                  className="w-full h-full"
-                  style={{ imageRendering: 'pixelated' }}
-                >
-                  {Array.from({ length: 21 }).map((_, rowIndex) =>
-                    Array.from({ length: 21 }).map((_, colIndex) => {
-                      const filled =
-                        (colIndex + rowIndex * 3 + ((colIndex * rowIndex) % 5)) % 3 === 0 ||
-                        (colIndex < 3 && rowIndex < 3) ||
-                        (colIndex > 17 && rowIndex < 3) ||
-                        (colIndex < 3 && rowIndex > 17);
-                      return filled ? (
-                        <rect
-                          key={`${colIndex}-${rowIndex}`}
-                          x={colIndex}
-                          y={rowIndex}
-                          width={1}
-                          height={1}
-                          fill="#25212A"
-                        />
-                      ) : null;
-                    }),
-                  )}
-                </svg>
+                <img src={qrCodeSvg} className="w-full h-full" alt="QR Code" />
               </div>
             </div>
           </div>
