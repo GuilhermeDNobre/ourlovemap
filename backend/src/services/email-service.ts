@@ -15,7 +15,7 @@ export async function sendDeliveryEmail(
 ): Promise<void> {
   const baseUrl = process.env.OURLOVEMAP_BASE_URL;
   if (!baseUrl) throw new Error('OURLOVEMAP_BASE_URL is not configured');
-  const link = `${baseUrl}/acesso?token=${params.token}`;
+  const link = `${baseUrl}/${params.slug}?token=${params.token}`;
   await resend.emails.send({
     from: 'Our Love Map <product@ourlovemap.com.br>',
     to: email,

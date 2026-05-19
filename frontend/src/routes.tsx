@@ -7,6 +7,7 @@ export const routeConfig = [
   { path: '/', element: <Landing /> },
   { path: '/criar', element: <WizardPage /> },
   { path: '/acesso', element: <PublicMapPage /> },
+  { path: '/:slug', element: <PublicMapPage /> },
 ];
 
 const router = createBrowserRouter(routeConfig);
