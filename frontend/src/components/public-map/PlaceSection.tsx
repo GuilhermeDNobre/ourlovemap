@@ -87,7 +87,7 @@ export function PlaceSection({
       <div ref={mapContainerRef} className="absolute inset-0" />
       <div
         className="absolute inset-0 flex items-center justify-center"
-        style={{ background: 'linear-gradient(to bottom, rgba(37,33,42,0.2) 0%, rgba(37,33,42,0.5) 100%)' }}
+        style={{ background: 'linear-gradient(to bottom, rgba(26,28,40,0.15) 0%, rgba(26,28,40,0.45) 100%)' }}
       >
         <div
           ref={cardRef}
@@ -134,6 +134,16 @@ export function PlaceSection({
           </div>
         </div>
       </div>
+      <div
+        className="absolute top-0 left-0 right-0 pointer-events-none"
+        aria-hidden="true"
+        style={{ height: '22%', background: 'linear-gradient(to bottom, #1A1C28 0%, transparent 100%)' }}
+      />
+      <div
+        className="absolute bottom-0 left-0 right-0 pointer-events-none"
+        aria-hidden="true"
+        style={{ height: '28%', background: 'linear-gradient(to bottom, transparent 0%, #1A1C28 100%)' }}
+      />
       {isActive && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center" aria-hidden="true">
           <p className="text-xs tracking-widest" style={{ color: 'rgba(251,245,240,0.4)' }}>

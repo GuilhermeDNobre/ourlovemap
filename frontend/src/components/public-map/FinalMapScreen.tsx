@@ -29,7 +29,7 @@ function dataUrlToBlob(dataUrl: string): Blob {
 
 function createPolaroidIcon(location: ApiLocation, rotation: number): L.DivIcon {
   const photoHtml = location.photoUrl
-    ? `<img src="${location.photoUrl}" alt="${location.title}" style="width:64px;height:64px;object-fit:cover;display:block;" crossorigin="anonymous" />`
+    ? `<img src="${location.photoUrl}" alt="${location.title}" style="width:64px;height:64px;object-fit:cover;display:block;" />`
     : `<div style="width:64px;height:64px;background:linear-gradient(135deg,rgba(232,119,90,0.25),rgba(37,33,42,0.5));display:flex;align-items:center;justify-content:center;">
         <span style="font-size:9px;color:rgba(251,245,240,0.5);font-family:Georgia,serif;text-align:center;padding:4px;">${location.title}</span>
        </div>`;
