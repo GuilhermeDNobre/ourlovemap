@@ -68,7 +68,9 @@
       "Bash(Select-Object -First 50)",
       "PowerShell(Start-Sleep -Seconds 4; \\(Invoke-WebRequest -Uri \"http://localhost:5173\" -UseBasicParsing -TimeoutSec 3\\).StatusCode)",
       "mcp__playwright__browser_take_screenshot",
-      "mcp__playwright__browser_evaluate"
+      "mcp__playwright__browser_evaluate",
+      "WebFetch(domain:www.ishanchhabra.com)",
+      "WebFetch(domain:sudolabs.com)"
     ]
   }
 }

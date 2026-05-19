@@ -101,10 +101,24 @@ function FitBoundsOnLoad({ positions }: { positions: [number, number][] }) {
   return null;
 }
 
+const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+function triggerDownload(blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'nosso-mapa-do-amor.png';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
+}
+
 export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
   const captureRef = useRef<HTMLDivElement>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [prebuiltFile, setPrebuiltFile] = useState<File | null>(null);
+  const [showInstagramTip, setShowInstagramTip] = useState(false);
 
   const positions: [number, number][] = locations.map((l) => [l.latitude, l.longitude]);
   const initialCenter: [number, number] = positions.length > 0 ? positions[0] : [-14.235, -51.925];
@@ -124,25 +138,46 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleSave = useCallback(() => {
+  useEffect(() => {
+    if (!showInstagramTip) return;
+    const timer = setTimeout(() => setShowInstagramTip(false), 5000);
+    return () => clearTimeout(timer);
+  }, [showInstagramTip]);
+
+  const handleSave = useCallback(async () => {
     if (isCapturing) return;
-    const canShare =
-      typeof navigator.share === 'function' &&
-      typeof navigator.canShare === 'function';
-    if (prebuiltFile && canShare && navigator.canShare({ files: [prebuiltFile] })) {
-      navigator.share({ files: [prebuiltFile], title: 'Nosso Mapa do Amor' }).catch(() => {});
+    const fileToShare = prebuiltFile ?? await (async () => {
+      if (!captureRef.current) return null;
+      setIsCapturing(true);
+      try {
+        const dataUrl = await toPng(captureRef.current, { pixelRatio: PIXEL_RATIO, cacheBust: true });
+        const blob = dataUrlToBlob(dataUrl);
+        return new File([blob], 'nosso-mapa-do-amor.png', { type: 'image/png' });
+      } catch {
+        return null;
+      } finally {
+        setIsCapturing(false);
+      }
+    })();
+    if (!fileToShare) return;
+    if (IS_MOBILE) {
+      const canShare =
+        typeof navigator.share === 'function' &&
+        typeof navigator.canShare === 'function' &&
+        navigator.canShare({ files: [fileToShare] });
+      if (canShare) {
+        try {
+          await navigator.share({ files: [fileToShare], title: 'Nosso Mapa do Amor' });
+          return;
+        } catch {
+          // share dismissed or failed — fall through to download
+        }
+      }
+      triggerDownload(fileToShare);
+      setShowInstagramTip(true);
       return;
     }
-    if (!captureRef.current) return;
-    setIsCapturing(true);
-    toPng(captureRef.current, { pixelRatio: PIXEL_RATIO, cacheBust: true })
-      .then(dataUrl => {
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = 'nosso-mapa-do-amor.png';
-        link.click();
-      })
-      .finally(() => setIsCapturing(false));
+    triggerDownload(fileToShare);
   }, [prebuiltFile, isCapturing]);
 
   return (
@@ -253,7 +288,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
 
       <div className="relative flex flex-col items-center gap-4 mt-8">
         <p className="text-sm text-center max-w-xs" style={{ color: 'rgba(251,245,240,0.5)', lineHeight: 1.55 }}>
-          Salve a imagem e compartilhe nos Stories.
+          {IS_MOBILE ? 'Compartilhe nos Stories ou salve na galeria.' : 'Salve a imagem e compartilhe nos Stories.'}
         </p>
         <button
           onClick={handleSave}
@@ -265,8 +300,21 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
             opacity: isCapturing ? 0.7 : 1,
           }}
         >
-          {isCapturing ? 'Gerando...' : 'Salvar para Stories'}
+          {isCapturing ? 'Gerando...' : IS_MOBILE ? 'Compartilhar nos Stories' : 'Salvar imagem'}
         </button>
+        {showInstagramTip && (
+          <p
+            className="text-xs text-center max-w-xs px-4 py-2.5 rounded-xl"
+            style={{
+              color: 'rgba(251,245,240,0.85)',
+              background: 'rgba(232,119,90,0.18)',
+              border: '1px solid rgba(232,119,90,0.3)',
+              lineHeight: 1.5,
+            }}
+          >
+            Imagem salva! Abra o Instagram, acesse Stories e selecione da galeria.
+          </p>
+        )}
         <a href="#top" className="text-xs tracking-widest" style={{ color: 'rgba(251,245,240,0.4)' }}>
           Voltar ao começo ↑
         </a>
