@@ -7,13 +7,14 @@ interface CoverScreenProps {
   coupleName: string;
   opening?: string;
   startDate: string;
+  onStart?: () => void;
 }
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0');
 }
 
-export function CoverScreen({ coupleName, opening, startDate }: CoverScreenProps) {
+export function CoverScreen({ coupleName, opening, startDate, onStart }: CoverScreenProps) {
   const ring1Ref = useRef<SVGCircleElement>(null);
   const ring2Ref = useRef<SVGCircleElement>(null);
   const ring3Ref = useRef<SVGCircleElement>(null);
@@ -88,6 +89,7 @@ export function CoverScreen({ coupleName, opening, startDate }: CoverScreenProps
           href="#place-0"
           className="relative flex items-center justify-center mt-4"
           aria-label="toque pra começar"
+          onClick={onStart}
         >
           <svg viewBox="0 0 80 80" className="w-20 h-20" aria-hidden="true">
             <circle ref={ring1Ref} cx="40" cy="40" r="36" fill="none" stroke="#E8775A" strokeWidth="1.5" opacity="0.5" />

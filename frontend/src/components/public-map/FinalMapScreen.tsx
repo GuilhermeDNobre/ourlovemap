@@ -14,6 +14,7 @@ interface FinalMapScreenProps {
 
 const PIN_ROTATIONS = [-4, 3, -2, 5, -3, 4];
 const PIXEL_RATIO = 2;
+const PREGENERATE_DELAY_MS = 3000;
 
 function dataUrlToBlob(dataUrl: string): Blob {
   const [header, base64] = dataUrl.split(',');
@@ -74,36 +75,45 @@ function FitBoundsOnLoad({ positions }: { positions: [number, number][] }) {
 export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
   const captureRef = useRef<HTMLDivElement>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [prebuiltFile, setPrebuiltFile] = useState<File | null>(null);
 
   const positions: [number, number][] = locations.map((l) => [l.latitude, l.longitude]);
   const initialCenter: [number, number] = positions.length > 0 ? positions[0] : [-14.235, -51.925];
 
-  const handleSave = useCallback(async () => {
-    if (!captureRef.current || isCapturing) return;
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (!captureRef.current) return;
+      try {
+        const dataUrl = await toPng(captureRef.current, { pixelRatio: PIXEL_RATIO, cacheBust: true });
+        const blob = dataUrlToBlob(dataUrl);
+        setPrebuiltFile(new File([blob], 'nosso-mapa-do-amor.png', { type: 'image/png' }));
+      } catch {
+        // pre-generation failed — will fall back to on-click download
+      }
+    }, PREGENERATE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleSave = useCallback(() => {
+    if (isCapturing) return;
+    const canShare =
+      typeof navigator.share === 'function' &&
+      typeof navigator.canShare === 'function';
+    if (prebuiltFile && canShare && navigator.canShare({ files: [prebuiltFile] })) {
+      navigator.share({ files: [prebuiltFile], title: 'Nosso Mapa do Amor' }).catch(() => {});
+      return;
+    }
+    if (!captureRef.current) return;
     setIsCapturing(true);
-    try {
-      const dataUrl = await toPng(captureRef.current, {
-        pixelRatio: PIXEL_RATIO,
-        cacheBust: true,
-      });
-      const blob = dataUrlToBlob(dataUrl);
-      const file = new File([blob], 'nosso-mapa-do-amor.png', { type: 'image/png' });
-      const canShareFiles =
-        typeof navigator.share === 'function' &&
-        typeof navigator.canShare === 'function' &&
-        navigator.canShare({ files: [file] });
-      if (canShareFiles) {
-        await navigator.share({ files: [file], title: 'Nosso Mapa do Amor' });
-      } else {
+    toPng(captureRef.current, { pixelRatio: PIXEL_RATIO, cacheBust: true })
+      .then(dataUrl => {
         const link = document.createElement('a');
         link.href = dataUrl;
         link.download = 'nosso-mapa-do-amor.png';
         link.click();
-      }
-    } finally {
-      setIsCapturing(false);
-    }
-  }, [isCapturing]);
+      })
+      .finally(() => setIsCapturing(false));
+  }, [prebuiltFile, isCapturing]);
 
   return (
     <section
@@ -225,7 +235,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
             opacity: isCapturing ? 0.7 : 1,
           }}
         >
-          {isCapturing ? 'Gerando imagem...' : 'Salvar para Stories'}
+          {isCapturing ? 'Gerando...' : 'Salvar para Stories'}
         </button>
         <a href="#top" className="text-xs tracking-widest" style={{ color: 'rgba(251,245,240,0.4)' }}>
           Voltar ao começo ↑

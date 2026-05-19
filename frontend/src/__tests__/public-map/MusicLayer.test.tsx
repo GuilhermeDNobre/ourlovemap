@@ -64,14 +64,34 @@ describe('MusicLayer', () => {
     expect(unblock).toHaveBeenCalledTimes(1);
   });
 
-  it('should wire onAutoplayBlocked to the YouTube player onError handler', () => {
+  it('should call onAutoplayBlocked after timeout when player is not playing', () => {
+    jest.useFakeTimers();
     const onAutoplayBlocked = jest.fn();
     renderLayer({ onAutoplayBlocked });
     const props = getCapturedProps();
-    expect(props?.onError).toBeDefined();
+    const mockPlayer = { getPlayerState: jest.fn().mockReturnValue(-1) };
     act(() => {
-      props?.onError?.({ data: 150, target: {} as YouTubePlayer });
+      props?.onReady?.({ data: undefined, target: mockPlayer as unknown as YouTubePlayer });
     });
+    act(() => { jest.advanceTimersByTime(2000); });
     expect(onAutoplayBlocked).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
+  });
+
+  it('should cancel autoplay timer when onStateChange fires with state playing', () => {
+    jest.useFakeTimers();
+    const onAutoplayBlocked = jest.fn();
+    renderLayer({ onAutoplayBlocked });
+    const props = getCapturedProps();
+    const mockPlayer = { getPlayerState: jest.fn().mockReturnValue(-1) };
+    act(() => {
+      props?.onReady?.({ data: undefined, target: mockPlayer as unknown as YouTubePlayer });
+    });
+    act(() => {
+      props?.onStateChange?.({ data: 1, target: mockPlayer as unknown as YouTubePlayer });
+    });
+    act(() => { jest.advanceTimersByTime(2000); });
+    expect(onAutoplayBlocked).not.toHaveBeenCalled();
+    jest.useRealTimers();
   });
 });

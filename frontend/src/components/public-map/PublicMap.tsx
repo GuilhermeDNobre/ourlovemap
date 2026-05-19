@@ -1,4 +1,4 @@
-import { Fragment, useEffect } from 'react';
+import { Fragment } from 'react';
 import { isAxiosError } from 'axios';
 import { useMapData } from '../../hooks/use-map-data';
 import { useActivePlace } from '../../hooks/use-active-place';
@@ -19,13 +19,6 @@ export function PublicMap() {
     startTime: data?.youtubeStartTime ?? 0,
     loop: data?.youtubeLoop ?? false,
   });
-
-  useEffect(() => {
-    const playOnScroll = () => { playerRef.current?.playVideo(); };
-    window.addEventListener('scroll', playOnScroll, { once: true });
-    return () => window.removeEventListener('scroll', playOnScroll);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   if (isLoading) {
     return (
@@ -68,6 +61,7 @@ export function PublicMap() {
         coupleName={data.coupleName}
         opening={data.opening}
         startDate={data.relationshipStartDate}
+        onStart={unblock}
       />
       {sortedLocations.map((location, index) => (
         <Fragment key={location.order}>

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { FinalMapScreen } from '../../components/public-map/FinalMapScreen';
 import { toPng } from 'html-to-image';
 import type { ApiLocation } from '../../types/map';
@@ -30,22 +30,24 @@ describe('FinalMapScreen', () => {
     expect(screen.getByRole('link', { name: /Voltar ao começo/i })).toBeInTheDocument();
   });
 
-  it('should call toPng and show "Gerando imagem..." while capturing', async () => {
+  it('should call toPng via slow-path when prebuilt file is not ready', async () => {
     render(<FinalMapScreen locations={locations} coupleName="Ana & João" />);
-    const button = screen.getByRole('button', { name: /Salvar para Stories/i });
-    fireEvent.click(button);
+    fireEvent.click(screen.getByRole('button', { name: /Salvar para Stories/i }));
     await waitFor(() => expect(toPng).toHaveBeenCalled());
   });
 
-  it('should call navigator.share with files when available', async () => {
+  it('should call navigator.share synchronously with prebuilt file after pre-generation', async () => {
+    jest.useFakeTimers();
     const shareSpy = jest.fn().mockResolvedValue(undefined);
     const canShareSpy = jest.fn().mockReturnValue(true);
     Object.defineProperty(navigator, 'share', { value: shareSpy, configurable: true });
     Object.defineProperty(navigator, 'canShare', { value: canShareSpy, configurable: true });
     render(<FinalMapScreen locations={locations} coupleName="Ana & João" />);
+    await act(async () => { jest.advanceTimersByTime(3000); });
     fireEvent.click(screen.getByRole('button', { name: /Salvar para Stories/i }));
-    await waitFor(() => expect(shareSpy).toHaveBeenCalledWith(
+    expect(shareSpy).toHaveBeenCalledWith(
       expect.objectContaining({ files: expect.any(Array) }),
-    ));
+    );
+    jest.useRealTimers();
   });
 });

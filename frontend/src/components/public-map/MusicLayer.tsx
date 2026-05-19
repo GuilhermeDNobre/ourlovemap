@@ -1,4 +1,7 @@
+import { useRef } from 'react';
 import YouTube, { type YouTubeEvent, type YouTubePlayer } from 'react-youtube';
+
+const AUTOPLAY_TIMEOUT_MS = 2000;
 
 interface MusicLayerProps {
   videoId: string | null | undefined;
@@ -12,10 +15,26 @@ interface MusicLayerProps {
 }
 
 export function MusicLayer({ videoId, startTime, endTime, playerRef, isBlocked, unblock, onAutoplayBlocked, onEnd }: MusicLayerProps) {
-  if (!videoId) return null;
+  const autoplayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleReady = (e: YouTubeEvent) => {
     playerRef.current = e.target;
+    autoplayTimerRef.current = setTimeout(() => {
+      if (playerRef.current?.getPlayerState() !== 1) {
+        onAutoplayBlocked();
+      }
+    }, AUTOPLAY_TIMEOUT_MS);
   };
+
+  const handleStateChange = (e: YouTubeEvent) => {
+    if (e.data === 1 && autoplayTimerRef.current !== null) {
+      clearTimeout(autoplayTimerRef.current);
+      autoplayTimerRef.current = null;
+    }
+  };
+
+  if (!videoId) return null;
+
   return (
     <>
       <YouTube
@@ -23,7 +42,7 @@ export function MusicLayer({ videoId, startTime, endTime, playerRef, isBlocked, 
         className="sr-only"
         opts={{ playerVars: { autoplay: 1, start: startTime, end: endTime } }}
         onReady={handleReady}
-        onError={onAutoplayBlocked}
+        onStateChange={handleStateChange}
         onEnd={onEnd}
       />
       {isBlocked && (
