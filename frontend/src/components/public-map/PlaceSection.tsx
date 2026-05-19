@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react';
 import gsap from 'gsap';
 import { useInView } from 'react-intersection-observer';
 import maplibregl from 'maplibre-gl';
+import { MapPin } from 'lucide-react';
 import { Polaroid } from '../ui/Polaroid';
 import { MAPTILER_API_KEY } from '../../lib/client-env';
 import type { ApiLocation } from '../../types/map';
@@ -38,7 +39,7 @@ export function PlaceSection({
       container: mapContainerRef.current,
       style: `https://api.maptiler.com/maps/dataviz-dark/style.json?key=${MAPTILER_API_KEY}`,
       center: [location.longitude, location.latitude],
-      zoom: 14,
+      zoom: 16,
       interactive: false,
     });
     mapRef.current = map;
@@ -105,6 +106,14 @@ export function PlaceSection({
             <h2 className="font-serif text-2xl" style={{ color: '#FBF5F0' }}>
               {location.title}
             </h2>
+            {location.address && (
+              <div className="flex items-start gap-1.5">
+                <MapPin size={11} className="mt-0.5 flex-shrink-0" style={{ color: '#E8775A' }} />
+                <p className="text-xs leading-tight" style={{ color: 'rgba(232,119,90,0.8)' }}>
+                  {location.address}
+                </p>
+              </div>
+            )}
             {location.photoUrl ? (
               <Polaroid
                 src={location.photoUrl}

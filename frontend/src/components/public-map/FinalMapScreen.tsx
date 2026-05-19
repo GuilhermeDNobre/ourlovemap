@@ -1,135 +1,244 @@
-import { useRef, useEffect, useState } from 'react';
-import maplibregl from 'maplibre-gl';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import L from 'leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
+import { toPng } from 'html-to-image';
+import { Heart } from 'lucide-react';
+import 'leaflet/dist/leaflet.css';
 import { MAPTILER_API_KEY } from '../../lib/client-env';
 import type { ApiLocation } from '../../types/map';
 
 interface FinalMapScreenProps {
   locations: ApiLocation[];
+  coupleName: string;
 }
 
 const PIN_ROTATIONS = [-4, 3, -2, 5, -3, 4];
-const COPY_FEEDBACK_DURATION_MS = 2000;
+const PIXEL_RATIO = 2;
 
-export function FinalMapScreen({ locations }: FinalMapScreenProps) {
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const [copied, setCopied] = useState(false);
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, base64] = dataUrl.split(',');
+  const mimeMatch = header.match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+  const binary = atob(base64);
+  const array = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    array[i] = binary.charCodeAt(i);
+  }
+  return new Blob([array], { type: mime });
+}
 
+function createPolaroidIcon(location: ApiLocation, rotation: number): L.DivIcon {
+  const photoHtml = location.photoUrl
+    ? `<img src="${location.photoUrl}" alt="${location.title}" style="width:64px;height:64px;object-fit:cover;display:block;" crossorigin="anonymous" />`
+    : `<div style="width:64px;height:64px;background:linear-gradient(135deg,rgba(232,119,90,0.25),rgba(37,33,42,0.5));display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:9px;color:rgba(251,245,240,0.5);font-family:Georgia,serif;text-align:center;padding:4px;">${location.title}</span>
+       </div>`;
+  return L.divIcon({
+    html: `
+      <div style="display:flex;flex-direction:column;align-items:center;cursor:default;">
+        <div style="
+          background:white;
+          padding:4px 4px 14px;
+          box-shadow:0 6px 20px rgba(0,0,0,0.55),0 1px 4px rgba(0,0,0,0.3);
+          transform:rotate(${rotation}deg);
+          transform-origin:bottom center;
+        ">
+          ${photoHtml}
+          <p style="
+            font-size:7.5px;
+            text-align:center;
+            color:rgba(30,28,42,0.45);
+            margin-top:3px;
+            font-family:Georgia,serif;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            max-width:60px;
+          ">${location.title}</p>
+        </div>
+        <div style="
+          width:9px;height:9px;border-radius:50%;
+          background:#E8775A;
+          box-shadow:0 0 8px rgba(232,119,90,0.85);
+          margin-top:3px;
+          flex-shrink:0;
+        "></div>
+      </div>
+    `,
+    className: '',
+    iconSize: [74, 100],
+    iconAnchor: [37, 100],
+  });
+}
+
+function FitBoundsOnLoad({ positions }: { positions: [number, number][] }) {
+  const map = useMap();
   useEffect(() => {
-    if (!mapContainerRef.current || locations.length === 0) return;
-    const map = new maplibregl.Map({
-      container: mapContainerRef.current,
-      style: `https://api.maptiler.com/maps/dataviz-dark/style.json?key=${MAPTILER_API_KEY}`,
-      interactive: true,
-    });
-    setTimeout(() => map.resize(), 50);
-    mapRef.current = map;
-    map.on('load', () => {
-      const bounds = new maplibregl.LngLatBounds();
-      locations.forEach((loc) => bounds.extend([loc.longitude, loc.latitude]));
-      map.fitBounds(bounds, { padding: 60, maxZoom: 14 });
-      map.addSource('route', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: {
-            type: 'LineString',
-            coordinates: locations.map((l) => [l.longitude, l.latitude]),
-          },
-          properties: {},
-        },
-      });
-      map.addLayer({
-        id: 'route',
-        type: 'line',
-        source: 'route',
-        paint: {
-          'line-color': '#E8634A',
-          'line-width': 2,
-          'line-dasharray': [2, 3],
-        },
-      });
-      locations.forEach((loc, i) => {
-        const pinEl = document.createElement('div');
-        pinEl.style.width = '16px';
-        pinEl.style.height = '16px';
-        pinEl.style.borderRadius = '50%';
-        pinEl.style.backgroundColor = '#E8775A';
-        pinEl.style.boxShadow = '0 0 12px #E8775A';
-        new maplibregl.Marker(pinEl).setLngLat([loc.longitude, loc.latitude]).addTo(map);
-        const popupEl = document.createElement('div');
-        popupEl.style.transform = `rotate(${PIN_ROTATIONS[i % PIN_ROTATIONS.length]}deg)`;
-        popupEl.style.boxShadow = '0 10px 24px rgba(0,0,0,0.5)';
-        if (loc.photoUrl) {
-          const img = document.createElement('img');
-          img.src = loc.photoUrl;
-          img.alt = loc.title;
-          img.style.width = '80px';
-          img.style.height = '80px';
-          img.style.objectFit = 'cover';
-          popupEl.appendChild(img);
-        } else {
-          popupEl.style.width = '80px';
-          popupEl.style.height = '80px';
-          popupEl.style.background = 'linear-gradient(135deg, rgba(232,119,90,0.3), rgba(37,33,42,0.5))';
-        }
-        new maplibregl.Popup({ closeButton: false, closeOnClick: false, anchor: 'bottom' })
-          .setLngLat([loc.longitude, loc.latitude])
-          .setDOMContent(popupEl)
-          .addTo(map);
-      });
-    });
-    return () => { mapRef.current?.remove(); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps — locations are stable after mount; re-running would recreate the map unnecessarily
+    if (positions.length === 0) return;
+    const bounds = L.latLngBounds(positions);
+    map.fitBounds(bounds, { padding: [55, 45], maxZoom: 13 });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  return null;
+}
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (typeof navigator.share === 'function') {
-      await navigator.share({ title: 'Nosso mapa do amor', url });
-    } else {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION_MS);
+export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
+  const captureRef = useRef<HTMLDivElement>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+
+  const positions: [number, number][] = locations.map((l) => [l.latitude, l.longitude]);
+  const initialCenter: [number, number] = positions.length > 0 ? positions[0] : [-14.235, -51.925];
+
+  const handleSave = useCallback(async () => {
+    if (!captureRef.current || isCapturing) return;
+    setIsCapturing(true);
+    try {
+      const dataUrl = await toPng(captureRef.current, {
+        pixelRatio: PIXEL_RATIO,
+        cacheBust: true,
+      });
+      const blob = dataUrlToBlob(dataUrl);
+      const file = new File([blob], 'nosso-mapa-do-amor.png', { type: 'image/png' });
+      const canShareFiles =
+        typeof navigator.share === 'function' &&
+        typeof navigator.canShare === 'function' &&
+        navigator.canShare({ files: [file] });
+      if (canShareFiles) {
+        await navigator.share({ files: [file], title: 'Nosso Mapa do Amor' });
+      } else {
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = 'nosso-mapa-do-amor.png';
+        link.click();
+      }
+    } finally {
+      setIsCapturing(false);
     }
-  };
+  }, [isCapturing]);
 
   return (
-    <section className="relative min-h-screen flex flex-col" style={{ background: 'linear-gradient(180deg, #25212A 0%, #332E3A 100%)' }}>
+    <section
+      className="relative flex flex-col items-center justify-start py-16 px-6"
+      style={{ background: 'linear-gradient(180deg, #25212A 0%, #1E1C2A 100%)', minHeight: '100vh' }}
+    >
       <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full pointer-events-none"
+        className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none"
         aria-hidden="true"
-        style={{ background: 'radial-gradient(circle, rgba(191,119,246,0.18), transparent 65%)' }}
+        style={{
+          width: '600px',
+          height: '600px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(191,119,246,0.12), transparent 65%)',
+        }}
       />
-      <div className="relative text-center pt-20 pb-10 px-6 max-w-lg mx-auto w-full">
-        <p className="text-xs tracking-[0.18em] uppercase font-semibold" style={{ color: '#E8775A' }}>
+
+      <div className="relative text-center mb-8 max-w-sm">
+        <p
+          className="text-xs tracking-[0.18em] uppercase font-semibold mb-3"
+          style={{ color: '#E8775A' }}
+        >
           O fim? Só o começo.
         </p>
         <h2
-          className="font-serif mt-4"
-          style={{ fontSize: 'clamp(2.25rem, 7vw, 3.5rem)', lineHeight: 1.05, color: '#FBF5F0', letterSpacing: '-0.02em' }}
+          className="font-serif"
+          style={{
+            fontSize: 'clamp(2rem, 6vw, 3rem)',
+            lineHeight: 1.05,
+            color: '#FBF5F0',
+            letterSpacing: '-0.02em',
+          }}
         >
           Esse é o nosso{' '}
           <em style={{ color: '#E8775A' }}>mapa do amor</em>.
         </h2>
       </div>
-      <div ref={mapContainerRef} className="relative mx-auto w-full max-w-2xl" style={{ height: 480 }} />
-      <div className="relative text-center py-10 px-6 max-w-lg mx-auto w-full flex flex-col items-center gap-4">
-        <p className="text-sm" style={{ color: 'rgba(251,245,240,0.6)', lineHeight: 1.55 }}>
-          Mostra pro mundo — ou guarda só entre vocês.
+
+      <div
+        ref={captureRef}
+        className="relative overflow-hidden rounded-2xl"
+        style={{
+          aspectRatio: '9/16',
+          width: 'min(320px, 85vw)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06)',
+        }}
+      >
+        {positions.length > 0 && (
+          <MapContainer
+            center={initialCenter}
+            zoom={12}
+            scrollWheelZoom={false}
+            dragging={false}
+            zoomControl={false}
+            doubleClickZoom={false}
+            touchZoom={false}
+            keyboard={false}
+            boxZoom={false}
+            attributionControl={false}
+            style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
+          >
+            <TileLayer
+              url={`https://api.maptiler.com/maps/dataviz-dark/{z}/{x}/{y}.png?key=${MAPTILER_API_KEY}`}
+              tileSize={512}
+              zoomOffset={-1}
+              maxZoom={18}
+              crossOrigin="anonymous"
+            />
+            <Polyline
+              positions={positions}
+              pathOptions={{ color: '#E8775A', weight: 1.5, dashArray: '5 8', opacity: 0.65 }}
+            />
+            {locations.map((loc, i) => (
+              <Marker
+                key={loc.order}
+                position={[loc.latitude, loc.longitude]}
+                icon={createPolaroidIcon(loc, PIN_ROTATIONS[i % PIN_ROTATIONS.length])}
+              />
+            ))}
+            <FitBoundsOnLoad positions={positions} />
+          </MapContainer>
+        )}
+
+        <div
+          className="absolute top-0 left-0 right-0 h-28 pointer-events-none"
+          aria-hidden="true"
+          style={{ background: 'linear-gradient(to bottom, rgba(30,28,42,0.6) 0%, transparent 100%)' }}
+        />
+
+        <div
+          className="absolute bottom-0 left-0 right-0 flex flex-col items-center pb-5 pt-14 pointer-events-none"
+          aria-hidden="true"
+          style={{ background: 'linear-gradient(to top, rgba(30,28,42,0.88) 0%, transparent 100%)' }}
+        >
+          <Heart size={12} fill="#E8775A" stroke="none" aria-hidden="true" />
+          <p
+            className="text-[10px] tracking-[0.18em] uppercase font-semibold mt-1"
+            style={{ color: 'rgba(251,245,240,0.7)' }}
+          >
+            ourlovemap
+          </p>
+          <p className="font-serif italic text-[11px] mt-0.5" style={{ color: 'rgba(251,245,240,0.45)' }}>
+            {coupleName}
+          </p>
+        </div>
+      </div>
+
+      <div className="relative flex flex-col items-center gap-4 mt-8">
+        <p className="text-sm text-center max-w-xs" style={{ color: 'rgba(251,245,240,0.5)', lineHeight: 1.55 }}>
+          Salve a imagem e compartilhe nos Stories.
         </p>
         <button
-          onClick={handleShare}
-          className="flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-white"
-          style={{ background: 'linear-gradient(135deg, #E8775A 0%, #BF77F6 55%, #413C7B 100%)', boxShadow: '0 14px 34px rgba(232,119,90,0.4)' }}
+          onClick={handleSave}
+          disabled={isCapturing}
+          className="flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-white transition-opacity"
+          style={{
+            background: 'linear-gradient(135deg, #E8775A 0%, #BF77F6 55%, #413C7B 100%)',
+            boxShadow: '0 14px 34px rgba(232,119,90,0.4)',
+            opacity: isCapturing ? 0.7 : 1,
+          }}
         >
-          {copied ? 'Link copiado!' : (typeof navigator !== 'undefined' && typeof navigator.share === 'function' ? 'Compartilhar no Instagram' : 'Copiar link')}
+          {isCapturing ? 'Gerando imagem...' : 'Salvar para Stories'}
         </button>
-        <a
-          href="#top"
-          className="text-xs tracking-widest"
-          style={{ color: 'rgba(251,245,240,0.4)' }}
-        >
+        <a href="#top" className="text-xs tracking-widest" style={{ color: 'rgba(251,245,240,0.4)' }}>
           Voltar ao começo ↑
         </a>
       </div>

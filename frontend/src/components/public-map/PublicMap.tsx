@@ -85,7 +85,7 @@ export function PublicMap() {
           />
         </Fragment>
       ))}
-      <FinalMapScreen locations={sortedLocations} />
+      <FinalMapScreen locations={sortedLocations} coupleName={data.coupleName} />
     </div>
   );
 }

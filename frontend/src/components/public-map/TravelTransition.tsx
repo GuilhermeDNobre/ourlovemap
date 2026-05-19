@@ -53,7 +53,7 @@ export function TravelTransition({ fromTitle, toTitle, variant }: TravelTransiti
     <section
       ref={sectionRef}
       className="relative flex items-center justify-center overflow-hidden"
-      style={{ height: '90vh', background: '#25212A' }}
+      style={{ height: '90vh', background: '#1A1C28' }}
     >
       <svg
         className="absolute inset-0 w-full h-full"
