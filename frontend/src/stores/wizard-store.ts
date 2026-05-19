@@ -57,6 +57,22 @@ interface WizardActions {
 
 export type WizardStore = WizardState & WizardActions;
 
+function createEmptyPlace(): Place {
+  return {
+    id: crypto.randomUUID(),
+    title: '',
+    address: '',
+    description: '',
+    photo: null,
+    latitude: 0,
+    longitude: 0,
+  };
+}
+
+function createDefaultPlaces(): Place[] {
+  return [createEmptyPlace(), createEmptyPlace()];
+}
+
 const DEFAULT_STATE: WizardState = {
   plan: 'basic',
   step: 0,
@@ -65,7 +81,7 @@ const DEFAULT_STATE: WizardState = {
   buyerPhone: '',
   startDate: '',
   opening: '',
-  places: [],
+  places: createDefaultPlaces(),
   music: DEFAULT_MUSIC,
   email: '',
   emailConfirm: '',
@@ -87,7 +103,7 @@ export const useWizardStore = create<WizardStore>()(
           places: state.places.map((p) => (p.id === id ? { ...p, ...patch } : p)),
         })),
       reorderPlaces: (places) => set({ places }),
-      reset: () => set(DEFAULT_STATE),
+      reset: () => set({ ...DEFAULT_STATE, places: createDefaultPlaces() }),
     }),
     {
       name: 'olm-wizard',

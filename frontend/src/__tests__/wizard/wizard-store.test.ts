@@ -20,13 +20,14 @@ describe('wizard-store: addPlace', () => {
   it('should add a place to the store', () => {
     const place = makePlace({ id: 'p1' });
     useWizardStore.getState().addPlace(place);
-    expect(useWizardStore.getState().places).toHaveLength(1);
-    expect(useWizardStore.getState().places[0].id).toBe('p1');
+    const places = useWizardStore.getState().places;
+    expect(places).toHaveLength(3);
+    expect(places.find((p) => p.id === 'p1')).toBeDefined();
   });
   it('should accumulate multiple places', () => {
     useWizardStore.getState().addPlace(makePlace({ id: 'p1' }));
     useWizardStore.getState().addPlace(makePlace({ id: 'p2' }));
-    expect(useWizardStore.getState().places).toHaveLength(2);
+    expect(useWizardStore.getState().places).toHaveLength(4);
   });
 });
 
@@ -36,14 +37,16 @@ describe('wizard-store: removePlace', () => {
     useWizardStore.getState().addPlace(makePlace({ id: 'p2' }));
     useWizardStore.getState().removePlace('p1');
     const places = useWizardStore.getState().places;
-    expect(places).toHaveLength(1);
-    expect(places[0].id).toBe('p2');
+    expect(places).toHaveLength(3);
+    expect(places.find((p) => p.id === 'p1')).toBeUndefined();
+    expect(places.find((p) => p.id === 'p2')).toBeDefined();
   });
   it('should not affect other places when removing', () => {
     useWizardStore.getState().addPlace(makePlace({ id: 'p1', title: 'Place 1' }));
     useWizardStore.getState().addPlace(makePlace({ id: 'p2', title: 'Place 2' }));
     useWizardStore.getState().removePlace('p2');
-    expect(useWizardStore.getState().places[0].title).toBe('Place 1');
+    const places = useWizardStore.getState().places;
+    expect(places.find((p) => p.id === 'p1')?.title).toBe('Place 1');
   });
 });
 
@@ -68,7 +71,7 @@ describe('wizard-store: reset', () => {
     useWizardStore.getState().reset();
     const state = useWizardStore.getState();
     expect(state.names).toBe('');
-    expect(state.places).toHaveLength(0);
+    expect(state.places).toHaveLength(2);
     expect(state.step).toBe(0);
     expect(state.plan).toBe('basic');
   });
@@ -89,7 +92,8 @@ describe('wizard-store: updatePlace', () => {
   it('should update a specific place by id', () => {
     useWizardStore.getState().addPlace(makePlace({ id: 'p1', title: 'Old Title' }));
     useWizardStore.getState().updatePlace('p1', { title: 'New Title' });
-    expect(useWizardStore.getState().places[0].title).toBe('New Title');
+    const updated = useWizardStore.getState().places.find((p) => p.id === 'p1');
+    expect(updated?.title).toBe('New Title');
   });
 });
 

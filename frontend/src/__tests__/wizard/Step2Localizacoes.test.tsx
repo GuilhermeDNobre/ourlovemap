@@ -28,38 +28,34 @@ function renderStep(onNext = jest.fn(), onBack = jest.fn()) {
 }
 
 describe('Step2Localizacoes', () => {
-  it('should show empty state when no places', () => {
+  it('should render 2 place cards by default', () => {
     renderStep();
-    expect(screen.getByText(/Nenhum lugar adicionado/i)).toBeInTheDocument();
+    expect(screen.getAllByPlaceholderText('Buscar endereço...')).toHaveLength(2);
   });
 
   it('should add a place card when "Adicionar lugar" is clicked', async () => {
     const user = userEvent.setup();
     renderStep();
     await user.click(screen.getByRole('button', { name: /Adicionar lugar/i }));
-    expect(screen.getByPlaceholderText('Buscar endereço...')).toBeInTheDocument();
+    expect(screen.getAllByPlaceholderText('Buscar endereço...')).toHaveLength(3);
   });
 
   it('should remove a place card when remove button is clicked', async () => {
     const user = userEvent.setup();
     renderStep();
-    await user.click(screen.getByRole('button', { name: /Adicionar lugar/i }));
-    await user.click(screen.getByRole('button', { name: /Adicionar lugar/i }));
     const removeButtons = screen.getAllByRole('button', { name: /Remover lugar/i });
     expect(removeButtons).toHaveLength(2);
     await user.click(removeButtons[0]);
     expect(screen.getAllByPlaceholderText('Buscar endereço...')).toHaveLength(1);
   });
 
-  it('should show upgrade modal when adding 4th place with Basic plan', async () => {
+  it('should show upgrade modal when exceeding Basic plan limit', async () => {
     const user = userEvent.setup();
     useWizardStore.getState().setPlan('basic');
     renderStep();
     const addBtn = screen.getByRole('button', { name: /Adicionar lugar/i });
-    await user.click(addBtn);
-    await user.click(addBtn);
-    await user.click(addBtn);
-    await user.click(addBtn);
+    await user.click(addBtn); // 2 → 3 (at limit)
+    await user.click(addBtn); // triggers modal
     await waitFor(() => {
       expect(screen.getByText('Upgrade para Premium')).toBeInTheDocument();
     });
@@ -70,21 +66,17 @@ describe('Step2Localizacoes', () => {
     useWizardStore.getState().setPlan('basic');
     renderStep();
     const addBtn = screen.getByRole('button', { name: /Adicionar lugar/i });
-    await user.click(addBtn);
-    await user.click(addBtn);
-    await user.click(addBtn);
-    await user.click(addBtn);
+    await user.click(addBtn); // 2 → 3
+    await user.click(addBtn); // modal
     await waitFor(() => screen.getByText('Upgrade para Premium'));
     await user.click(screen.getByRole('button', { name: /Fazer upgrade/i }));
     expect(useWizardStore.getState().plan).toBe('premium');
     expect(useWizardStore.getState().places).toHaveLength(4);
   });
 
-  it('should display place count footer', async () => {
-    const user = userEvent.setup();
+  it('should display place count footer', () => {
     renderStep();
-    await user.click(screen.getByRole('button', { name: /Adicionar lugar/i }));
     const footer = document.querySelector('.text-xs.text-fg-3.mt-1') as HTMLElement;
-    expect(footer?.textContent).toMatch(/1.*de.*3.*lugares.*Basic/i);
+    expect(footer?.textContent).toMatch(/2.*de.*3.*lugares.*Basic/i);
   });
 });
