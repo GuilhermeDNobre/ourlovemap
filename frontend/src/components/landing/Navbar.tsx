@@ -57,7 +57,9 @@ export function Navbar() {
       </div>
 
       <Button onClick={() => navigate('/criar')}>
-        Criar nosso mapa <ArrowRight size={16} strokeWidth={1.75} />
+        <span className="sm:hidden">Criar mapa</span>
+        <span className="hidden sm:inline">Criar nosso mapa</span>
+        <ArrowRight size={16} strokeWidth={1.75} />
       </Button>
     </nav>
   );

@@ -42,12 +42,12 @@ export function BentoFeatures() {
           </h2>
         </div>
         <div
-          className="grid grid-cols-2 md:grid-cols-4 gap-5"
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5"
           style={{ gridAutoRows: `minmax(${BENTO_TILE_MIN_HEIGHT}px, auto)` }}
         >
           {/* Big map tile — dark, 2x2 */}
           <div
-            className="col-span-2 row-span-2 rounded-[22px] overflow-hidden bg-olm-dark border border-[rgba(65,60,123,0.06)] relative flex flex-col justify-between p-7"
+            className="sm:col-span-2 md:col-span-2 md:row-span-2 rounded-[22px] overflow-hidden bg-olm-dark border border-[rgba(65,60,123,0.06)] relative flex flex-col justify-between p-7"
             style={{ minHeight: BENTO_MAP_TILE_MIN_HEIGHT }}
           >
             <div className="absolute inset-0 opacity-90">
@@ -93,7 +93,7 @@ export function BentoFeatures() {
           </div>
 
           {/* Polaroids — 2x1 */}
-          <div className="col-span-2 rounded-[22px] bg-white border border-[rgba(65,60,123,0.06)] p-7 flex flex-col justify-between">
+          <div className="sm:col-span-2 md:col-span-2 rounded-[22px] bg-white border border-[rgba(65,60,123,0.06)] p-7 flex flex-col justify-between">
             <div>
               <LightTileIcon Icon={Camera} />
               <div className="font-serif text-[22px] text-olm-title leading-[1.15]">
@@ -157,7 +157,7 @@ export function BentoFeatures() {
           </div>
 
           {/* Instagram — 2x1 */}
-          <div className="col-span-2 rounded-[22px] bg-white border border-[rgba(65,60,123,0.06)] p-7">
+          <div className="sm:col-span-2 md:col-span-2 rounded-[22px] bg-white border border-[rgba(65,60,123,0.06)] p-7">
             <div className="flex gap-5 items-center">
               <div className="flex-1">
                 <LightTileIcon Icon={Share2} />
@@ -184,7 +184,7 @@ export function BentoFeatures() {
           </div>
 
           {/* QR Code — 2x1 */}
-          <div className="col-span-2 rounded-[22px] bg-white border border-[rgba(65,60,123,0.06)] p-7">
+          <div className="sm:col-span-2 md:col-span-2 rounded-[22px] bg-white border border-[rgba(65,60,123,0.06)] p-7">
             <div className="flex gap-5 items-center">
               <div className="flex-1">
                 <LightTileIcon Icon={QrCode} />

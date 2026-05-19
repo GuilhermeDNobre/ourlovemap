@@ -12,7 +12,7 @@ export function Footer() {
             Our Love <em className="text-olm-primary">Map</em>
           </span>
         </div>
-        <div className="flex gap-7 text-[13px]">
+        <div className="flex flex-wrap gap-x-7 gap-y-2 text-[13px]">
           {LINKS.map((link) => (
             <a
               key={link}

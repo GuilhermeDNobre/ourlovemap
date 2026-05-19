@@ -13,9 +13,9 @@ export function DarkMockup({ size = 'md' }: DarkMockupProps) {
 
   return (
     <div
-      className="rounded-[28px] overflow-hidden bg-olm-dark border border-[rgba(251,245,240,0.06)]"
+      className="rounded-[28px] overflow-hidden bg-olm-dark border border-[rgba(251,245,240,0.06)] w-full"
       style={{
-        width,
+        maxWidth: width,
         boxShadow: '0 40px 80px rgba(65,60,123,0.25), 0 16px 32px rgba(0,0,0,0.2)',
       }}
     >

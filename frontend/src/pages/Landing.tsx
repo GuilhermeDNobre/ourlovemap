@@ -11,7 +11,7 @@ import { Footer } from '../components/landing/Footer';
 
 export default function Landing() {
   return (
-    <div data-testid="landing-page">
+    <div data-testid="landing-page" className="overflow-x-hidden">
       <Navbar />
       <main>
         <Hero />

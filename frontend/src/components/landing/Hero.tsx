@@ -9,7 +9,7 @@ export function Hero() {
 
   return (
     <section className="bg-olm-bg px-6 py-[72px] pb-[112px]">
-      <div className="max-w-[1120px] mx-auto grid md:grid-cols-[1.1fr_0.9fr] gap-14 items-center">
+      <div className="max-w-[1120px] mx-auto grid md:grid-cols-[1.1fr_0.9fr] gap-10 md:gap-14 items-center">
         <div>
           <Eyebrow>Para vocês dois</Eyebrow>
           <h1
