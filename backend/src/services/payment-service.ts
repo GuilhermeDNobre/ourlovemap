@@ -132,7 +132,7 @@ export async function createCardPayment(params: CreateCardPaymentParams): Promis
           },
         ],
         returnUrl: process.env.OURLOVEMAP_BASE_URL,
-        completionUrl: process.env.OURLOVEMAP_BASE_URL,
+        completionUrl: `${process.env.OURLOVEMAP_BASE_URL}/pagamento-confirmado`,
         customerId,
       },
       { headers },
