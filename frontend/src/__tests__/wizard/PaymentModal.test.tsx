@@ -137,6 +137,47 @@ describe('PaymentModal', () => {
     });
   });
 
+  it('should use window.open on desktop when card payment succeeds', async () => {
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+    Object.defineProperty(navigator, 'userAgent', {
+      value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120',
+      configurable: true,
+    });
+    const user = userEvent.setup();
+    renderModal();
+    await waitFor(() => screen.getByText(/Pagar com cartão de crédito/i));
+    await user.click(screen.getByText(/Pagar com cartão de crédito/i));
+    await user.type(screen.getByPlaceholderText('000.000.000-00'), '12345678901');
+    await user.click(screen.getByRole('button', { name: /Ir para pagamento/i }));
+    await waitFor(() => {
+      expect(openSpy).toHaveBeenCalledWith('https://checkout.example.com', '_blank');
+    });
+    openSpy.mockRestore();
+  });
+
+  it('should not call window.open on mobile when card payment succeeds', async () => {
+    Object.defineProperty(navigator, 'userAgent', {
+      value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1',
+      configurable: true,
+    });
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+    const user = userEvent.setup();
+    renderModal();
+    await waitFor(() => screen.getByText(/Pagar com cartão de crédito/i));
+    await user.click(screen.getByText(/Pagar com cartão de crédito/i));
+    await user.type(screen.getByPlaceholderText('000.000.000-00'), '12345678901');
+    await user.click(screen.getByRole('button', { name: /Ir para pagamento/i }));
+    await waitFor(() => {
+      expect(screen.queryByText('Redirecionando...')).not.toBeInTheDocument();
+    });
+    expect(openSpy).not.toHaveBeenCalled();
+    expect(mockPost).toHaveBeenCalledWith(
+      expect.stringContaining('card-payment'),
+      expect.objectContaining({ taxId: '12345678901' }),
+    );
+    openSpy.mockRestore();
+  });
+
   it('should show success state when polling returns active', async () => {
     mockGet.mockResolvedValue({ data: { status: 'active' } });
     renderModal();

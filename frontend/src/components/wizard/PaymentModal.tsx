@@ -74,7 +74,12 @@ export function PaymentModal({ isOpen, onClose, mapId }: PaymentModalProps) {
       return response.data;
     },
     onSuccess: (data) => {
-      window.open(data.checkoutUrl, '_blank');
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isMobile) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        window.open(data.checkoutUrl, '_blank');
+      }
     },
   });
 
