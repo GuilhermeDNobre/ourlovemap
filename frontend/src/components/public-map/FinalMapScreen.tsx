@@ -44,17 +44,6 @@ function createPolaroidIcon(location: ApiLocation, rotation: number): L.DivIcon 
           transform-origin:bottom center;
         ">
           ${photoHtml}
-          <p style="
-            font-size:7.5px;
-            text-align:center;
-            color:rgba(30,28,42,0.45);
-            margin-top:3px;
-            font-family:Georgia,serif;
-            white-space:nowrap;
-            overflow:hidden;
-            text-overflow:ellipsis;
-            max-width:60px;
-          ">${location.title}</p>
         </div>
         <div style="
           width:9px;height:9px;border-radius:50%;
@@ -66,8 +55,8 @@ function createPolaroidIcon(location: ApiLocation, rotation: number): L.DivIcon 
       </div>
     `,
     className: '',
-    iconSize: [74, 100],
-    iconAnchor: [37, 100],
+    iconSize: [74, 87],
+    iconAnchor: [37, 87],
   });
 }
 
