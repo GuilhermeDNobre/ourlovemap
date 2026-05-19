@@ -1,0 +1,303 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - link "Our Love Map" [ref=e5] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e6]:
+        - text: Our Love
+        - emphasis [ref=e7]: Map
+    - generic [ref=e8]:
+      - link "Como funciona" [ref=e9] [cursor=pointer]:
+        - /url: "#how"
+      - link "Funcionalidades" [ref=e10] [cursor=pointer]:
+        - /url: "#features"
+      - link "Preços" [ref=e11] [cursor=pointer]:
+        - /url: "#pricing"
+      - link "FAQ" [ref=e12] [cursor=pointer]:
+        - /url: "#faq"
+    - button "Criar nosso mapa" [ref=e13] [cursor=pointer]:
+      - generic [ref=e14]: Criar nosso mapa
+      - img [ref=e15]
+  - main [ref=e17]:
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]: Para vocês dois
+        - heading "O mapa de tudo que vocês viveram juntos." [level=1] [ref=e22]:
+          - text: O mapa de tudo
+          - text: que vocês
+          - emphasis [ref=e23]: viveram
+          - text: juntos.
+        - paragraph [ref=e24]: Uma página privada com os lugares, as fotos e as mensagens da história de vocês — entregue por QR Code no seu e-mail.
+        - generic [ref=e25]:
+          - button "Criar nosso mapa" [ref=e26] [cursor=pointer]:
+            - text: Criar nosso mapa
+            - img [ref=e27]
+          - button "Ver exemplo" [ref=e29] [cursor=pointer]
+        - paragraph [ref=e30]: ♥ Mais de 3.200 casais já criaram o deles
+      - generic [ref=e32]:
+        - generic [ref=e37]: ourlovemap.com/ana-e-lucas
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - text: Ana
+            - emphasis [ref=e40]: e
+            - text: Lucas
+          - generic [ref=e41]: 2 ANOS · 7 MESES · 14 DIAS
+          - img [ref=e43]
+          - generic [ref=e55]:
+            - button "Primeiro Encontro" [ref=e56] [cursor=pointer]:
+              - img "Primeiro Encontro" [ref=e58]
+            - button "Nossa primeira viagem juntos" [ref=e59] [cursor=pointer]:
+              - img "Nossa primeira viagem juntos" [ref=e61]
+            - button "Nosso primeiro natal" [ref=e62] [cursor=pointer]:
+              - img "Nosso primeiro natal" [ref=e64]
+          - generic [ref=e66]:
+            - generic [ref=e67]: Primeiro Encontro
+            - generic [ref=e68]: Villa Restaurante, Fortaleza
+            - generic [ref=e69]: “Onde tudo começou”
+    - generic [ref=e71]:
+      - generic [ref=e72]:
+        - generic [ref=e73]: Como funciona
+        - heading "Três passos. Uma memória pra sempre." [level=2] [ref=e74]:
+          - text: Três passos.
+          - emphasis [ref=e75]: Uma
+          - text: memória pra sempre.
+        - paragraph [ref=e76]: Do primeiro encontro ao QR Code na mão em poucos minutos.
+      - generic [ref=e77]:
+        - generic [ref=e78]:
+          - img [ref=e79]
+          - img [ref=e82]
+          - generic [ref=e85]: "01"
+          - generic [ref=e86]: Preencha os momentos
+          - generic [ref=e87]: Adicione fotos, locais marcantes e mensagens da história de vocês.
+        - generic [ref=e88]:
+          - img [ref=e89]
+          - img [ref=e92]
+          - generic [ref=e94]: "02"
+          - generic [ref=e95]: Escolha seu plano
+          - generic [ref=e96]: Básico para um presente rápido ou Premium sem expiração.
+        - generic [ref=e97]:
+          - img [ref=e99]
+          - generic [ref=e105]: "03"
+          - generic [ref=e106]: Receba o QR Code
+          - generic [ref=e107]: Chega no seu email, pronto pra imprimir, enviar ou surpreender.
+    - generic [ref=e109]:
+      - generic [ref=e111]:
+        - generic [ref=e116]: ourlovemap.com/ana-e-lucas
+        - generic [ref=e117]:
+          - generic [ref=e118]:
+            - text: Ana
+            - emphasis [ref=e119]: e
+            - text: Lucas
+          - generic [ref=e120]: 2 ANOS · 7 MESES · 14 DIAS
+          - img [ref=e122]
+          - generic [ref=e134]:
+            - button "Primeiro Encontro" [ref=e135] [cursor=pointer]:
+              - img "Primeiro Encontro" [ref=e137]
+            - button "Nossa primeira viagem juntos" [ref=e138] [cursor=pointer]:
+              - img "Nossa primeira viagem juntos" [ref=e140]
+            - button "Nosso primeiro natal" [ref=e141] [cursor=pointer]:
+              - img "Nosso primeiro natal" [ref=e143]
+          - generic [ref=e145]:
+            - generic [ref=e146]: Primeiro Encontro
+            - generic [ref=e147]: Villa Restaurante, Fortaleza
+            - generic [ref=e148]: “Onde tudo começou”
+      - generic [ref=e149]:
+        - generic [ref=e150]: Exclusivo
+        - heading "Uma experiência que eles nunca vão esquecer." [level=2] [ref=e152]:
+          - text: Uma experiência que eles
+          - emphasis [ref=e153]: nunca
+          - text: vão esquecer.
+        - paragraph [ref=e154]: A pessoa escaneia o QR Code e abre uma página só de vocês — com mapa, pins animados, polaroides e o contador rodando em tempo real.
+        - list [ref=e155]:
+          - listitem [ref=e156]:
+            - img [ref=e158]
+            - text: Mapa interativo com rota entre os lugares
+          - listitem [ref=e160]:
+            - img [ref=e162]
+            - text: Fotos em polaroide estilo viagem
+          - listitem [ref=e164]:
+            - img [ref=e166]
+            - text: Contador do relacionamento ao vivo
+          - listitem [ref=e168]:
+            - img [ref=e170]
+            - text: Funciona perfeitamente no celular
+    - generic [ref=e173]:
+      - generic [ref=e174]:
+        - generic [ref=e175]: Pra cada momento de vocês
+        - heading "Feito pra qualquer ocasião." [level=2] [ref=e176]:
+          - text: Feito pra qualquer
+          - emphasis [ref=e177]: ocasião
+          - text: .
+      - generic [ref=e178]:
+        - generic [ref=e179] [cursor=pointer]:
+          - generic [ref=e180]: 💍
+          - generic [ref=e181]: Pedido de casamento
+          - generic [ref=e182]: Revele o grande momento com um mapa que conta tudo.
+        - generic [ref=e183] [cursor=pointer]:
+          - generic [ref=e184]: 🗓️
+          - generic [ref=e185]: Aniversário de namoro
+          - generic [ref=e186]: Um presente que lembra cada virada do calendário.
+        - generic [ref=e187] [cursor=pointer]:
+          - generic [ref=e188]: ✈️
+          - generic [ref=e189]: Viagem inesquecível
+          - generic [ref=e190]: Os lugares onde vocês se perderam (e se acharam).
+        - generic [ref=e191] [cursor=pointer]:
+          - generic [ref=e192]: ☕
+          - generic [ref=e193]: Primeiro encontro
+          - generic [ref=e194]: Comece a história com estilo, já no dia um.
+    - generic [ref=e196]:
+      - generic [ref=e197]:
+        - generic [ref=e198]: Funcionalidades
+        - heading "Detalhes que fazem vocês dizerem uau." [level=2] [ref=e199]:
+          - text: Detalhes que fazem vocês dizerem
+          - emphasis [ref=e200]: uau
+          - text: .
+      - generic [ref=e201]:
+        - generic [ref=e202]:
+          - img [ref=e204]
+          - generic [ref=e216]:
+            - img [ref=e218]
+            - generic [ref=e221]: Mapa interativo com pins
+            - generic [ref=e222]: Cada local ganha um pin animado e se conecta em uma rota desenhada à mão.
+        - generic [ref=e224]:
+          - img [ref=e226]
+          - generic [ref=e229]: Fotos em polaroide
+          - generic [ref=e230]: Upload simples e cada foto aparece na página pública com aquele visual de viagem.
+        - generic [ref=e238]:
+          - img [ref=e240]
+          - generic [ref=e244]:
+            - generic [ref=e245]: Música do YouTube
+            - generic [ref=e246]: Adicione um vídeo com timestamp pra tocar no momento certo.
+        - generic [ref=e247]:
+          - img [ref=e249]
+          - generic [ref=e251]:
+            - generic [ref=e252]: Contador ao vivo
+            - generic [ref=e253]: 2 anos · 7 meses
+            - generic [ref=e254]: e ainda contando
+        - generic [ref=e256]:
+          - generic [ref=e257]:
+            - img [ref=e259]
+            - generic [ref=e265]: Compartilhe no Instagram
+            - generic [ref=e266]: Story em 9:16 com a página pronta pra postar, direto do celular.
+          - generic [ref=e267]:
+            - generic [ref=e268]:
+              - text: Ana
+              - emphasis [ref=e269]: e
+              - text: Lucas
+            - generic [ref=e270]: ourlovemap.com
+        - generic [ref=e272]:
+          - generic [ref=e273]:
+            - img [ref=e275]
+            - generic [ref=e281]: QR Code por email
+            - generic [ref=e282]: Chega no seu email em instantes, pronto pra presentear ou imprimir.
+          - generic "QR Code decorativo" [ref=e283]:
+            - img "QR Code" [ref=e284]
+    - generic [ref=e286]:
+      - generic [ref=e287]:
+        - generic [ref=e288]: Planos
+        - heading "Escolha o plano de vocês." [level=2] [ref=e289]:
+          - text: Escolha o plano de
+          - emphasis [ref=e290]: vocês
+          - text: .
+      - generic [ref=e291]:
+        - generic [ref=e292]:
+          - generic [ref=e293]: Básico
+          - generic [ref=e295]: R$19,90
+          - generic [ref=e296]: Pagamento único
+          - list [ref=e297]:
+            - listitem [ref=e298]:
+              - img [ref=e299]
+              - text: Até 3 localizações
+            - listitem [ref=e301]:
+              - img [ref=e302]
+              - text: Página ativa por 7 dias
+            - listitem [ref=e304]:
+              - img [ref=e305]
+              - text: QR Code por email
+            - listitem [ref=e307]:
+              - img [ref=e308]
+              - text: Suporte por email
+          - button "Começar pelo básico" [ref=e310] [cursor=pointer]
+        - generic [ref=e311]:
+          - generic [ref=e312]: Mais escolhido
+          - generic [ref=e313]: Premium
+          - generic [ref=e315]: R$29,90
+          - generic [ref=e316]: Pagamento único, página sem expiração
+          - list [ref=e317]:
+            - listitem [ref=e318]:
+              - img [ref=e319]
+              - text: Até 7 localizações
+            - listitem [ref=e321]:
+              - img [ref=e322]
+              - text: Página sem expiração
+            - listitem [ref=e324]:
+              - img [ref=e325]
+              - text: Música do YouTube com timestamp
+            - listitem [ref=e327]:
+              - img [ref=e328]
+              - text: Compartilhamento no Instagram
+            - listitem [ref=e330]:
+              - img [ref=e331]
+              - text: Contador do relacionamento
+            - listitem [ref=e333]:
+              - img [ref=e334]
+              - text: Suporte prioritário
+          - button "Criar nosso mapa Premium" [ref=e336] [cursor=pointer]
+    - generic [ref=e338]:
+      - generic [ref=e339]:
+        - generic [ref=e340]: Dúvidas frequentes
+        - heading "A gente responde." [level=2] [ref=e341]:
+          - text: A gente
+          - emphasis [ref=e342]: responde
+          - text: .
+      - generic [ref=e343]:
+        - generic [ref=e344]:
+          - button "Quanto tempo a página fica online? +" [ref=e345] [cursor=pointer]:
+            - generic [ref=e346]: Quanto tempo a página fica online?
+            - generic [ref=e347]: +
+          - generic [ref=e348]: No plano Básico, a página fica ativa por 7 dias após a criação. No Premium, ela fica no ar pra sempre, sem expiração.
+        - generic [ref=e349]:
+          - button "Posso editar após o pagamento? +" [ref=e350] [cursor=pointer]:
+            - generic [ref=e351]: Posso editar após o pagamento?
+            - generic [ref=e352]: +
+          - generic [ref=e353]: Sim! Você recebe um link de edição por email e pode atualizar fotos, locais e mensagens a qualquer momento.
+        - generic [ref=e354]:
+          - button "Como recebo o QR Code? +" [ref=e355] [cursor=pointer]:
+            - generic [ref=e356]: Como recebo o QR Code?
+            - generic [ref=e357]: +
+          - generic [ref=e358]: Assim que o pagamento é confirmado, o QR Code chega no seu email em formato pronto pra imprimir, enviar ou colocar em um cartão.
+        - generic [ref=e359]:
+          - button "Funciona bem no celular? +" [ref=e360] [cursor=pointer]:
+            - generic [ref=e361]: Funciona bem no celular?
+            - generic [ref=e362]: +
+          - generic [ref=e363]: Sim — a página foi pensada mobile-first. Quando a pessoa escaneia o QR, abre bonita no celular dela direto.
+        - generic [ref=e364]:
+          - button "Posso adicionar mais localizações depois? +" [ref=e365] [cursor=pointer]:
+            - generic [ref=e366]: Posso adicionar mais localizações depois?
+            - generic [ref=e367]: +
+          - generic [ref=e368]: Pode! É só fazer upgrade pro Premium ou contatar o suporte que ajudamos a ajustar.
+    - generic [ref=e370]:
+      - generic [ref=e371]: ♥ ♥ ♥
+      - heading "Crie o mapa do amor de vocês." [level=2] [ref=e372]:
+        - text: Crie o
+        - emphasis [ref=e373]: mapa do amor
+        - text: de vocês.
+      - paragraph [ref=e374]: Alguns minutos agora. Uma memória que vocês vão querer ver pra sempre.
+      - button "Começar agora" [ref=e375] [cursor=pointer]:
+        - text: Começar agora
+        - img [ref=e376]
+      - generic [ref=e378]: PAGAMENTO ÚNICO · SEM ASSINATURA
+  - contentinfo [ref=e379]:
+    - generic [ref=e380]:
+      - generic [ref=e382]:
+        - text: Our Love
+        - emphasis [ref=e383]: Map
+      - generic [ref=e384]:
+        - link "Termos" [ref=e385] [cursor=pointer]:
+          - /url: "#"
+        - link "Privacidade" [ref=e386] [cursor=pointer]:
+          - /url: "#"
+        - link "Contato" [ref=e387] [cursor=pointer]:
+          - /url: "#"
+        - link "Instagram" [ref=e388] [cursor=pointer]:
+          - /url: "#"
+    - generic [ref=e389]: © 2026 Our Love Map · Feito com ♥ pra vocês

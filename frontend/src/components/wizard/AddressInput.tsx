@@ -155,7 +155,7 @@ export function AddressInput({ onPick, initialValue = '' }: AddressInputProps) {
         onChange={(e) => handleQueryChange(e.target.value)}
         onBlur={() => setTimeout(() => setPredictions([]), 150)}
         placeholder="Restaurante, shopping, parque..."
-        className="w-full pl-9 pr-10 py-[11px] rounded-md border border-[1.5px] border-[#E0DCE5] focus:border-olm-accent outline-none text-sm text-fg-2 font-sans bg-white"
+        className="w-full pl-9 pr-10 py-[11px] rounded-md border-[1.5px] border-[#E0DCE5] focus:border-olm-accent outline-none text-sm text-fg-2 font-sans bg-white"
       />
       <button
         type="button"

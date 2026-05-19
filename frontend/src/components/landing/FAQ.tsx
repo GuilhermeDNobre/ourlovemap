@@ -8,7 +8,7 @@ const QUESTIONS = [
   },
   {
     q: 'Posso editar após o pagamento?',
-    a: 'Sim! Você recebe um link de edição por email e pode atualizar fotos, locais e mensagens a qualquer momento.',
+    a: 'Sim! Você pode enviar um email para support@ourlovemap.com detalhando as alterações e elas serão realizadas em breve.',
   },
   {
     q: 'Como recebo o QR Code?',
