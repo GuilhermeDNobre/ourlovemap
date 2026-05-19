@@ -15,6 +15,33 @@ interface FinalMapScreenProps {
 const PIN_ROTATIONS = [-4, 3, -2, 5, -3, 4];
 const PIXEL_RATIO = 2;
 const PREGENERATE_DELAY_MS = 3000;
+const OVERLAP_THRESHOLD_DEG = 0.015;
+const SPREAD_PX = 80;
+
+function computeMarkerXOffsets(locations: ApiLocation[]): number[] {
+  const n = locations.length;
+  const xOffsets = new Array<number>(n).fill(0);
+  const assigned = new Array<boolean>(n).fill(false);
+  for (let i = 0; i < n; i++) {
+    if (assigned[i]) continue;
+    const group: number[] = [i];
+    assigned[i] = true;
+    for (let j = i + 1; j < n; j++) {
+      if (assigned[j]) continue;
+      const dlat = locations[i].latitude - locations[j].latitude;
+      const dlng = locations[i].longitude - locations[j].longitude;
+      if (Math.sqrt(dlat * dlat + dlng * dlng) < OVERLAP_THRESHOLD_DEG) {
+        group.push(j);
+        assigned[j] = true;
+      }
+    }
+    if (group.length < 2) continue;
+    group.forEach((idx, k) => {
+      xOffsets[idx] = Math.round((k - (group.length - 1) / 2) * SPREAD_PX);
+    });
+  }
+  return xOffsets;
+}
 
 function dataUrlToBlob(dataUrl: string): Blob {
   const [header, base64] = dataUrl.split(',');
@@ -28,7 +55,9 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([array], { type: mime });
 }
 
-function createPolaroidIcon(location: ApiLocation, rotation: number): L.DivIcon {
+function createPolaroidIcon(location: ApiLocation, rotation: number, xOffset: number): L.DivIcon {
+  const tilt = xOffset !== 0 ? -Math.sign(xOffset) * 5 : 0;
+  const finalRotation = rotation + tilt;
   const photoHtml = location.photoUrl
     ? `<img src="${location.photoUrl}" alt="${location.title}" style="width:64px;height:64px;object-fit:cover;display:block;" />`
     : `<div style="width:64px;height:64px;background:linear-gradient(135deg,rgba(232,119,90,0.25),rgba(37,33,42,0.5));display:flex;align-items:center;justify-content:center;">
@@ -41,7 +70,7 @@ function createPolaroidIcon(location: ApiLocation, rotation: number): L.DivIcon 
           background:white;
           padding:4px 4px 14px;
           box-shadow:0 6px 20px rgba(0,0,0,0.55),0 1px 4px rgba(0,0,0,0.3);
-          transform:rotate(${rotation}deg);
+          transform:rotate(${finalRotation}deg);
           transform-origin:bottom center;
         ">
           ${photoHtml}
@@ -57,7 +86,7 @@ function createPolaroidIcon(location: ApiLocation, rotation: number): L.DivIcon 
     `,
     className: '',
     iconSize: [74, 87],
-    iconAnchor: [37, 87],
+    iconAnchor: [37 + xOffset, 87],
   });
 }
 
@@ -79,6 +108,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
 
   const positions: [number, number][] = locations.map((l) => [l.latitude, l.longitude]);
   const initialCenter: [number, number] = positions.length > 0 ? positions[0] : [-14.235, -51.925];
+  const markerXOffsets = computeMarkerXOffsets(locations);
 
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -190,7 +220,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
               <Marker
                 key={loc.order}
                 position={[loc.latitude, loc.longitude]}
-                icon={createPolaroidIcon(loc, PIN_ROTATIONS[i % PIN_ROTATIONS.length])}
+                icon={createPolaroidIcon(loc, PIN_ROTATIONS[i % PIN_ROTATIONS.length], markerXOffsets[i])}
               />
             ))}
             <FitBoundsOnLoad positions={positions} />
