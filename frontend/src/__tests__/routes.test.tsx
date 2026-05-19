@@ -22,4 +22,9 @@ describe('Routes', () => {
     renderRoute('/acesso');
     expect(screen.getByTestId('public-map-page')).toBeInTheDocument();
   });
+
+  it('should render PaymentConfirmedPage at /pagamento-confirmado', () => {
+    renderRoute('/pagamento-confirmado');
+    expect(screen.getByTestId('payment-confirmed-page')).toBeInTheDocument();
+  });
 });
