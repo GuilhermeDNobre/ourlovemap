@@ -10,6 +10,7 @@ interface AddressPickResult {
 
 interface AddressInputProps {
   onPick: (result: AddressPickResult) => void;
+  initialValue?: string;
 }
 
 interface Prediction {
@@ -89,8 +90,8 @@ async function fetchPlaceDetails(placeId: string): Promise<{ lat: number; lng: n
   };
 }
 
-export function AddressInput({ onPick }: AddressInputProps) {
-  const [query, setQuery] = useState('');
+export function AddressInput({ onPick, initialValue = '' }: AddressInputProps) {
+  const [query, setQuery] = useState(initialValue);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -120,17 +121,14 @@ export function AddressInput({ onPick }: AddressInputProps) {
   };
 
   const handleSelectPrediction = async (prediction: Prediction) => {
+    const address = prediction.secondaryText
+      ? `${prediction.mainText}, ${prediction.secondaryText}`
+      : prediction.mainText;
     setPredictions([]);
-    setQuery('');
+    setQuery(address);
     const details = await fetchPlaceDetails(prediction.placeId);
     if (!details) return;
-    onPick({
-      address: prediction.secondaryText
-        ? `${prediction.mainText}, ${prediction.secondaryText}`
-        : prediction.mainText,
-      latitude: details.lat,
-      longitude: details.lng,
-    });
+    onPick({ address, latitude: details.lat, longitude: details.lng });
   };
 
   const handleGeolocate = useCallback(() => {

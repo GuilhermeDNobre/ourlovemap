@@ -109,7 +109,7 @@ export function PlaceCardEditor({
             )}
           </div>
           <Field label="Endereço">
-            <AddressInput onPick={handleAddressPick} />
+            <AddressInput onPick={handleAddressPick} initialValue={place.address} />
           </Field>
           <Field label="Nome do lugar">
             <Input
