@@ -30,24 +30,24 @@ function LightTileIcon({ Icon }: { Icon: LucideIcon }) {
 
 export function BentoFeatures() {
   return (
-    <section id="features" className="bg-olm-bg px-6 py-24">
+    <section id="features" className="bg-olm-bg border-b border-olm-surface px-6 py-24">
       <div className="max-w-[1120px] mx-auto">
-        <div className="text-center max-w-[620px] mx-auto mb-14">
+        <div data-scroll-group className="text-center max-w-[620px] mx-auto mb-14">
           <Eyebrow>Funcionalidades</Eyebrow>
           <h2
             className="font-serif text-olm-title mt-4 leading-[1.1]"
-            style={{ fontSize: 'clamp(2rem, 4vw, 2.75rem)' }}
+            style={{ fontSize: 'var(--fs-h2)' }}
           >
             Detalhes que fazem vocês dizerem <em className="text-olm-primary">uau</em>.
           </h2>
         </div>
         <div
-          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5"
+          className="olm-stagger grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5"
           style={{ gridAutoRows: `minmax(${BENTO_TILE_MIN_HEIGHT}px, auto)` }}
         >
           {/* Big map tile — dark, 2x2 */}
           <div
-            className="sm:col-span-2 md:col-span-2 md:row-span-2 rounded-[22px] overflow-hidden bg-olm-dark border border-[rgba(65,60,123,0.06)] relative flex flex-col justify-between p-7"
+            className="sm:col-span-2 md:col-span-2 md:row-span-2 rounded-[22px] overflow-hidden bg-olm-dark border border-olm-surface relative flex flex-col justify-between p-7"
             style={{ minHeight: BENTO_MAP_TILE_MIN_HEIGHT }}
           >
             <div className="absolute inset-0 opacity-90">
@@ -93,7 +93,7 @@ export function BentoFeatures() {
           </div>
 
           {/* Polaroids — 2x1 */}
-          <div className="sm:col-span-2 md:col-span-2 rounded-[22px] bg-white border border-[rgba(65,60,123,0.06)] p-7 flex flex-col justify-between">
+          <div className="sm:col-span-2 md:col-span-2 rounded-[22px] bg-olm-bg-elevated border border-olm-surface p-7 flex flex-col justify-between">
             <div>
               <LightTileIcon Icon={Camera} />
               <div className="font-serif text-[22px] text-olm-title leading-[1.15]">
@@ -107,7 +107,7 @@ export function BentoFeatures() {
               {POLAROID_ROTATIONS.map((rot, polaroidIndex) => (
                 <div
                   key={polaroidIndex}
-                  className="bg-white p-1 pb-[14px] rounded-sm"
+                  className="bg-olm-bg-elevated p-1 pb-[14px] rounded-sm"
                   style={{
                     width: 70,
                     transform: `rotate(${rot}deg)`,
@@ -125,7 +125,7 @@ export function BentoFeatures() {
 
           {/* YouTube */}
           <div
-            className="rounded-[22px] bg-white border border-[rgba(65,60,123,0.06)] p-7 flex flex-col justify-between"
+            className="rounded-[22px] bg-olm-bg-elevated border border-olm-surface p-7 flex flex-col justify-between"
             style={{ minHeight: BENTO_TILE_MIN_HEIGHT }}
           >
             <LightTileIcon Icon={Music} />
@@ -141,7 +141,7 @@ export function BentoFeatures() {
 
           {/* Counter — dark */}
           <div
-            className="rounded-[22px] bg-olm-title border border-[rgba(65,60,123,0.06)] p-7 flex flex-col justify-between"
+            className="rounded-[22px] bg-olm-title border border-olm-surface p-7 flex flex-col justify-between"
             style={{ minHeight: BENTO_TILE_MIN_HEIGHT }}
           >
             <DarkTileIcon Icon={Calendar} />
@@ -157,7 +157,7 @@ export function BentoFeatures() {
           </div>
 
           {/* Instagram — 2x1 */}
-          <div className="sm:col-span-2 md:col-span-2 rounded-[22px] bg-white border border-[rgba(65,60,123,0.06)] p-7">
+          <div className="sm:col-span-2 md:col-span-2 rounded-[22px] bg-olm-bg-elevated border border-olm-surface p-7">
             <div className="flex gap-5 items-center">
               <div className="flex-1">
                 <LightTileIcon Icon={Share2} />
@@ -184,7 +184,7 @@ export function BentoFeatures() {
           </div>
 
           {/* QR Code — 2x1 */}
-          <div className="sm:col-span-2 md:col-span-2 rounded-[22px] bg-white border border-[rgba(65,60,123,0.06)] p-7">
+          <div className="sm:col-span-2 md:col-span-2 rounded-[22px] bg-olm-bg-elevated border border-olm-surface p-7">
             <div className="flex gap-5 items-center">
               <div className="flex-1">
                 <LightTileIcon Icon={QrCode} />
@@ -196,7 +196,7 @@ export function BentoFeatures() {
                 </div>
               </div>
               <div
-                className="w-24 h-24 p-2.5 bg-white border-[1.5px] border-olm-surface rounded-xl shrink-0"
+                className="w-24 h-24 p-2.5 bg-olm-bg-elevated border-[1.5px] border-olm-surface rounded-xl shrink-0"
                 aria-label="QR Code decorativo"
               >
                 <img src={qrCodeSvg} className="w-full h-full" alt="QR Code" />

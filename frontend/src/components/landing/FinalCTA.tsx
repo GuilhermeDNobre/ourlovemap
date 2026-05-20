@@ -7,16 +7,16 @@ export function FinalCTA() {
 
   return (
     <section
-      className="px-6 py-[112px]"
+      className="border-b border-[rgba(251,245,240,0.08)] px-6 py-[112px]"
       style={{ background: 'linear-gradient(180deg, var(--olm-title), var(--olm-dark))' }}
     >
-      <div className="max-w-[680px] mx-auto text-center relative">
+      <div data-scroll className="max-w-[680px] mx-auto text-center relative">
         <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-olm-primary text-[18px] tracking-[0.4em]">
           ♥ ♥ ♥
         </div>
         <h2
           className="font-serif text-white mt-7 mb-5 leading-[1.02]"
-          style={{ fontSize: 'clamp(2.5rem, 5vw, 3.75rem)' }}
+          style={{ fontSize: 'var(--fs-h1)' }}
         >
           Crie o <em className="text-olm-primary">mapa do amor</em> de vocês.
         </h2>

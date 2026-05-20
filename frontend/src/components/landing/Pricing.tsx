@@ -23,21 +23,21 @@ export function Pricing() {
   const navigate = useNavigate();
 
   return (
-    <section id="pricing" className="bg-white px-6 py-24">
+    <section id="pricing" className="bg-olm-bg-elevated border-b border-olm-surface px-6 py-24">
       <div className="max-w-[1120px] mx-auto">
-        <div className="text-center max-w-[620px] mx-auto mb-14">
+        <div data-scroll-group className="text-center max-w-[620px] mx-auto mb-14">
           <Eyebrow>Planos</Eyebrow>
           <h2
             className="font-serif text-olm-title mt-4 leading-[1.1]"
-            style={{ fontSize: 'clamp(2rem, 4vw, 2.75rem)' }}
+            style={{ fontSize: 'var(--fs-h2)' }}
           >
             Escolha o plano de <em className="text-olm-primary">vocês</em>.
           </h2>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 max-w-[820px] mx-auto">
+        <div className="grid md:grid-cols-2 gap-6 max-w-[820px] mx-auto olm-stagger">
           {/* Basic */}
-          <div className="p-9 rounded-[24px] bg-white border border-olm-surface">
+          <div className="olm-card p-9 rounded-[24px] bg-olm-bg-elevated border border-olm-surface">
             <div className="font-sans font-semibold text-sm text-olm-title tracking-[0.04em]">
               Básico
             </div>
@@ -65,7 +65,7 @@ export function Pricing() {
           </div>
 
           {/* Premium */}
-          <div className="relative p-9 rounded-[24px] bg-white border-2 border-olm-accent shadow-glow-accent">
+          <div className="olm-card relative p-9 rounded-[24px] bg-olm-bg-elevated border-2 border-olm-accent">
             <div className="absolute -top-3 left-6 px-3 py-1.5 bg-olm-primary text-white rounded-pill text-[11px] font-bold tracking-[0.08em] uppercase">
               Mais escolhido
             </div>

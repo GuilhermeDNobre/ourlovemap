@@ -24,13 +24,13 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section id="how" className="bg-white px-6 py-24">
+    <section id="how" className="bg-olm-bg-elevated border-b border-olm-surface px-6 py-24">
       <div className="max-w-[1120px] mx-auto">
-        <div className="text-center max-w-[640px] mx-auto mb-16">
+        <div data-scroll-group className="text-center max-w-[640px] mx-auto mb-16">
           <Eyebrow>Como funciona</Eyebrow>
           <h2
             className="font-serif text-olm-title mt-4 mb-3 leading-[1.1]"
-            style={{ fontSize: 'clamp(2rem, 4vw, 2.75rem)' }}
+            style={{ fontSize: 'var(--fs-h2)' }}
           >
             Três passos. <em className="text-olm-primary">Uma</em> memória pra sempre.
           </h2>
@@ -39,7 +39,7 @@ export function HowItWorks() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-8 olm-stagger">
           {STEPS.map((step, stepIndex) => (
             <div key={step.n} className="relative text-left">
               {stepIndex < 2 && (
