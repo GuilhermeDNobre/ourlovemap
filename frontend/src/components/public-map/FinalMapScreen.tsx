@@ -25,6 +25,7 @@ const ICON_H = 94;
 const ICON_PADDING = 8;
 const SPREAD_SETTLE_MS = 600;
 const PREGENERATE_DELAY_MS = 1500;
+const PHOTO_PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 function resolveOverlaps(points: { x: number; y: number }[]): PixelOffset[] {
   const n = points.length;
@@ -81,11 +82,17 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([array], { type: mime });
 }
 
-function createPolaroidIcon(location: ApiLocation, rotation: number, offset: PixelOffset): L.DivIcon {
+function createPolaroidIcon(
+  location: ApiLocation,
+  rotation: number,
+  offset: PixelOffset,
+  resolvedPhotoSrc?: string,
+): L.DivIcon {
   const tilt = offset.x !== 0 ? Math.sign(offset.x) * 5 : 0;
   const finalRotation = rotation + tilt;
-  const photoHtml = location.photoUrl
-    ? `<img src="${location.photoUrl}" alt="${location.title}" crossorigin="anonymous" style="width:64px;height:64px;object-fit:cover;display:block;" />`
+  const src = resolvedPhotoSrc ?? location.photoUrl;
+  const photoHtml = src
+    ? `<img src="${src}" alt="${location.title}" style="width:64px;height:64px;object-fit:cover;display:block;" />`
     : `<div style="width:64px;height:64px;background:linear-gradient(135deg,rgba(232,119,90,0.25),rgba(37,33,42,0.5));display:flex;align-items:center;justify-content:center;">
         <span style="font-size:9px;color:rgba(251,245,240,0.5);font-family:Georgia,serif;text-align:center;padding:4px;">${location.title}</span>
        </div>`;
@@ -161,6 +168,22 @@ function triggerDownload(blob: Blob) {
   setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
+async function fetchPhotoAsDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { mode: 'cors', cache: 'force-cache', credentials: 'omit' });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
   const isMobile = useIsMobile();
   const captureRef = useRef<HTMLDivElement>(null);
@@ -169,10 +192,25 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
   const [prebuiltFile, setPrebuiltFile] = useState<File | null>(null);
   const [showInstagramTip, setShowInstagramTip] = useState(false);
   const [pixelOffsets, setPixelOffsets] = useState<PixelOffset[] | null>(null);
+  const [photoDataUrls, setPhotoDataUrls] = useState<Record<string, string>>({});
 
   const positions: [number, number][] = locations.map((l) => [l.latitude, l.longitude]);
   const initialCenter: [number, number] = positions.length > 0 ? positions[0] : [-14.235, -51.925];
   const markerOffsets: PixelOffset[] = pixelOffsets ?? locations.map(() => ({ x: 0, y: 0 }));
+
+  useEffect(() => {
+    const photoUrls = locations.map((l) => l.photoUrl).filter(Boolean) as string[];
+    if (photoUrls.length === 0) return;
+    Promise.all(photoUrls.map(async (url) => [url, await fetchPhotoAsDataUrl(url)] as const)).then(
+      (results) => {
+        const map: Record<string, string> = {};
+        for (const [url, dataUrl] of results) {
+          if (dataUrl) map[url] = dataUrl;
+        }
+        setPhotoDataUrls(map);
+      },
+    );
+  }, [locations]);
 
   const captureImage = useCallback(async (): Promise<File | null> => {
     if (!captureRef.current) return null;
@@ -180,6 +218,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
       const dataUrl = await toPng(captureRef.current, {
         pixelRatio: PIXEL_RATIO,
         skipFonts: true,
+        imagePlaceholder: PHOTO_PLACEHOLDER,
         fetchRequestInit: {
           cache: 'force-cache' as RequestCache,
           mode: 'cors' as RequestMode,
@@ -320,7 +359,12 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
               <Marker
                 key={loc.order}
                 position={[loc.latitude, loc.longitude]}
-                icon={createPolaroidIcon(loc, PIN_ROTATIONS[i % PIN_ROTATIONS.length], markerOffsets[i])}
+                icon={createPolaroidIcon(
+                  loc,
+                  PIN_ROTATIONS[i % PIN_ROTATIONS.length],
+                  markerOffsets[i],
+                  loc.photoUrl ? photoDataUrls[loc.photoUrl] : undefined,
+                )}
               />
             ))}
             <FitBoundsOnLoad positions={positions} />
