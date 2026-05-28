@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import {
   MapPin,
   Camera,
@@ -11,6 +11,10 @@ import {
 import { motion, useInView } from "framer-motion";
 import { Eyebrow } from "../ui/Eyebrow";
 import qrCodeSvg from "../../assets/lp/qr-code.svg";
+import casalParqueDesenho from "../../assets/lp/casal-parque-desenho.png";
+import casalRestauranteDesenho from "../../assets/lp/casal-restaurante-desenho.png";
+import casalSerraDesenho from "../../assets/lp/casal-serra-desenho.png";
+import casal916 from "../../assets/lp/casal-9-16.jpeg";
 
 const BENTO_MAP_TILE_MIN_HEIGHT = 400;
 const BENTO_TILE_MIN_HEIGHT = 190;
@@ -22,11 +26,8 @@ const BENTO_PINS: [number, number][] = [
 const CLUSTER_CX = 30.5;
 const CLUSTER_CY = 30;
 const POLAROID_ROTATIONS = [-6, 3, -4];
-const POLAROID_GRADIENTS = [
-  "linear-gradient(135deg,#FAA2A7,#BF77F6)",
-  "linear-gradient(135deg,#BF77F6,#413C7B)",
-  "linear-gradient(135deg,#F56C73,#FAA2A7)",
-];
+const POLAROID_IMAGES = [casalParqueDesenho, casalRestauranteDesenho, casalSerraDesenho];
+const POLAROID_LABELS = ["Parque", "Restaurante", "Serra"];
 
 const mapReveal = {
   hidden: { opacity: 0 },
@@ -102,7 +103,6 @@ function LightTileIcon({ Icon }: { Icon: LucideIcon }) {
 }
 
 export function BentoFeatures() {
-  const [isHovered, setIsHovered] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(mapRef, { once: true, amount: 0.2 });
 
@@ -112,7 +112,11 @@ export function BentoFeatures() {
       className="bg-olm-bg"
     >
       <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-12 md:py-16">
-        <div
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.5 }}
+          transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}
           className="text-center max-w-[620px] mx-auto mb-10"
         >
           <Eyebrow>Funcionalidades</Eyebrow>
@@ -123,7 +127,7 @@ export function BentoFeatures() {
             Detalhes que fazem vocês dizerem{" "}
             <em className="text-olm-primary">uau</em>.
           </h2>
-        </div>
+        </motion.div>
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -140,8 +144,6 @@ export function BentoFeatures() {
             variants={mapReveal}
             className="group sm:col-span-2 md:col-span-2 md:row-span-2 rounded-[22px] overflow-hidden bg-olm-dark border border-olm-surface relative flex flex-col justify-between p-7 transition-all duration-500 ease-emphasized hover:-translate-y-0.5"
             style={{ minHeight: BENTO_MAP_TILE_MIN_HEIGHT }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
           >
             <div className="absolute inset-0 opacity-90">
               <svg
@@ -220,7 +222,7 @@ export function BentoFeatures() {
                 />
                 {/* Pins: clustered at MapPin icon, fly on scroll reveal, then radar-ring + float on hover */}
                 {BENTO_PINS.map(([x, y], pinIndex) => {
-                  const isPulsing = isHovered && isInView;
+                  const isPulsing = isInView;
                   return (
                     <g
                       key={pinIndex}
@@ -326,9 +328,10 @@ export function BentoFeatures() {
                     boxShadow: "0 6px 16px rgba(65,60,123,0.15)",
                   }}
                 >
-                  <div
-                    className="aspect-square"
-                    style={{ background: POLAROID_GRADIENTS[polaroidIndex] }}
+                  <img
+                    src={POLAROID_IMAGES[polaroidIndex]}
+                    alt={POLAROID_LABELS[polaroidIndex]}
+                    className="aspect-square w-full object-cover"
                   />
                 </div>
               ))}
@@ -378,7 +381,9 @@ export function BentoFeatures() {
           <motion.div variants={instagramReveal} className="group sm:col-span-2 md:col-span-2 rounded-[22px] bg-olm-bg-elevated border border-olm-surface p-7 transition-all duration-500 ease-emphasized hover:-translate-y-0.5">
             <div className="flex gap-5 items-center">
               <div className="flex-1">
-                <LightTileIcon Icon={Share2} />
+                <div className="transition-all duration-500 ease-soft-spring group-hover:scale-105 group-hover:-rotate-3">
+                  <LightTileIcon Icon={Share2} />
+                </div>
                 <div className="font-serif text-[22px] text-olm-title leading-[1.15]">
                   Compartilhe no Instagram
                 </div>
@@ -396,17 +401,22 @@ export function BentoFeatures() {
                     transition: { type: "spring", damping: 35, stiffness: 180, mass: 1, delay: 0.1 },
                   },
                 }}
-                className="w-[100px] h-[170px] rounded-[14px] shrink-0 border-[3px] border-white p-2.5 flex flex-col justify-end transition-all duration-500 ease-emphasized group-hover:-translate-y-2 group-hover:[box-shadow:0_16px_32px_rgba(191,119,246,0.5)]"
-                style={{
-                  background: "linear-gradient(135deg, #F56C73, #BF77F6)",
-                  boxShadow: "0 10px 22px rgba(191,119,246,0.35)",
-                }}
+                className="w-[100px] h-[170px] rounded-[14px] shrink-0 border-[3px] border-white relative overflow-hidden transition-all duration-500 ease-emphasized group-hover:-translate-y-2 group-hover:[box-shadow:0_16px_32px_rgba(191,119,246,0.5)]"
+                style={{ boxShadow: "0 10px 22px rgba(191,119,246,0.35)" }}
               >
-                <div className="font-serif text-[14px] text-white leading-[1.05]">
-                  Ana <em>e</em> Lucas
-                </div>
-                <div className="text-[8px] text-[rgba(255,255,255,0.8)] mt-0.5">
-                  ourlovemap.com
+                <img
+                  src={casal916}
+                  alt="Story do casal"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                <div className="absolute bottom-2.5 left-2.5 right-2.5">
+                  <div className="font-serif text-[14px] text-white leading-[1.05]">
+                    Ana <em>e</em> Lucas
+                  </div>
+                  <div className="text-[8px] text-[rgba(255,255,255,0.8)] mt-0.5">
+                    ourlovemap.com
+                  </div>
                 </div>
               </motion.div>
             </div>
@@ -416,7 +426,9 @@ export function BentoFeatures() {
           <motion.div variants={qrReveal} className="group sm:col-span-2 md:col-span-2 rounded-[22px] bg-olm-bg-elevated border border-olm-surface p-7 transition-all duration-500 ease-emphasized hover:-translate-y-0.5">
             <div className="flex gap-5 items-center">
               <div className="flex-1">
-                <LightTileIcon Icon={QrCode} />
+                <div className="transition-all duration-500 ease-soft-spring group-hover:scale-105 group-hover:rotate-3">
+                  <LightTileIcon Icon={QrCode} />
+                </div>
                 <div className="font-serif text-[22px] text-olm-title leading-[1.15]">
                   QR Code por email
                 </div>
