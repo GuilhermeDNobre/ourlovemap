@@ -13,35 +13,60 @@ interface FinalMapScreenProps {
   coupleName: string;
 }
 
+interface PixelOffset {
+  x: number;
+  y: number;
+}
+
 const PIN_ROTATIONS = [-4, 3, -2, 5, -3, 4];
 const PIXEL_RATIO = 2;
-const PREGENERATE_DELAY_MS = 3000;
-const OVERLAP_THRESHOLD_DEG = 0.015;
-const SPREAD_PX = 80;
+const ICON_W = 74;
+const ICON_H = 94;
+const ICON_PADDING = 8;
+const SPREAD_SETTLE_MS = 600;
+const PREGENERATE_DELAY_MS = 1500;
 
-function computeMarkerXOffsets(locations: ApiLocation[]): number[] {
-  const n = locations.length;
-  const xOffsets = new Array<number>(n).fill(0);
-  const assigned = new Array<boolean>(n).fill(false);
-  for (let i = 0; i < n; i++) {
-    if (assigned[i]) continue;
-    const group: number[] = [i];
-    assigned[i] = true;
-    for (let j = i + 1; j < n; j++) {
-      if (assigned[j]) continue;
-      const dlat = locations[i].latitude - locations[j].latitude;
-      const dlng = locations[i].longitude - locations[j].longitude;
-      if (Math.sqrt(dlat * dlat + dlng * dlng) < OVERLAP_THRESHOLD_DEG) {
-        group.push(j);
-        assigned[j] = true;
+function resolveOverlaps(points: { x: number; y: number }[]): PixelOffset[] {
+  const n = points.length;
+  const offsets: PixelOffset[] = Array.from({ length: n }, () => ({ x: 0, y: 0 }));
+  if (n < 2) return offsets;
+
+  const fullW = ICON_W + ICON_PADDING;
+  const fullH = ICON_H + ICON_PADDING;
+
+  for (let pass = 0; pass < 20; pass++) {
+    let anyOverlap = false;
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const ax = points[i].x + offsets[i].x;
+        const ay = points[i].y + offsets[i].y;
+        const bx = points[j].x + offsets[j].x;
+        const by = points[j].y + offsets[j].y;
+        const dx = bx - ax;
+        const dy = by - ay;
+        const overlapX = fullW - Math.abs(dx);
+        const overlapY = fullH - Math.abs(dy);
+
+        if (overlapX > 0 && overlapY > 0) {
+          anyOverlap = true;
+          if (overlapX <= overlapY) {
+            const push = overlapX / 2 + 1;
+            const sign = dx >= 0 ? 1 : -1;
+            offsets[i].x -= sign * push;
+            offsets[j].x += sign * push;
+          } else {
+            const push = overlapY / 2 + 1;
+            const sign = dy >= 0 ? 1 : -1;
+            offsets[i].y -= sign * push;
+            offsets[j].y += sign * push;
+          }
+        }
       }
     }
-    if (group.length < 2) continue;
-    group.forEach((idx, k) => {
-      xOffsets[idx] = Math.round((k - (group.length - 1) / 2) * SPREAD_PX);
-    });
+    if (!anyOverlap) break;
   }
-  return xOffsets;
+
+  return offsets;
 }
 
 function dataUrlToBlob(dataUrl: string): Blob {
@@ -56,11 +81,11 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([array], { type: mime });
 }
 
-function createPolaroidIcon(location: ApiLocation, rotation: number, xOffset: number): L.DivIcon {
-  const tilt = xOffset !== 0 ? -Math.sign(xOffset) * 5 : 0;
+function createPolaroidIcon(location: ApiLocation, rotation: number, offset: PixelOffset): L.DivIcon {
+  const tilt = offset.x !== 0 ? Math.sign(offset.x) * 5 : 0;
   const finalRotation = rotation + tilt;
   const photoHtml = location.photoUrl
-    ? `<img src="${location.photoUrl}" alt="${location.title}" style="width:64px;height:64px;object-fit:cover;display:block;" />`
+    ? `<img src="${location.photoUrl}" alt="${location.title}" crossorigin="anonymous" style="width:64px;height:64px;object-fit:cover;display:block;" />`
     : `<div style="width:64px;height:64px;background:linear-gradient(135deg,rgba(232,119,90,0.25),rgba(37,33,42,0.5));display:flex;align-items:center;justify-content:center;">
         <span style="font-size:9px;color:rgba(251,245,240,0.5);font-family:Georgia,serif;text-align:center;padding:4px;">${location.title}</span>
        </div>`;
@@ -86,8 +111,8 @@ function createPolaroidIcon(location: ApiLocation, rotation: number, xOffset: nu
       </div>
     `,
     className: '',
-    iconSize: [74, 87],
-    iconAnchor: [37 + xOffset, 87],
+    iconSize: [ICON_W, 87],
+    iconAnchor: [37 - Math.round(offset.x), 87 - Math.round(offset.y)],
   });
 }
 
@@ -99,6 +124,29 @@ function FitBoundsOnLoad({ positions }: { positions: [number, number][] }) {
     map.fitBounds(bounds, { padding: [55, 45], maxZoom: 13 });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  return null;
+}
+
+function MarkerSpreader({
+  locations,
+  onOffsetsReady,
+}: {
+  locations: ApiLocation[];
+  onOffsetsReady: (offsets: PixelOffset[]) => void;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const points = locations.map((loc) =>
+        map.latLngToContainerPoint([loc.latitude, loc.longitude]),
+      );
+      onOffsetsReady(resolveOverlaps(points));
+    }, SPREAD_SETTLE_MS);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return null;
 }
 
@@ -117,26 +165,42 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
   const isMobile = useIsMobile();
   const captureRef = useRef<HTMLDivElement>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [captureError, setCaptureError] = useState(false);
   const [prebuiltFile, setPrebuiltFile] = useState<File | null>(null);
   const [showInstagramTip, setShowInstagramTip] = useState(false);
+  const [pixelOffsets, setPixelOffsets] = useState<PixelOffset[] | null>(null);
 
   const positions: [number, number][] = locations.map((l) => [l.latitude, l.longitude]);
   const initialCenter: [number, number] = positions.length > 0 ? positions[0] : [-14.235, -51.925];
-  const markerXOffsets = computeMarkerXOffsets(locations);
+  const markerOffsets: PixelOffset[] = pixelOffsets ?? locations.map(() => ({ x: 0, y: 0 }));
+
+  const captureImage = useCallback(async (): Promise<File | null> => {
+    if (!captureRef.current) return null;
+    try {
+      const dataUrl = await toPng(captureRef.current, {
+        pixelRatio: PIXEL_RATIO,
+        skipFonts: true,
+        fetchRequestInit: {
+          cache: 'force-cache' as RequestCache,
+          mode: 'cors' as RequestMode,
+          credentials: 'omit' as RequestCredentials,
+        },
+      });
+      const blob = dataUrlToBlob(dataUrl);
+      return new File([blob], 'nosso-mapa-do-amor.png', { type: 'image/png' });
+    } catch {
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
+    if (pixelOffsets === null) return;
     const timer = setTimeout(async () => {
-      if (!captureRef.current) return;
-      try {
-        const dataUrl = await toPng(captureRef.current, { pixelRatio: PIXEL_RATIO, cacheBust: true });
-        const blob = dataUrlToBlob(dataUrl);
-        setPrebuiltFile(new File([blob], 'nosso-mapa-do-amor.png', { type: 'image/png' }));
-      } catch {
-        // pre-generation failed — will fall back to on-click download
-      }
+      const file = await captureImage();
+      if (file) setPrebuiltFile(file);
     }, PREGENERATE_DELAY_MS);
     return () => clearTimeout(timer);
-  }, []);
+  }, [pixelOffsets, captureImage]);
 
   useEffect(() => {
     if (!showInstagramTip) return;
@@ -146,20 +210,20 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
 
   const handleSave = useCallback(async () => {
     if (isCapturing) return;
-    const fileToShare = prebuiltFile ?? await (async () => {
-      if (!captureRef.current) return null;
+    setCaptureError(false);
+
+    let fileToShare = prebuiltFile;
+    if (!fileToShare) {
       setIsCapturing(true);
-      try {
-        const dataUrl = await toPng(captureRef.current, { pixelRatio: PIXEL_RATIO, cacheBust: true });
-        const blob = dataUrlToBlob(dataUrl);
-        return new File([blob], 'nosso-mapa-do-amor.png', { type: 'image/png' });
-      } catch {
-        return null;
-      } finally {
-        setIsCapturing(false);
-      }
-    })();
-    if (!fileToShare) return;
+      fileToShare = await captureImage();
+      setIsCapturing(false);
+    }
+
+    if (!fileToShare) {
+      setCaptureError(true);
+      return;
+    }
+
     if (isMobile) {
       const canShare =
         typeof navigator.share === 'function' &&
@@ -170,15 +234,16 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
           await navigator.share({ files: [fileToShare], title: 'Nosso Mapa do Amor' });
           return;
         } catch {
-          // share dismissed or failed — fall through to download
+          // dismissed or failed — fall through to download
         }
       }
       triggerDownload(fileToShare);
       setShowInstagramTip(true);
       return;
     }
+
     triggerDownload(fileToShare);
-  }, [prebuiltFile, isCapturing]);
+  }, [prebuiltFile, isCapturing, captureImage, isMobile]);
 
   return (
     <section
@@ -255,10 +320,11 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
               <Marker
                 key={loc.order}
                 position={[loc.latitude, loc.longitude]}
-                icon={createPolaroidIcon(loc, PIN_ROTATIONS[i % PIN_ROTATIONS.length], markerXOffsets[i])}
+                icon={createPolaroidIcon(loc, PIN_ROTATIONS[i % PIN_ROTATIONS.length], markerOffsets[i])}
               />
             ))}
             <FitBoundsOnLoad positions={positions} />
+            <MarkerSpreader locations={locations} onOffsetsReady={setPixelOffsets} />
           </MapContainer>
         )}
 
@@ -288,7 +354,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
 
       <div className="relative flex flex-col items-center gap-4 mt-8">
         <p className="text-sm text-center max-w-xs" style={{ color: 'rgba(251,245,240,0.5)', lineHeight: 1.55 }}>
-           {isMobile ? 'Compartilhe nos Stories ou salve na galeria.' : 'Salve a imagem e compartilhe nos Stories.'}
+          {isMobile ? 'Compartilhe nos Stories ou salve na galeria.' : 'Salve a imagem e compartilhe nos Stories.'}
         </p>
         <button
           onClick={handleSave}
@@ -300,8 +366,21 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
             opacity: isCapturing ? 0.7 : 1,
           }}
         >
-           {isCapturing ? 'Gerando...' : isMobile ? 'Compartilhar nos Stories' : 'Salvar imagem'}
+          {isCapturing ? 'Gerando...' : isMobile ? 'Compartilhar nos Stories' : 'Salvar imagem'}
         </button>
+        {captureError && (
+          <p
+            className="text-xs text-center max-w-xs px-4 py-2.5 rounded-xl"
+            style={{
+              color: 'rgba(251,245,240,0.85)',
+              background: 'rgba(216,85,96,0.18)',
+              border: '1px solid rgba(216,85,96,0.3)',
+              lineHeight: 1.5,
+            }}
+          >
+            Não foi possível gerar a imagem. Tire um print da tela para salvar.
+          </p>
+        )}
         {showInstagramTip && (
           <p
             className="text-xs text-center max-w-xs px-4 py-2.5 rounded-xl"
