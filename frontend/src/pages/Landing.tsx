@@ -10,19 +10,14 @@ import { FinalCTA } from '../components/landing/FinalCTA';
 import { Footer } from '../components/landing/Footer';
 import { useScrollReveal } from '../hooks/use-scroll-reveal';
 
+
 export default function Landing() {
   const revealRef = useScrollReveal();
 
   return (
-    <div ref={revealRef} data-testid="landing-page" className="overflow-x-hidden">
+    <div ref={revealRef} data-testid="landing-page" className="overflow-x-clip">
       <Navbar />
       <main className="relative">
-        <div
-          className="absolute inset-0 pointer-events-none z-10 hidden lg:block"
-          aria-hidden="true"
-        >
-          <div className="max-w-[1280px] mx-auto h-full border-x border-olm-surface" />
-        </div>
         <Hero />
         <HowItWorks />
         <PreviewExperience />

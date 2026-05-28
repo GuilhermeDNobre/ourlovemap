@@ -57,10 +57,10 @@ beforeEach(() => {
 });
 
 describe('PublicMap', () => {
-  it('should show loading spinner initially', () => {
+  it('should show loading skeleton initially', () => {
     mockGet.mockReturnValue(new Promise(() => {}));
     render(<PublicMap />, { wrapper: makeWrapper() });
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByText('Carregando seu mapa')).toBeInTheDocument();
   });
 
   it('should show AccessError with "Acesso inválido" on 401', async () => {

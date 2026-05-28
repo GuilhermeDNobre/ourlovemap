@@ -33,9 +33,9 @@ export function FAQ() {
   };
 
   return (
-    <section id="faq" className="bg-olm-bg-elevated border-b border-olm-surface px-6 py-24">
-      <div className="max-w-[1120px] mx-auto">
-        <div data-scroll-group className="text-center max-w-[600px] mx-auto mb-12">
+    <section id="faq" className="bg-olm-bg-elevated">
+      <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-12 md:py-16">
+        <div className="text-center max-w-[600px] mx-auto mb-12">
           <Eyebrow>Dúvidas frequentes</Eyebrow>
           <h2
             className="font-serif text-olm-title mt-4 leading-[1.1]"
@@ -68,9 +68,9 @@ export function FAQ() {
                 {openIndex === i && (
                   <motion.div
                     key="content"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
+                    initial={{ maxHeight: 0, opacity: 0 }}
+                    animate={{ maxHeight: 400, opacity: 1 }}
+                    exit={{ maxHeight: 0, opacity: 0 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                     className="overflow-hidden"
                   >

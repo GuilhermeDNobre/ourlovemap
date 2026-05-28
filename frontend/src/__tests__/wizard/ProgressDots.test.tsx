@@ -22,7 +22,7 @@ describe('ProgressDots', () => {
     render(<ProgressDots currentStep={2} />);
     const activeStep = screen.getByLabelText(/Step 2.*ativo/i);
     expect(activeStep).toBeInTheDocument();
-    expect(activeStep.className).toContain('bg-olm-title');
+    expect(activeStep.className).toContain('bg-olm-accent');
   });
 
   it('should show neutral style on future steps', () => {

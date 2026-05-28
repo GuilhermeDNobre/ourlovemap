@@ -5,6 +5,7 @@ import { toPng } from 'html-to-image';
 import { Heart } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import { MAPTILER_API_KEY } from '../../lib/client-env';
+import { useIsMobile } from '../../hooks/use-is-mobile';
 import type { ApiLocation } from '../../types/map';
 
 interface FinalMapScreenProps {
@@ -101,8 +102,6 @@ function FitBoundsOnLoad({ positions }: { positions: [number, number][] }) {
   return null;
 }
 
-const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
 function triggerDownload(blob: Blob) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -115,6 +114,7 @@ function triggerDownload(blob: Blob) {
 }
 
 export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
+  const isMobile = useIsMobile();
   const captureRef = useRef<HTMLDivElement>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [prebuiltFile, setPrebuiltFile] = useState<File | null>(null);
@@ -160,7 +160,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
       }
     })();
     if (!fileToShare) return;
-    if (IS_MOBILE) {
+    if (isMobile) {
       const canShare =
         typeof navigator.share === 'function' &&
         typeof navigator.canShare === 'function' &&
@@ -288,7 +288,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
 
       <div className="relative flex flex-col items-center gap-4 mt-8">
         <p className="text-sm text-center max-w-xs" style={{ color: 'rgba(251,245,240,0.5)', lineHeight: 1.55 }}>
-          {IS_MOBILE ? 'Compartilhe nos Stories ou salve na galeria.' : 'Salve a imagem e compartilhe nos Stories.'}
+           {isMobile ? 'Compartilhe nos Stories ou salve na galeria.' : 'Salve a imagem e compartilhe nos Stories.'}
         </p>
         <button
           onClick={handleSave}
@@ -300,7 +300,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
             opacity: isCapturing ? 0.7 : 1,
           }}
         >
-          {isCapturing ? 'Gerando...' : IS_MOBILE ? 'Compartilhar nos Stories' : 'Salvar imagem'}
+           {isCapturing ? 'Gerando...' : isMobile ? 'Compartilhar nos Stories' : 'Salvar imagem'}
         </button>
         {showInstagramTip && (
           <p

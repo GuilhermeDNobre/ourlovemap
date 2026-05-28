@@ -23,9 +23,9 @@ export function Pricing() {
   const navigate = useNavigate();
 
   return (
-    <section id="pricing" className="bg-olm-bg-elevated border-b border-olm-surface px-6 py-24">
-      <div className="max-w-[1120px] mx-auto">
-        <div data-scroll-group className="text-center max-w-[620px] mx-auto mb-14">
+    <section id="pricing" className="bg-olm-bg-elevated py-20 md:py-28">
+      <div className="max-w-[1440px] mx-auto px-6 md:px-12 w-full">
+        <div className="text-center max-w-[620px] mx-auto mb-14">
           <Eyebrow>Planos</Eyebrow>
           <h2
             className="font-serif text-olm-title mt-4 leading-[1.1]"
@@ -35,17 +35,17 @@ export function Pricing() {
           </h2>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 max-w-[820px] mx-auto olm-stagger">
+        <div className="grid md:grid-cols-2 gap-6 max-w-[820px] mx-auto">
           {/* Basic */}
-          <div className="olm-card p-9 rounded-[24px] bg-olm-bg-elevated border border-olm-surface">
-            <div className="font-sans font-semibold text-sm text-olm-title tracking-[0.04em]">
+          <div className="rounded-[24px] bg-olm-bg border border-olm-surface p-9">
+            <div className="font-sans font-semibold text-sm text-fg-3 tracking-[0.04em] uppercase">
               Básico
             </div>
-            <div className="mt-5 flex items-baseline gap-1">
-              <div className="font-serif text-[48px] text-olm-title leading-none">
-                R$19<span className="text-[28px]">,90</span>
+              <div className="mt-5">
+                <div className="font-serif text-olm-title leading-none">
+                  <span style={{ fontSize: 'var(--fs-h1)' }}>R$19</span><span className="text-[22px]" style={{ verticalAlign: 'super', lineHeight: 1 }}>,90</span>
+                </div>
               </div>
-            </div>
             <div className="text-[13px] text-fg-3 mt-1">Pagamento único</div>
             <ul className="list-none p-0 my-7 flex flex-col gap-3">
               {BASIC_FEATURES.map((feature) => (
@@ -65,19 +65,21 @@ export function Pricing() {
           </div>
 
           {/* Premium */}
-          <div className="olm-card relative p-9 rounded-[24px] bg-olm-bg-elevated border-2 border-olm-accent">
+          <div className="relative p-10 rounded-[24px] bg-olm-bg-elevated border-2 border-olm-accent"
+            style={{ boxShadow: 'var(--sh-glow-accent)' }}
+          >
             <div className="absolute -top-3 left-6 px-3 py-1.5 bg-olm-primary text-white rounded-pill text-[11px] font-bold tracking-[0.08em] uppercase">
               Mais escolhido
             </div>
-            <div className="font-sans font-semibold text-sm text-olm-accent tracking-[0.04em]">
+            <div className="font-sans font-semibold text-sm text-olm-accent tracking-[0.04em] uppercase">
               Premium
             </div>
-            <div className="mt-5 flex items-baseline gap-1">
-              <div className="font-serif text-[48px] text-olm-title leading-none">
-                R$29<span className="text-[28px]">,90</span>
+              <div className="mt-5">
+                <div className="font-serif text-olm-title leading-none">
+                  <span style={{ fontSize: 'var(--fs-h1)' }}>R$29</span><span className="text-[22px]" style={{ verticalAlign: 'super', lineHeight: 1 }}>,90</span>
+                </div>
               </div>
-            </div>
-            <div className="text-[13px] text-fg-3 mt-1">
+            <div className="text-[13px] text-dfg-3 mt-1">
               Pagamento único, página sem expiração
             </div>
             <ul className="list-none p-0 my-7 flex flex-col gap-3">

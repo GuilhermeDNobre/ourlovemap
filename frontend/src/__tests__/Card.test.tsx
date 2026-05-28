@@ -9,8 +9,8 @@ describe('Card', () => {
 
   it('should apply light variant classes by default', () => {
     const { container } = render(<Card><p>Content</p></Card>);
-    expect(container.firstChild).toHaveClass('bg-white');
-    expect(container.firstChild).toHaveClass('shadow-md');
+    expect(container.firstChild).toHaveClass('bg-olm-bg-elevated');
+    expect(container.firstChild).toHaveClass('shadow-sm');
   });
 
   it('should apply dark variant classes', () => {

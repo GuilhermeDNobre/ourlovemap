@@ -1,21 +1,74 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Heart } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { DarkMockup } from './DarkMockup';
 
 export function FinalCTA() {
   const navigate = useNavigate();
 
+  const routePath =
+    'M11.303 34.8332L11.2752 56.3749C11.2705 60.0107 12.7102 63.4993 15.2777 66.0733C17.8452 68.6473 21.3301 70.0961 24.9658 70.1008C28.6015 70.1055 32.0899 68.6657 34.6643 66.0984C37.2384 63.531 38.6871 60.0459 38.6918 56.4105L38.7322 25.077C38.7369 21.8331 39.794 18.7398 41.9764 16.564C44.5508 13.9965 48.0394 12.9484 51.2831 12.9531C54.5273 12.9578 57.6207 14.4066 59.7964 16.9807C61.9721 19.5548 63.0202 22.6518 63.0155 25.8958L62.9928 42.7374M11.3434 3.50001C9.26593 3.4973 7.27242 4.32004 5.80148 5.78718C4.33057 7.25433 3.50271 9.24568 3.50001 11.3232C3.49734 13.4008 4.32004 15.3943 5.78718 16.8652C7.25433 18.3361 9.24568 19.164 11.3232 19.1666C13.4008 19.1693 15.3943 18.3466 16.8652 16.8795C18.3361 15.4124 19.164 13.421 19.1667 11.3434C19.1693 9.26593 18.3466 7.27242 16.8795 5.80148C15.4124 4.33054 13.421 3.50267 11.3434 3.50001ZM58.2626 66.2272C58.2599 68.305 59.0824 70.2982 60.5496 71.7693C62.0168 73.24 64.008 74.068 66.0858 74.0707C68.1632 74.0735 70.1568 73.2506 71.6275 71.7834C73.0986 70.3166 73.9266 68.325 73.9293 66.2476C73.9317 64.1702 73.1092 62.1766 71.642 60.7055C70.1748 59.2348 68.1836 58.4068 66.1058 58.4041C64.0284 58.4013 62.0348 59.2242 60.5641 60.6914C59.093 62.1586 58.265 64.1498 58.2626 66.2272Z';
+
   return (
     <section
-      className="border-b border-[rgba(251,245,240,0.08)] px-6 py-[112px]"
+      className="border-b border-[rgba(251,245,240,0.08)] py-24 md:py-28 relative overflow-hidden"
       style={{ background: 'linear-gradient(180deg, var(--olm-title), var(--olm-dark))' }}
     >
-      <div data-scroll className="max-w-[680px] mx-auto text-center relative">
-        <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-olm-primary text-[18px] tracking-[0.4em]">
-          ♥ ♥ ♥
+      <svg
+        viewBox="0 0 78 78"
+        className="absolute pointer-events-none select-none"
+        style={{
+          width: 450, height: 450,
+          right: '-6%', bottom: '-10%',
+          opacity: 0.06,
+          transform: 'rotate(12deg) scaleX(1.4)',
+        }}
+      >
+        <path
+          d={routePath}
+          stroke="#F56C73"
+          strokeWidth="3"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <svg
+        viewBox="0 0 78 78"
+        className="absolute pointer-events-none select-none"
+        style={{
+          width: 200, height: 200,
+          left: '5%', top: '15%',
+          opacity: 0.04,
+          transform: 'rotate(-18deg) scaleY(1.3)',
+        }}
+      >
+        <path
+          d={routePath}
+          stroke="#F56C73"
+          strokeWidth="2"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray="3 5"
+        />
+      </svg>
+
+      <div className="max-w-[680px] mx-auto px-6 text-center relative">
+        <div className="flex gap-3 justify-center">
+          {[0, 1, 2].map((i) => (
+            <Heart
+              key={i}
+              size={18}
+              fill="#F56C73"
+              stroke="none"
+              className="olm-float"
+              style={{ animationDelay: `${i * 0.25}s` }}
+            />
+          ))}
         </div>
         <h2
-          className="font-serif text-white mt-7 mb-5 leading-[1.02]"
+          className="font-serif text-white mt-6 mb-5 leading-[1.02]"
           style={{ fontSize: 'var(--fs-h1)' }}
         >
           Crie o <em className="text-olm-primary">mapa do amor</em> de vocês.
@@ -29,6 +82,10 @@ export function FinalCTA() {
         <div className="mt-[18px] text-xs text-[rgba(251,245,240,0.5)] tracking-[0.08em]">
           PAGAMENTO ÚNICO · SEM ASSINATURA
         </div>
+      </div>
+
+      <div className="flex justify-center mt-12" style={{ marginBottom: '-80px' }}>
+        <DarkMockup size="md" />
       </div>
     </section>
   );

@@ -9,7 +9,7 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
-import { Plus } from 'lucide-react';
+import { MapPin, Plus } from 'lucide-react';
 import { useWizardStore } from '../../../stores/wizard-store';
 import type { Place } from '../../../stores/wizard-store';
 import { PlaceCardEditor } from '../PlaceCardEditor';
@@ -85,8 +85,18 @@ export function Step2Localizacoes({ onNext, onBack, canProceed = true }: Step2Lo
         </SortableContext>
       </DndContext>
       {places.length === 0 && (
-        <div className="rounded-[16px] border border-dashed border-olm-surface p-8 text-center text-fg-3 text-sm">
-          Nenhum lugar adicionado ainda. Clique abaixo para começar.
+        <div className="rounded-[var(--r-lg)] border-2 border-dashed border-olm-surface py-14 px-6 text-center flex flex-col items-center gap-4">
+          <div className="w-14 h-14 rounded-[var(--r-md)] bg-olm-primary-100 text-olm-primary flex items-center justify-center">
+            <MapPin size={24} strokeWidth={1.5} />
+          </div>
+          <div>
+            <p className="font-serif text-[20px] text-olm-title leading-snug">
+              Onde tudo <em className="text-olm-primary">começou</em>?
+            </p>
+            <p className="text-sm text-fg-3 mt-1.5 max-w-[260px] mx-auto">
+              Adicionem o primeiro lugar da história de vocês — o primeiro encontro, a primeira viagem, o pedido...
+            </p>
+          </div>
         </div>
       )}
       {places.length < PREMIUM_LIMIT && (

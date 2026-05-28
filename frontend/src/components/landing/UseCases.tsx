@@ -26,9 +26,9 @@ const CASES: { icon: LucideIcon; title: string; body: string }[] = [
 
 export function UseCases() {
   return (
-    <section className="bg-olm-bg-elevated border-b border-olm-surface px-6 py-24">
-      <div className="max-w-[1120px] mx-auto">
-        <div data-scroll-group className="text-center max-w-[600px] mx-auto mb-14">
+    <section className="bg-olm-bg-elevated py-20 md:py-28">
+      <div className="max-w-[1440px] mx-auto px-6 md:px-12 w-full">
+        <div className="text-center max-w-[600px] mx-auto mb-14">
           <Eyebrow>Pra cada momento de vocês</Eyebrow>
           <h2
             className="olm-h2"
@@ -37,7 +37,7 @@ export function UseCases() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 olm-stagger">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
           {CASES.map((c) => (
             <div
               key={c.title}

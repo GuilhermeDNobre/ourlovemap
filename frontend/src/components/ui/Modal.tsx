@@ -37,7 +37,7 @@ export function Modal({ isOpen, onClose, children, className = '' }: ModalProps)
             aria-hidden="true"
           />
           <motion.div
-            className={`relative z-10 bg-white rounded-xl shadow-xl max-w-lg w-full ${className}`}
+            className={`relative z-10 bg-olm-bg-elevated rounded-xl shadow-xl max-w-lg w-full ${className}`}
             initial={{ opacity: 0, y: 20, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.97 }}

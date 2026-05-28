@@ -121,7 +121,13 @@ export function PaymentModal({ isOpen, onClose, mapId }: PaymentModalProps) {
     <Modal isOpen={isOpen} onClose={onClose} className="p-6">
       {view === 'loading' && (
         <div className="flex flex-col items-center gap-4 py-8">
-          <div className="w-8 h-8 border-2 border-olm-primary border-t-transparent rounded-full animate-spin" />
+          <div className="relative w-12 h-12">
+            <div className="absolute inset-0 rounded-full bg-olm-primary/20 animate-ping" />
+            <div className="absolute inset-1 rounded-full bg-olm-primary/40 animate-pulse" />
+            <div className="absolute inset-2 rounded-full bg-olm-primary flex items-center justify-center">
+              <span className="text-white text-xs font-bold">♥</span>
+            </div>
+          </div>
           <p className="text-sm text-fg-2">Gerando QR Code PIX...</p>
         </div>
       )}
