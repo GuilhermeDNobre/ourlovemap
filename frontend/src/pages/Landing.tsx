@@ -8,12 +8,16 @@ import { Pricing } from '../components/landing/Pricing';
 import { FAQ } from '../components/landing/FAQ';
 import { FinalCTA } from '../components/landing/FinalCTA';
 import { Footer } from '../components/landing/Footer';
+import { useScrollReveal } from '../hooks/use-scroll-reveal';
+
 
 export default function Landing() {
+  const revealRef = useScrollReveal();
+
   return (
-    <div data-testid="landing-page" className="overflow-x-hidden">
+    <div ref={revealRef} data-testid="landing-page" className="overflow-x-clip">
       <Navbar />
-      <main>
+      <main className="relative">
         <Hero />
         <HowItWorks />
         <PreviewExperience />

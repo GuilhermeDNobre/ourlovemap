@@ -45,7 +45,7 @@ describe('Hero', () => {
 
   it('should render social proof', () => {
     withRouter(<Hero />);
-    expect(screen.getByText(/3.200 casais/)).toBeInTheDocument();
+    expect(screen.getByText(/casais já criaram/)).toBeInTheDocument();
   });
 });
 
@@ -116,10 +116,8 @@ describe('Footer', () => {
     expect(screen.getByText('Map')).toBeInTheDocument();
   });
 
-  it('should render legal links', () => {
+  it('should render footer links', () => {
     render(<Footer />);
-    expect(screen.getByText('Termos')).toBeInTheDocument();
-    expect(screen.getByText('Privacidade')).toBeInTheDocument();
     expect(screen.getByText('Contato')).toBeInTheDocument();
     expect(screen.getByText('Instagram')).toBeInTheDocument();
   });

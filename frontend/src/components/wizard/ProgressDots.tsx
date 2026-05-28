@@ -22,7 +22,7 @@ export function ProgressDots({ currentStep }: ProgressDotsProps) {
                   isPast
                     ? 'bg-olm-primary text-white'
                     : isActive
-                      ? 'bg-olm-title text-white'
+                      ? 'bg-olm-accent text-white'
                       : 'bg-olm-surface text-fg-2',
                 ].join(' ')}
                 aria-label={`Step ${stepNumber}: ${label}${isPast ? ' (completo)' : isActive ? ' (ativo)' : ''}`}

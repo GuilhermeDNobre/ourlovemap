@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Eyebrow } from '../ui/Eyebrow';
 
 const QUESTIONS = [
@@ -32,13 +33,13 @@ export function FAQ() {
   };
 
   return (
-    <section id="faq" className="bg-white px-6 py-24">
-      <div className="max-w-[1120px] mx-auto">
+    <section id="faq" className="bg-olm-bg-elevated">
+      <div className="max-w-[1440px] mx-auto px-6 md:px-12 py-12 md:py-16">
         <div className="text-center max-w-[600px] mx-auto mb-12">
           <Eyebrow>Dúvidas frequentes</Eyebrow>
           <h2
             className="font-serif text-olm-title mt-4 leading-[1.1]"
-            style={{ fontSize: 'clamp(2rem, 4vw, 2.75rem)' }}
+            style={{ fontSize: 'var(--fs-h2)' }}
           >
             A gente <em className="text-olm-primary">responde</em>.
           </h2>
@@ -63,14 +64,22 @@ export function FAQ() {
                   +
                 </span>
               </button>
-              <div
-                className="overflow-hidden transition-all duration-300 ease-emphasized"
-                style={{ maxHeight: openIndex === i ? '300px' : '0' }}
-              >
-                <div className="px-1 pb-[22px] text-[15px] leading-relaxed text-fg-2 max-w-[640px]">
-                  {item.a}
-                </div>
-              </div>
+              <AnimatePresence initial={false}>
+                {openIndex === i && (
+                  <motion.div
+                    key="content"
+                    initial={{ maxHeight: 0, opacity: 0 }}
+                    animate={{ maxHeight: 400, opacity: 1 }}
+                    exit={{ maxHeight: 0, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-1 pb-[22px] text-[15px] leading-relaxed text-fg-2 max-w-[640px]">
+                      {item.a}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ))}
         </div>

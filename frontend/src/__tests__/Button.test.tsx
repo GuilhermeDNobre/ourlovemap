@@ -30,7 +30,7 @@ describe('Button', () => {
   it('should render premium variant', () => {
     render(<Button variant="premium">Premium</Button>);
     const btn = screen.getByText('Premium');
-    expect(btn.className).toContain('bg-olm-title');
+    expect(btn.className).toContain('bg-olm-dark-800');
   });
 
   it('should render ghost variant', () => {

@@ -10,8 +10,8 @@ const FEATURES = [
 
 export function PreviewExperience() {
   return (
-    <section className="bg-olm-bg px-6 py-24">
-      <div className="max-w-[1120px] mx-auto grid md:grid-cols-2 gap-[72px] items-center">
+    <section className="bg-olm-bg py-20 md:py-28">
+      <div className="max-w-[1440px] mx-auto px-6 md:px-12 grid md:grid-cols-2 gap-[72px] items-center w-full">
         <div className="flex justify-center">
           <DarkMockup size="lg" />
         </div>
@@ -23,7 +23,7 @@ export function PreviewExperience() {
           </div>
           <h2
             className="font-serif text-olm-title mt-5 mb-4 leading-[1.05]"
-            style={{ fontSize: 'clamp(2rem, 4vw, 2.75rem)' }}
+            style={{ fontSize: 'var(--fs-h2)' }}
           >
             Uma experiência que eles <em className="text-olm-primary">nunca</em> vão esquecer.
           </h2>

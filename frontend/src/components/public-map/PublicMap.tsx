@@ -22,14 +22,26 @@ export function PublicMap() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#25212A' }}>
-        <div
-          role="status"
-          aria-label="carregando"
-          className="w-10 h-10 border-2 border-t-transparent rounded-full animate-spin"
-          style={{ borderColor: '#E8775A', borderTopColor: 'transparent' }}
-        />
-      </div>
+      <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden" style={{ background: '#25212A' }}>
+        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <defs>
+            <radialGradient id="cover-glow" cx="50%" cy="50%" r="40%">
+              <stop offset="0%" stopColor="#E8775A" stopOpacity="0.15" />
+              <stop offset="100%" stopColor="#E8775A" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <ellipse cx="400" cy="300" rx="280" ry="280" fill="url(#cover-glow)" />
+        </svg>
+        <div className="relative z-10 flex flex-col items-center text-center px-6 gap-6">
+          <div className="h-3 w-24 rounded-full bg-[rgba(251,245,240,0.08)] animate-pulse" />
+          <div className="h-12 w-64 rounded-md bg-[rgba(251,245,240,0.06)] animate-pulse" style={{ animationDelay: '150ms' }} />
+          <div className="h-6 w-48 rounded-md bg-[rgba(251,245,240,0.05)] animate-pulse" style={{ animationDelay: '300ms' }} />
+          <div className="h-8 w-32 rounded-md bg-[rgba(251,245,240,0.04)] animate-pulse mt-4" style={{ animationDelay: '450ms' }} />
+        </div>
+        <p className="absolute bottom-12 text-xs tracking-[0.3em] uppercase" style={{ color: 'rgba(251,245,240,0.25)' }}>
+          Carregando seu mapa
+        </p>
+      </section>
     );
   }
 

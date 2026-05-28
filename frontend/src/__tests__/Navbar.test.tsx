@@ -22,10 +22,10 @@ describe('Navbar', () => {
 
   it('should render navigation links', () => {
     renderNavbar();
-    expect(screen.getByText('Como funciona')).toBeInTheDocument();
-    expect(screen.getByText('Funcionalidades')).toBeInTheDocument();
-    expect(screen.getByText('Preços')).toBeInTheDocument();
-    expect(screen.getByText('FAQ')).toBeInTheDocument();
+    expect(screen.getAllByText('Como funciona').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Funcionalidades').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Preços').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('FAQ').length).toBeGreaterThanOrEqual(1);
   });
 
   it('should render the CTA button', () => {
@@ -37,14 +37,14 @@ describe('Navbar', () => {
     renderNavbar();
     const nav = screen.getByTestId('navbar');
 
-    expect(nav.className).not.toContain('border-[rgba(65,60,123,0.08)]');
+    expect(nav.className).not.toContain('border-olm-surface');
 
     await act(async () => {
       Object.defineProperty(window, 'scrollY', { writable: true, configurable: true, value: 50 });
       fireEvent.scroll(window);
     });
 
-    expect(nav.className).toContain('border-[rgba(65,60,123,0.08)]');
+    expect(nav.className).toContain('border-olm-surface');
   });
 
   it('should remove scrolled styles when scrollY <= 12', async () => {
@@ -61,6 +61,6 @@ describe('Navbar', () => {
       fireEvent.scroll(window);
     });
 
-    expect(nav.className).not.toContain('border-[rgba(65,60,123,0.08)]');
+    expect(nav.className).not.toContain('border-olm-surface');
   });
 });

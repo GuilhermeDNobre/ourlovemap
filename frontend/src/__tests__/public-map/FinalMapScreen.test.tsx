@@ -22,7 +22,7 @@ describe('FinalMapScreen', () => {
 
   it('should render save button', () => {
     render(<FinalMapScreen locations={locations} coupleName="Ana & João" />);
-    expect(screen.getByRole('button', { name: /Salvar para Stories/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Salvar imagem/i })).toBeInTheDocument();
   });
 
   it('should render "Voltar ao começo" link', () => {
@@ -32,7 +32,7 @@ describe('FinalMapScreen', () => {
 
   it('should call toPng via slow-path when prebuilt file is not ready', async () => {
     render(<FinalMapScreen locations={locations} coupleName="Ana & João" />);
-    fireEvent.click(screen.getByRole('button', { name: /Salvar para Stories/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Salvar imagem/i }));
     await waitFor(() => expect(toPng).toHaveBeenCalled());
   });
 
@@ -42,12 +42,24 @@ describe('FinalMapScreen', () => {
     const canShareSpy = jest.fn().mockReturnValue(true);
     Object.defineProperty(navigator, 'share', { value: shareSpy, configurable: true });
     Object.defineProperty(navigator, 'canShare', { value: canShareSpy, configurable: true });
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('coarse'),
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    })) as typeof window.matchMedia;
     render(<FinalMapScreen locations={locations} coupleName="Ana & João" />);
     await act(async () => { jest.advanceTimersByTime(3000); });
-    fireEvent.click(screen.getByRole('button', { name: /Salvar para Stories/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Compartilhar nos Stories/i }));
     expect(shareSpy).toHaveBeenCalledWith(
       expect.objectContaining({ files: expect.any(Array) }),
     );
+    window.matchMedia = originalMatchMedia;
     jest.useRealTimers();
   });
 });

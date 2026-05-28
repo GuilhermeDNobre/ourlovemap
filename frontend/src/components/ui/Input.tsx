@@ -18,8 +18,8 @@ export function Input({ label, error, help, onChange, className = '', ...rest }:
           'font-sans text-sm px-[14px] py-[11px] rounded-md bg-white text-fg-2',
           'outline-none transition-colors duration-150',
           error
-            ? 'border border-[1.5px] border-olm-error'
-            : 'border border-[1.5px] border-[#E0DCE5] focus:border-olm-accent',
+            ? 'border-[1.5px] border-solid border-olm-error'
+            : 'border-[1.5px] border-solid border-olm-surface focus:border-olm-accent',
           className,
         ].join(' ')}
       />

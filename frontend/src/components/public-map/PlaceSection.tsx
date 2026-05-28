@@ -87,7 +87,7 @@ export function PlaceSection({
       <div ref={mapContainerRef} className="absolute inset-0" />
       <div
         className="absolute inset-0 flex items-center justify-center"
-        style={{ background: 'linear-gradient(to bottom, rgba(26,28,40,0.15) 0%, rgba(26,28,40,0.45) 100%)' }}
+        style={{ background: 'linear-gradient(to bottom, color-mix(in srgb, var(--olm-dark) 15%, transparent) 0%, color-mix(in srgb, var(--olm-dark) 45%, transparent) 100%)' }}
       >
         <div
           ref={cardRef}
@@ -95,21 +95,21 @@ export function PlaceSection({
           style={{
             backdropFilter: 'blur(18px)',
             WebkitBackdropFilter: 'blur(18px)',
-            background: 'rgba(37,33,42,0.72)',
+            background: 'color-mix(in srgb, var(--olm-dark) 72%, transparent)',
             border: '1px solid rgba(255,255,255,0.08)',
           }}
         >
           <div className="p-6 flex flex-col gap-4">
-            <p className="text-xs tracking-[0.25em] uppercase font-medium" style={{ color: '#E8775A' }}>
+            <p className="text-xs tracking-[0.25em] uppercase font-medium" style={{ color: 'var(--olm-primary)' }}>
               LUGAR {String(index + 1).padStart(2, '0')}
             </p>
-            <h2 className="font-serif text-2xl" style={{ color: '#FBF5F0' }}>
+            <h2 className="font-serif text-2xl" style={{ color: 'var(--dfg-1)' }}>
               {location.title}
             </h2>
             {location.address && (
               <div className="flex items-start gap-1.5">
-                <MapPin size={11} className="mt-0.5 flex-shrink-0" style={{ color: '#E8775A' }} />
-                <p className="text-xs leading-tight" style={{ color: 'rgba(232,119,90,0.8)' }}>
+                <MapPin size={11} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--olm-primary)' }} />
+                <p className="text-xs leading-tight" style={{ color: 'color-mix(in srgb, var(--olm-primary), transparent 20%)' }}>
                   {location.address}
                 </p>
               </div>
@@ -123,11 +123,11 @@ export function PlaceSection({
             ) : (
               <div
                 className="w-full rounded-lg"
-                style={{ height: 160, background: 'linear-gradient(135deg, rgba(232,119,90,0.15), rgba(37,33,42,0.5))' }}
+                style={{ height: 160, background: 'linear-gradient(135deg, color-mix(in srgb, var(--olm-primary) 15%, transparent), color-mix(in srgb, var(--olm-dark) 50%, transparent))' }}
               />
             )}
             {location.description && (
-              <p className="font-serif italic text-sm" style={{ color: 'rgba(251,245,240,0.65)' }}>
+              <p className="font-serif italic text-sm" style={{ color: 'var(--dfg-3)' }}>
                 {location.description}
               </p>
             )}
@@ -137,16 +137,16 @@ export function PlaceSection({
       <div
         className="absolute top-0 left-0 right-0 pointer-events-none"
         aria-hidden="true"
-        style={{ height: '22%', background: 'linear-gradient(to bottom, #1A1C28 0%, transparent 100%)' }}
+        style={{ height: '22%', background: 'linear-gradient(to bottom, var(--olm-dark) 0%, transparent 100%)' }}
       />
       <div
         className="absolute bottom-0 left-0 right-0 pointer-events-none"
         aria-hidden="true"
-        style={{ height: '28%', background: 'linear-gradient(to bottom, transparent 0%, #1A1C28 100%)' }}
+        style={{ height: '28%', background: 'linear-gradient(to bottom, transparent 0%, var(--olm-dark) 100%)' }}
       />
       {isActive && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center" aria-hidden="true">
-          <p className="text-xs tracking-widest" style={{ color: 'rgba(251,245,240,0.4)' }}>
+          <p className="text-xs tracking-widest" style={{ color: 'var(--dfg-4)' }}>
             role para continuar
           </p>
         </div>

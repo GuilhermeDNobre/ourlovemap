@@ -22,9 +22,9 @@ const sizeClasses: Record<ButtonSize, string> = {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: 'bg-olm-primary text-white shadow-glow-primary',
-  secondary: 'bg-transparent text-olm-title border border-[1.5px] border-olm-title',
-  premium: 'bg-olm-title text-white border border-[1.5px] border-olm-accent shadow-glow-accent',
-  ghost: 'bg-transparent text-olm-title',
+  secondary: 'bg-transparent text-olm-title border-[1.5px] border-solid border-olm-title',
+  premium: 'bg-olm-dark-800 text-white border-[1.5px] border-solid border-olm-accent shadow-glow-accent',
+  ghost: 'bg-transparent text-olm-title hover:bg-olm-surface-soft hover:text-olm-primary focus-visible:ring-2 focus-visible:ring-olm-accent focus-visible:ring-offset-2 focus-visible:outline-none',
   text: 'bg-transparent text-olm-primary p-0',
 };
 

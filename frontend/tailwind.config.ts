@@ -23,6 +23,7 @@ const config: Config = {
         'olm-bg-elevated': 'var(--olm-bg-elevated)',
         'olm-surface': 'var(--olm-surface)',
         'olm-surface-soft': 'var(--olm-surface-soft)',
+        'olm-bg-card-dark': 'var(--olm-bg-card-dark)',
         'olm-success': 'var(--olm-success)',
         'olm-warning': 'var(--olm-warning)',
         'olm-error': 'var(--olm-error)',
