@@ -200,12 +200,12 @@ export function Navbar() {
       <div
         className={[
           'fixed inset-0 z-50 md:hidden',
-          'transition-opacity duration-300',
-          mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
+          mobileOpen ? 'visible pointer-events-auto' : 'invisible pointer-events-none',
         ].join(' ')}
       >
         <div
-          className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
+          style={{ opacity: mobileOpen ? 1 : 0 }}
           onClick={() => setMobileOpen(false)}
         />
           <div
