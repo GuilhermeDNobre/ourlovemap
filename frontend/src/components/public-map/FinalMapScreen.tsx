@@ -1,7 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import L from 'leaflet';
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
-import { toPng } from 'html-to-image';
 import 'leaflet/dist/leaflet.css';
 import { MAPTILER_API_KEY, API_BASE_URL } from '../../lib/client-env';
 import { useIsMobile } from '../../hooks/use-is-mobile';
@@ -30,10 +29,8 @@ function resolveOverlaps(points: { x: number; y: number }[]): PixelOffset[] {
   const n = points.length;
   const offsets: PixelOffset[] = Array.from({ length: n }, () => ({ x: 0, y: 0 }));
   if (n < 2) return offsets;
-
   const fullW = ICON_W + ICON_PADDING;
   const fullH = ICON_H + ICON_PADDING;
-
   for (let pass = 0; pass < 20; pass++) {
     let anyOverlap = false;
     for (let i = 0; i < n; i++) {
@@ -42,21 +39,18 @@ function resolveOverlaps(points: { x: number; y: number }[]): PixelOffset[] {
         const ay = points[i].y + offsets[i].y;
         const bx = points[j].x + offsets[j].x;
         const by = points[j].y + offsets[j].y;
-        const dx = bx - ax;
-        const dy = by - ay;
-        const overlapX = fullW - Math.abs(dx);
-        const overlapY = fullH - Math.abs(dy);
-
+        const overlapX = fullW - Math.abs(bx - ax);
+        const overlapY = fullH - Math.abs(by - ay);
         if (overlapX > 0 && overlapY > 0) {
           anyOverlap = true;
           if (overlapX <= overlapY) {
             const push = overlapX / 2 + 1;
-            const sign = dx >= 0 ? 1 : -1;
+            const sign = (bx - ax) >= 0 ? 1 : -1;
             offsets[i].x -= sign * push;
             offsets[j].x += sign * push;
           } else {
             const push = overlapY / 2 + 1;
-            const sign = dy >= 0 ? 1 : -1;
+            const sign = (by - ay) >= 0 ? 1 : -1;
             offsets[i].y -= sign * push;
             offsets[j].y += sign * push;
           }
@@ -65,95 +59,7 @@ function resolveOverlaps(points: { x: number; y: number }[]): PixelOffset[] {
     }
     if (!anyOverlap) break;
   }
-
   return offsets;
-}
-
-function dataUrlToBlob(dataUrl: string): Blob {
-  const [header, base64] = dataUrl.split(',');
-  const mimeMatch = header.match(/:(.*?);/);
-  const mime = mimeMatch ? mimeMatch[1] : 'image/png';
-  const binary = atob(base64);
-  const array = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    array[i] = binary.charCodeAt(i);
-  }
-  return new Blob([array], { type: mime });
-}
-
-function createPolaroidIcon(
-  location: ApiLocation,
-  rotation: number,
-  offset: PixelOffset,
-  resolvedPhotoSrc?: string,
-): L.DivIcon {
-  const tilt = offset.x !== 0 ? Math.sign(offset.x) * 5 : 0;
-  const finalRotation = rotation + tilt;
-  const src = resolvedPhotoSrc ?? location.photoUrl;
-  const photoHtml = src
-    ? `<img src="${src}" alt="${location.title}" style="width:64px;height:64px;object-fit:cover;display:block;" />`
-    : `<div style="width:64px;height:64px;background:linear-gradient(135deg,rgba(232,119,90,0.25),rgba(37,33,42,0.5));display:flex;align-items:center;justify-content:center;">
-        <span style="font-size:9px;color:rgba(251,245,240,0.5);font-family:Georgia,serif;text-align:center;padding:4px;">${location.title}</span>
-       </div>`;
-  return L.divIcon({
-    html: `
-      <div style="display:flex;flex-direction:column;align-items:center;cursor:default;">
-        <div style="
-          background:white;
-          padding:4px 4px 14px;
-          box-shadow:0 6px 20px rgba(0,0,0,0.55),0 1px 4px rgba(0,0,0,0.3);
-          transform:rotate(${finalRotation}deg);
-          transform-origin:bottom center;
-        ">
-          ${photoHtml}
-        </div>
-        <div style="
-          width:9px;height:9px;border-radius:50%;
-          background:#E8775A;
-          box-shadow:0 0 8px rgba(232,119,90,0.85);
-          margin-top:3px;
-          flex-shrink:0;
-        "></div>
-      </div>
-    `,
-    className: '',
-    iconSize: [ICON_W, 87],
-    iconAnchor: [37 - Math.round(offset.x), 87 - Math.round(offset.y)],
-  });
-}
-
-function FitBoundsOnLoad({ positions }: { positions: [number, number][] }) {
-  const map = useMap();
-  useEffect(() => {
-    if (positions.length === 0) return;
-    const bounds = L.latLngBounds(positions);
-    map.fitBounds(bounds, { padding: [55, 45], maxZoom: 13 });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  return null;
-}
-
-function MarkerSpreader({
-  locations,
-  onOffsetsReady,
-}: {
-  locations: ApiLocation[];
-  onOffsetsReady: (offsets: PixelOffset[]) => void;
-}) {
-  const map = useMap();
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const points = locations.map((loc) =>
-        map.latLngToContainerPoint([loc.latitude, loc.longitude]),
-      );
-      onOffsetsReady(resolveOverlaps(points));
-    }, SPREAD_SETTLE_MS);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return null;
 }
 
 function triggerDownload(blob: Blob) {
@@ -185,10 +91,201 @@ async function fetchPhotoAsDataUrl(photoUrl: string): Promise<string | null> {
   }
 }
 
+function loadImageFromUrl(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    if (!url.startsWith('data:')) img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Image load failed'));
+    img.src = url;
+  });
+}
+
+function fillTextCentered(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  cx: number,
+  y: number,
+  spacing: number,
+): void {
+  const chars = Array.from(text);
+  const charWidths = chars.map((c) => ctx.measureText(c).width);
+  const totalWidth =
+    charWidths.reduce((s, w) => s + w, 0) + spacing * (chars.length - 1);
+  let x = cx - totalWidth / 2;
+  chars.forEach((c, i) => {
+    ctx.fillText(c, x, y);
+    x += charWidths[i] + spacing;
+  });
+}
+
+function drawHeartOnCanvas(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  size: number,
+  color: string,
+): void {
+  const s = size / 12;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.translate(cx - 12 * s, cy - 12 * s);
+  ctx.scale(s, s);
+  const path = new Path2D(
+    'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z',
+  );
+  ctx.fill(path);
+  ctx.restore();
+}
+
+async function drawPolaroidOnCanvas(
+  ctx: CanvasRenderingContext2D,
+  ix: number,
+  iy: number,
+  rotationDeg: number,
+  photoUrl: string | undefined,
+  title: string,
+): Promise<void> {
+  const FW = 72;
+  const FH = 82;
+  const pivotX = ix + FW / 2;
+  const pivotY = iy + FH;
+
+  ctx.save();
+  ctx.translate(pivotX, pivotY);
+  ctx.rotate((rotationDeg * Math.PI) / 180);
+  ctx.translate(-pivotX, -pivotY);
+
+  ctx.shadowColor = 'rgba(0,0,0,0.55)';
+  ctx.shadowBlur = 20;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 6;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(ix, iy, FW, FH);
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+
+  if (photoUrl) {
+    try {
+      const img = await loadImageFromUrl(photoUrl);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(ix + 4, iy + 4, 64, 64);
+      ctx.clip();
+      ctx.drawImage(img, ix + 4, iy + 4, 64, 64);
+      ctx.restore();
+    } catch {
+      const grad = ctx.createLinearGradient(ix + 4, iy + 4, ix + 68, iy + 68);
+      grad.addColorStop(0, 'rgba(232,119,90,0.25)');
+      grad.addColorStop(1, 'rgba(37,33,42,0.5)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(ix + 4, iy + 4, 64, 64);
+    }
+  } else {
+    const grad = ctx.createLinearGradient(ix + 4, iy + 4, ix + 68, iy + 68);
+    grad.addColorStop(0, 'rgba(232,119,90,0.25)');
+    grad.addColorStop(1, 'rgba(37,33,42,0.5)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(ix + 4, iy + 4, 64, 64);
+    ctx.fillStyle = 'rgba(251,245,240,0.5)';
+    ctx.font = '9px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(title.slice(0, 14), ix + 36, iy + 36);
+  }
+
+  ctx.restore();
+
+  ctx.fillStyle = '#E8775A';
+  ctx.shadowColor = 'rgba(232,119,90,0.85)';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.arc(pivotX, iy + FH + 3 + 4.5, 4.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function createPolaroidIcon(
+  location: ApiLocation,
+  rotation: number,
+  offset: PixelOffset,
+  resolvedPhotoSrc?: string,
+): L.DivIcon {
+  const tilt = offset.x !== 0 ? Math.sign(offset.x) * 5 : 0;
+  const finalRotation = rotation + tilt;
+  const src = resolvedPhotoSrc ?? location.photoUrl;
+  const photoHtml = src
+    ? `<img src="${src}" alt="${location.title}" style="width:64px;height:64px;object-fit:cover;display:block;" />`
+    : `<div style="width:64px;height:64px;background:linear-gradient(135deg,rgba(232,119,90,0.25),rgba(37,33,42,0.5));display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:9px;color:rgba(251,245,240,0.5);font-family:Georgia,serif;text-align:center;padding:4px;">${location.title}</span>
+       </div>`;
+  return L.divIcon({
+    html: `
+      <div style="display:flex;flex-direction:column;align-items:center;cursor:default;">
+        <div style="background:white;padding:4px 4px 14px;box-shadow:0 6px 20px rgba(0,0,0,0.55),0 1px 4px rgba(0,0,0,0.3);transform:rotate(${finalRotation}deg);transform-origin:bottom center;">
+          ${photoHtml}
+        </div>
+        <div style="width:9px;height:9px;border-radius:50%;background:#E8775A;box-shadow:0 0 8px rgba(232,119,90,0.85);margin-top:3px;flex-shrink:0;"></div>
+      </div>`,
+    className: '',
+    iconSize: [ICON_W, 87],
+    iconAnchor: [37 - Math.round(offset.x), 87 - Math.round(offset.y)],
+  });
+}
+
+function FitBoundsOnLoad({ positions }: { positions: [number, number][] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (positions.length === 0) return;
+    map.fitBounds(L.latLngBounds(positions), { padding: [55, 45], maxZoom: 13 });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
+}
+
+function MarkerSpreader({
+  locations,
+  onOffsetsReady,
+}: {
+  locations: ApiLocation[];
+  onOffsetsReady: (offsets: PixelOffset[]) => void;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const points = locations.map((loc) =>
+        map.latLngToContainerPoint([loc.latitude, loc.longitude]),
+      );
+      onOffsetsReady(resolveOverlaps(points));
+    }, SPREAD_SETTLE_MS);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
+}
+
+function MapRefCapture({
+  mapRef,
+}: {
+  mapRef: React.MutableRefObject<L.Map | null>;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    mapRef.current = map;
+  }, [map, mapRef]);
+  return null;
+}
+
 export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
   const isMobile = useIsMobile();
   const captureRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
   const photoDataUrlsRef = useRef<Record<string, string>>({});
+  const locationsRef = useRef(locations);
+  const coupleNameRef = useRef(coupleName);
+  const markerOffsetsRef = useRef<PixelOffset[]>([]);
+  const positionsRef = useRef<[number, number][]>([]);
+
   const [isCapturing, setIsCapturing] = useState(false);
   const [captureError, setCaptureError] = useState(false);
   const [prebuiltFile, setPrebuiltFile] = useState<File | null>(null);
@@ -202,70 +299,122 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
   const initialCenter: [number, number] = positions.length > 0 ? positions[0] : [-14.235, -51.925];
   const markerOffsets: PixelOffset[] = pixelOffsets ?? locations.map(() => ({ x: 0, y: 0 }));
 
+  useEffect(() => { locationsRef.current = locations; }, [locations]);
+  useEffect(() => { coupleNameRef.current = coupleName; }, [coupleName]);
+  useEffect(() => { markerOffsetsRef.current = markerOffsets; }, [markerOffsets]);
+  useEffect(() => { positionsRef.current = positions; }, [positions]);
+  useEffect(() => { photoDataUrlsRef.current = photoDataUrls; }, [photoDataUrls]);
+
   useEffect(() => {
     const photoUrls = locations.map((l) => l.photoUrl).filter(Boolean) as string[];
     if (photoUrls.length === 0) {
       setPhotosAttempted(true);
       return;
     }
-    Promise.all(photoUrls.map(async (url) => [url, await fetchPhotoAsDataUrl(url)] as const)).then(
-      (results) => {
-        const map: Record<string, string> = {};
-        for (const [url, dataUrl] of results) {
-          if (dataUrl) map[url] = dataUrl;
-        }
-        setPhotoDataUrls(map);
-        setPhotosAttempted(true);
-      },
-    );
+    Promise.all(
+      photoUrls.map(async (url) => [url, await fetchPhotoAsDataUrl(url)] as const),
+    ).then((results) => {
+      const map: Record<string, string> = {};
+      for (const [url, dataUrl] of results) {
+        if (dataUrl) map[url] = dataUrl;
+      }
+      setPhotoDataUrls(map);
+      setPhotosAttempted(true);
+    });
   }, [locations]);
 
-  useEffect(() => {
-    photoDataUrlsRef.current = photoDataUrls;
-  }, [photoDataUrls]);
-
   const captureImage = useCallback(async (): Promise<File | null> => {
-    const el = captureRef.current;
-    if (!el) return null;
+    const map = mapRef.current;
+    if (!map) return null;
 
-    const photoImgs = Array.from(
-      el.querySelectorAll<HTMLImageElement>('img'),
-    ).filter((img) => {
-      const src = img.getAttribute('src') ?? '';
-      return src.startsWith('http') && src.includes('/photos/');
-    });
+    const size = map.getSize();
+    const W = size.x;
+    const H = size.y;
 
-    const restore: Array<() => void> = [];
-    await Promise.all(
-      photoImgs.map(async (img) => {
-        const src = img.src;
-        const dataUrl = photoDataUrlsRef.current[src] ?? await fetchPhotoAsDataUrl(src);
-        if (!dataUrl) return;
-        img.src = dataUrl;
-        restore.push(() => { img.src = src; });
-      }),
-    );
+    const canvas = document.createElement('canvas');
+    canvas.width = W * PIXEL_RATIO;
+    canvas.height = H * PIXEL_RATIO;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.scale(PIXEL_RATIO, PIXEL_RATIO);
 
-    if (restore.length > 0) {
-      await new Promise<void>((r) => requestAnimationFrame(() => r()));
-    }
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    const staticUrl =
+      `https://api.maptiler.com/maps/dataviz-dark/static/` +
+      `${center.lng.toFixed(6)},${center.lat.toFixed(6)},${zoom.toFixed(4)}/` +
+      `${W}x${H}@2x.png?key=${MAPTILER_API_KEY}`;
 
     try {
-      const png = await toPng(el, {
-        pixelRatio: PIXEL_RATIO,
-        skipFonts: true,
-        imagePlaceholder: PHOTO_PLACEHOLDER,
-        fetchRequestInit: {
-          cache: 'no-cache' as RequestCache,
-          mode: 'cors' as RequestMode,
-          credentials: 'omit' as RequestCredentials,
-        },
-      });
-      const blob = dataUrlToBlob(png);
-      return new File([blob], 'nosso-mapa-do-amor.png', { type: 'image/png' });
-    } finally {
-      restore.forEach((fn) => fn());
+      const mapImg = await loadImageFromUrl(staticUrl);
+      ctx.drawImage(mapImg, 0, 0, W, H);
+    } catch {
+      ctx.fillStyle = '#1E1C2A';
+      ctx.fillRect(0, 0, W, H);
     }
+
+    const pos = positionsRef.current;
+    if (pos.length > 1) {
+      ctx.save();
+      ctx.strokeStyle = '#E8775A';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 8]);
+      ctx.globalAlpha = 0.65;
+      ctx.beginPath();
+      pos.forEach(([lat, lng], i) => {
+        const pt = map.latLngToContainerPoint(L.latLng(lat, lng));
+        if (i === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    const locs = locationsRef.current;
+    const offsets = markerOffsetsRef.current;
+    for (let i = 0; i < locs.length; i++) {
+      const loc = locs[i];
+      const offset = offsets[i] ?? { x: 0, y: 0 };
+      const pt = map.latLngToContainerPoint(L.latLng(loc.latitude, loc.longitude));
+      const ix = pt.x - 37 + offset.x;
+      const iy = pt.y - 87 + offset.y;
+      const tilt = offset.x !== 0 ? Math.sign(offset.x) * 5 : 0;
+      const rotation = PIN_ROTATIONS[i % PIN_ROTATIONS.length] + tilt;
+      const photoUrl = loc.photoUrl ? photoDataUrlsRef.current[loc.photoUrl] : undefined;
+      await drawPolaroidOnCanvas(ctx, ix, iy, rotation, photoUrl, loc.title);
+    }
+
+    const topGrad = ctx.createLinearGradient(0, 0, 0, 112);
+    topGrad.addColorStop(0, 'rgba(30,28,42,0.6)');
+    topGrad.addColorStop(1, 'rgba(30,28,42,0)');
+    ctx.fillStyle = topGrad;
+    ctx.fillRect(0, 0, W, 112);
+
+    const bottomGrad = ctx.createLinearGradient(0, H, 0, H - 80);
+    bottomGrad.addColorStop(0, 'rgba(30,28,42,0.88)');
+    bottomGrad.addColorStop(1, 'rgba(30,28,42,0)');
+    ctx.fillStyle = bottomGrad;
+    ctx.fillRect(0, H - 80, W, 80);
+
+    drawHeartOnCanvas(ctx, W / 2, H - 35, 6, '#E8775A');
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = 'rgba(251,245,240,0.85)';
+    ctx.font = '600 10px system-ui, -apple-system, Arial, sans-serif';
+    fillTextCentered(ctx, 'OURLOVEMAP', W / 2, H - 19, 1.8);
+
+    ctx.fillStyle = 'rgba(251,245,240,0.65)';
+    ctx.font = 'italic 11px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(coupleNameRef.current, W / 2, H - 6);
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        if (!blob) { resolve(null); return; }
+        resolve(new File([blob], 'nosso-mapa-do-amor.png', { type: 'image/png' }));
+      }, 'image/png');
+    });
   }, []);
 
   useEffect(() => {
@@ -275,7 +424,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
         const file = await captureImage();
         if (file) setPrebuiltFile(file);
       } catch {
-        // silent — on-demand capture will run when user taps
+        // on-demand capture will run when user taps
       }
     }, CAPTURE_SETTLE_MS);
     return () => clearTimeout(timer);
@@ -313,7 +462,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
           await navigator.share({ files: [fileToShare], title: 'Nosso Mapa do Amor' });
           return;
         } catch {
-          // dismissed or failed — fall through to download
+          // dismissed — fall through to download
         }
       }
       triggerDownload(fileToShare);
@@ -410,6 +559,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
             ))}
             <FitBoundsOnLoad positions={positions} />
             <MarkerSpreader locations={locations} onOffsetsReady={setPixelOffsets} />
+            <MapRefCapture mapRef={mapRef} />
           </MapContainer>
         )}
 
