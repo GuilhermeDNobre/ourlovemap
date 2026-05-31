@@ -23,7 +23,6 @@ const ICON_H = 94;
 const ICON_PADDING = 8;
 const SPREAD_SETTLE_MS = 600;
 const CAPTURE_SETTLE_MS = 500;
-const PHOTO_PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 function resolveOverlaps(points: { x: number; y: number }[]): PixelOffset[] {
   const n = points.length;
