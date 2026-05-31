@@ -3,6 +3,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { MapPin, Check, QrCode } from 'lucide-react';
 import { Eyebrow } from '../ui/Eyebrow';
+import { useIsMobile } from '../../hooks/use-is-mobile';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -28,6 +29,7 @@ const STEPS = [
 ];
 
 export function HowItWorks() {
+  const isMobile = useIsMobile();
   const sectionRef = useRef<HTMLDivElement>(null);
   const icon1Ref = useRef<HTMLDivElement>(null);
   const icon2Ref = useRef<HTMLDivElement>(null);
@@ -41,6 +43,13 @@ export function HowItWorks() {
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
+
+    if (isMobile) {
+      [icon1Ref, icon2Ref, icon3Ref, text1Ref, text2Ref, text3Ref].forEach((ref) => {
+        if (ref.current) gsap.set(ref.current, { autoAlpha: 1, x: 0, scale: 1, clearProps: 'filter' });
+      });
+      return;
+    }
 
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({
@@ -104,11 +113,11 @@ export function HowItWorks() {
     }, section);
 
     return () => ctx.revert();
-  }, []);
+  }, [isMobile]);
 
   return (
     <section ref={sectionRef} className="relative">
-      <div className="h-dvh flex items-center justify-center bg-olm-bg-elevated">
+      <div className={`${isMobile ? 'py-20' : 'h-dvh'} flex items-center justify-center bg-olm-bg-elevated`}>
         <div className="max-w-[1440px] mx-auto px-6 md:px-12 w-full">
           <div className="text-center max-w-[640px] mx-auto mb-16">
             <Eyebrow>Como funciona</Eyebrow>
@@ -145,7 +154,7 @@ export function HowItWorks() {
                 )}
                 <div
                   ref={i === 0 ? icon1Ref : i === 1 ? icon2Ref : icon3Ref}
-                  style={{ opacity: 0 }}
+                  style={isMobile ? undefined : { opacity: 0 }}
                 >
                   <div className="w-14 h-14 rounded-[18px] bg-olm-primary-100 text-olm-primary flex items-center justify-center mb-[18px]">
                     <step.Icon size={22} strokeWidth={1.75} />
@@ -153,7 +162,7 @@ export function HowItWorks() {
                 </div>
                 <div
                   ref={i === 0 ? text1Ref : i === 1 ? text2Ref : text3Ref}
-                  style={{ opacity: 0 }}
+                  style={isMobile ? undefined : { opacity: 0 }}
                 >
                   <div className="font-serif text-[14px] text-olm-primary tracking-[0.04em]">
                     {step.n}
