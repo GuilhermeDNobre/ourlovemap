@@ -15,6 +15,7 @@ const VALID_PLANS = new Set<string>(['basic', 'premium']);
 const REQUIRED_FIELDS = ['couple_name', 'buyer_name', 'buyer_phone', 'email', 'plan', 'relationship_start_date'] as const;
 const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
 const YOUTUBE_URL_PATTERN = /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+const PHOTO_PATH_PATTERN = /^photos\/[a-f0-9]{24}\/[a-f0-9-]{36}\.(jpg|jpeg|png|webp)$/;
 
 interface ParsedLocationField {
   title?: string;
@@ -143,6 +144,31 @@ async function buildLocations(
   );
 }
 
+function registerProxyPhotoRoute(fastify: FastifyInstance): void {
+  fastify.get('/proxy-photo', async (request, reply) => {
+    const { path } = request.query as { path?: string };
+    if (!path || !PHOTO_PATH_PATTERN.test(path)) {
+      return reply.code(403).send({ error: 'Forbidden' });
+    }
+    const r2Url = `${process.env.CLOUDFLARE_R2_PUBLIC_URL}/${path}`;
+    let res: Response;
+    try {
+      res = await fetch(r2Url);
+    } catch {
+      return reply.code(502).send({ error: 'Failed to fetch image' });
+    }
+    if (!res.ok) {
+      return reply.code(404).send({ error: 'Photo not found' });
+    }
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const contentType = res.headers.get('content-type') ?? 'image/jpeg';
+    return reply
+      .header('Content-Type', contentType)
+      .header('Cache-Control', 'public, max-age=31536000, immutable')
+      .send(buffer);
+  });
+}
+
 function registerByTokenRoute(fastify: FastifyInstance): void {
   fastify.get('/maps/by-token', {
     schema: {
@@ -230,6 +256,7 @@ function registerByTokenRoute(fastify: FastifyInstance): void {
 }
 
 export default async function mapRoutes(fastify: FastifyInstance): Promise<void> {
+  registerProxyPhotoRoute(fastify);
   registerByTokenRoute(fastify);
   fastify.post('/maps', {
     schema: {

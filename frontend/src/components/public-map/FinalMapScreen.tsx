@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet
 import { toPng } from 'html-to-image';
 import { Heart } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
-import { MAPTILER_API_KEY } from '../../lib/client-env';
+import { MAPTILER_API_KEY, API_BASE_URL } from '../../lib/client-env';
 import { useIsMobile } from '../../hooks/use-is-mobile';
 import type { ApiLocation } from '../../types/map';
 
@@ -168,9 +168,11 @@ function triggerDownload(blob: Blob) {
   setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
-async function fetchPhotoAsDataUrl(url: string): Promise<string | null> {
+async function fetchPhotoAsDataUrl(photoUrl: string): Promise<string | null> {
   try {
-    const res = await fetch(url, { mode: 'cors', cache: 'force-cache', credentials: 'omit' });
+    const path = new URL(photoUrl).pathname.slice(1);
+    const proxyUrl = `${API_BASE_URL}/api/proxy-photo?path=${encodeURIComponent(path)}`;
+    const res = await fetch(proxyUrl);
     if (!res.ok) return null;
     const blob = await res.blob();
     return new Promise((resolve) => {
@@ -187,6 +189,7 @@ async function fetchPhotoAsDataUrl(url: string): Promise<string | null> {
 export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
   const isMobile = useIsMobile();
   const captureRef = useRef<HTMLDivElement>(null);
+  const photoDataUrlsRef = useRef<Record<string, string>>({});
   const [isCapturing, setIsCapturing] = useState(false);
   const [captureError, setCaptureError] = useState(false);
   const [prebuiltFile, setPrebuiltFile] = useState<File | null>(null);
@@ -212,23 +215,51 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
     );
   }, [locations]);
 
+  useEffect(() => {
+    photoDataUrlsRef.current = photoDataUrls;
+  }, [photoDataUrls]);
+
   const captureImage = useCallback(async (): Promise<File | null> => {
-    if (!captureRef.current) return null;
+    const el = captureRef.current;
+    if (!el) return null;
+
+    const photoImgs = Array.from(
+      el.querySelectorAll<HTMLImageElement>('img'),
+    ).filter((img) => {
+      const src = img.getAttribute('src') ?? '';
+      return src.startsWith('http') && src.includes('/photos/');
+    });
+
+    const restore: Array<() => void> = [];
+    await Promise.all(
+      photoImgs.map(async (img) => {
+        const src = img.src;
+        const dataUrl = photoDataUrlsRef.current[src] ?? await fetchPhotoAsDataUrl(src);
+        if (!dataUrl) return;
+        img.src = dataUrl;
+        restore.push(() => { img.src = src; });
+      }),
+    );
+
+    if (restore.length > 0) {
+      await new Promise<void>((r) => requestAnimationFrame(r));
+    }
+
     try {
-      const dataUrl = await toPng(captureRef.current, {
+      const png = await toPng(el, {
         pixelRatio: PIXEL_RATIO,
         skipFonts: true,
         imagePlaceholder: PHOTO_PLACEHOLDER,
         fetchRequestInit: {
-          cache: 'force-cache' as RequestCache,
+          cache: 'no-cache' as RequestCache,
           mode: 'cors' as RequestMode,
           credentials: 'omit' as RequestCredentials,
         },
       });
-      const blob = dataUrlToBlob(dataUrl);
+      const blob = dataUrlToBlob(png);
       return new File([blob], 'nosso-mapa-do-amor.png', { type: 'image/png' });
-    } catch {
-      return null;
+    } finally {
+      restore.forEach((fn) => fn());
     }
   }, []);
 
