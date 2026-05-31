@@ -337,20 +337,30 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
     if (!ctx) return null;
     ctx.scale(PIXEL_RATIO, PIXEL_RATIO);
 
-    const center = map.getCenter();
-    const zoom = map.getZoom();
-    const staticUrl =
-      `https://api.maptiler.com/maps/dataviz-dark/static/` +
-      `${center.lng.toFixed(6)},${center.lat.toFixed(6)},${zoom.toFixed(4)}/` +
-      `${W}x${H}@2x.png?key=${MAPTILER_API_KEY}`;
+    ctx.fillStyle = '#1E1C2A';
+    ctx.fillRect(0, 0, W, H);
 
-    try {
-      const mapImg = await loadImageFromUrl(staticUrl);
-      ctx.drawImage(mapImg, 0, 0, W, H);
-    } catch {
-      ctx.fillStyle = '#1E1C2A';
-      ctx.fillRect(0, 0, W, H);
+    const mapContainer = map.getContainer();
+    const containerRect = mapContainer.getBoundingClientRect();
+    const tileImgs = Array.from(
+      mapContainer.querySelectorAll<HTMLImageElement>('img.leaflet-tile'),
+    );
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, H);
+    ctx.clip();
+    for (const img of tileImgs) {
+      if (!img.complete || img.naturalWidth === 0) continue;
+      const rect = img.getBoundingClientRect();
+      ctx.drawImage(
+        img,
+        rect.left - containerRect.left,
+        rect.top - containerRect.top,
+        rect.width,
+        rect.height,
+      );
     }
+    ctx.restore();
 
     const pos = positionsRef.current;
     if (pos.length > 1) {
@@ -409,10 +419,14 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
     ctx.fillText(coupleNameRef.current, W / 2, H - 6);
 
     return new Promise((resolve) => {
-      canvas.toBlob((blob) => {
-        if (!blob) { resolve(null); return; }
-        resolve(new File([blob], 'nosso-mapa-do-amor.png', { type: 'image/png' }));
-      }, 'image/png');
+      try {
+        canvas.toBlob((blob) => {
+          if (!blob) { resolve(null); return; }
+          resolve(new File([blob], 'nosso-mapa-do-amor.png', { type: 'image/png' }));
+        }, 'image/png');
+      } catch {
+        resolve(null);
+      }
     });
   }, []);
 
