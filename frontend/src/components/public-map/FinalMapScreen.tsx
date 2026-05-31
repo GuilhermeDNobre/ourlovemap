@@ -2,7 +2,6 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import L from 'leaflet';
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import { toPng } from 'html-to-image';
-import { Heart } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import { MAPTILER_API_KEY, API_BASE_URL } from '../../lib/client-env';
 import { useIsMobile } from '../../hooks/use-is-mobile';
@@ -24,7 +23,7 @@ const ICON_W = 74;
 const ICON_H = 94;
 const ICON_PADDING = 8;
 const SPREAD_SETTLE_MS = 600;
-const PREGENERATE_DELAY_MS = 1500;
+const CAPTURE_SETTLE_MS = 500;
 const PHOTO_PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 function resolveOverlaps(points: { x: number; y: number }[]): PixelOffset[] {
@@ -196,6 +195,8 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
   const [showInstagramTip, setShowInstagramTip] = useState(false);
   const [pixelOffsets, setPixelOffsets] = useState<PixelOffset[] | null>(null);
   const [photoDataUrls, setPhotoDataUrls] = useState<Record<string, string>>({});
+  const [tilesLoaded, setTilesLoaded] = useState(false);
+  const [photosAttempted, setPhotosAttempted] = useState(false);
 
   const positions: [number, number][] = locations.map((l) => [l.latitude, l.longitude]);
   const initialCenter: [number, number] = positions.length > 0 ? positions[0] : [-14.235, -51.925];
@@ -203,7 +204,10 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
 
   useEffect(() => {
     const photoUrls = locations.map((l) => l.photoUrl).filter(Boolean) as string[];
-    if (photoUrls.length === 0) return;
+    if (photoUrls.length === 0) {
+      setPhotosAttempted(true);
+      return;
+    }
     Promise.all(photoUrls.map(async (url) => [url, await fetchPhotoAsDataUrl(url)] as const)).then(
       (results) => {
         const map: Record<string, string> = {};
@@ -211,6 +215,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
           if (dataUrl) map[url] = dataUrl;
         }
         setPhotoDataUrls(map);
+        setPhotosAttempted(true);
       },
     );
   }, [locations]);
@@ -264,13 +269,17 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
   }, []);
 
   useEffect(() => {
-    if (pixelOffsets === null) return;
+    if (pixelOffsets === null || !tilesLoaded || !photosAttempted) return;
     const timer = setTimeout(async () => {
-      const file = await captureImage();
-      if (file) setPrebuiltFile(file);
-    }, PREGENERATE_DELAY_MS);
+      try {
+        const file = await captureImage();
+        if (file) setPrebuiltFile(file);
+      } catch {
+        // silent — on-demand capture will run when user taps
+      }
+    }, CAPTURE_SETTLE_MS);
     return () => clearTimeout(timer);
-  }, [pixelOffsets, captureImage]);
+  }, [pixelOffsets, captureImage, tilesLoaded, photosAttempted]);
 
   useEffect(() => {
     if (!showInstagramTip) return;
@@ -381,6 +390,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
               zoomOffset={-1}
               maxZoom={18}
               crossOrigin="anonymous"
+              eventHandlers={{ load: () => setTilesLoaded(true) }}
             />
             <Polyline
               positions={positions}
@@ -410,18 +420,43 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
         />
 
         <div
-          className="absolute bottom-0 left-0 right-0 flex flex-col items-center pb-5 pt-14 pointer-events-none"
-          aria-hidden="true"
-          style={{ background: 'linear-gradient(to top, rgba(30,28,42,0.88) 0%, transparent 100%)' }}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            paddingBottom: '20px',
+            paddingTop: '56px',
+            pointerEvents: 'none',
+            background: 'linear-gradient(to top, rgba(30,28,42,0.88) 0%, transparent 100%)',
+          }}
         >
-          <Heart size={12} fill="#E8775A" stroke="none" aria-hidden="true" />
-          <p
-            className="text-[10px] tracking-[0.18em] uppercase font-semibold mt-1"
-            style={{ color: 'rgba(251,245,240,0.7)' }}
-          >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#E8775A" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
+          <p style={{
+            fontFamily: 'system-ui, -apple-system, Arial, Helvetica, sans-serif',
+            fontSize: '10px',
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            fontWeight: 600,
+            marginTop: '4px',
+            marginBottom: 0,
+            color: 'rgba(251,245,240,0.85)',
+          }}>
             ourlovemap
           </p>
-          <p className="font-serif italic text-[11px] mt-0.5" style={{ color: 'rgba(251,245,240,0.45)' }}>
+          <p style={{
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            fontStyle: 'italic',
+            fontSize: '11px',
+            marginTop: '2px',
+            marginBottom: 0,
+            color: 'rgba(251,245,240,0.65)',
+          }}>
             {coupleName}
           </p>
         </div>
