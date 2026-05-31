@@ -242,7 +242,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
     );
 
     if (restore.length > 0) {
-      await new Promise<void>((r) => requestAnimationFrame(r));
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
     }
 
     try {
