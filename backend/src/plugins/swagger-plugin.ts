@@ -73,12 +73,33 @@ const swaggerPlugin: FastifyPluginAsync = async (fastify) => {
     },
   });
 
-  await fastify.register(swaggerUi, {
-    routePrefix: '/docs',
-    uiConfig: {
-      docExpansion: 'list',
-      deepLinking: true,
-    },
+  fastify.register(async (scoped) => {
+    scoped.addHook('onRequest', async (_request, reply) => {
+      const docsPass = process.env.DOCS_PASS;
+      if (!docsPass) {
+        return reply.code(404).send();
+      }
+      const auth = _request.headers.authorization;
+      if (!auth?.startsWith('Basic ')) {
+        reply.header('WWW-Authenticate', 'Basic realm="OLM Docs"');
+        return reply.code(401).send('Unauthorized');
+      }
+      const decoded = Buffer.from(auth.slice(6), 'base64').toString('utf-8');
+      const colonIdx = decoded.indexOf(':');
+      const pass = decoded.slice(colonIdx + 1);
+      if (pass !== docsPass) {
+        reply.header('WWW-Authenticate', 'Basic realm="OLM Docs"');
+        return reply.code(401).send('Unauthorized');
+      }
+    });
+
+    await scoped.register(swaggerUi, {
+      routePrefix: '/docs',
+      uiConfig: {
+        docExpansion: 'list',
+        deepLinking: true,
+      },
+    });
   });
 };
 
