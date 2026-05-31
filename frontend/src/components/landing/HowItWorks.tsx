@@ -116,7 +116,7 @@ export function HowItWorks() {
   }, [isMobile]);
 
   return (
-    <section ref={sectionRef} className="relative">
+    <section id="how" ref={sectionRef} className="relative">
       <div className={`${isMobile ? 'py-20' : 'h-dvh'} flex items-center justify-center bg-olm-bg-elevated`}>
         <div className="max-w-[1440px] mx-auto px-6 md:px-12 w-full">
           <div className="text-center max-w-[640px] mx-auto mb-16">
