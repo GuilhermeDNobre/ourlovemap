@@ -58,6 +58,7 @@ export interface AbacatePayBillingProduct {
 
 export interface AbacatePayBillingData {
   id: string;
+  externalId?: string;
   products?: AbacatePayBillingProduct[];
 }
 
@@ -122,9 +123,10 @@ export async function createCardPayment(params: CreateCardPaymentParams): Promis
       {
         frequency: 'ONE_TIME',
         methods: ['CARD'],
+        externalId: params.mapId,
         products: [
           {
-            externalId: params.mapId,
+            externalId: params.plan,
             name: `Our Love Map — plano ${params.plan}`,
             description: `Mapa interativo para o casal — plano ${params.plan}`,
             quantity: 1,
@@ -172,13 +174,13 @@ async function resolveMapFromEvent(
       if (!map) log.warn({ billingId }, 'Map not found for webhook event');
       return map;
     }
-    const mapId = billing?.products?.[0]?.externalId;
+    const mapId = billing?.externalId;
     if (!mapId) {
-      log.warn({ event: event.event, data: event.data }, 'Webhook billing.paid has no billing id or product externalId');
+      log.warn({ event: event.event, data: event.data }, 'Webhook billing.paid has no billing id or externalId');
       return null;
     }
     const map = await getMapById(mapId);
-    if (!map) log.warn({ mapId }, 'Map not found for webhook event via product externalId');
+    if (!map) log.warn({ mapId }, 'Map not found for webhook event via billing externalId');
     return map;
   }
   log.warn({ event: event.event, data: event.data }, 'Webhook event has no payment id');
