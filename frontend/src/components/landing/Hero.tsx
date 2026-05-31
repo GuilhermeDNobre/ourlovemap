@@ -91,7 +91,7 @@ export function Hero() {
     <section
       id="home"
       ref={sectionRef}
-      className="bg-olm-bg border-b h-svh border-olm-surface relative overflow-hidden"
+      className="bg-olm-bg border-b h-dvh border-olm-surface relative overflow-hidden"
     >
       <div
         ref={glowRef}
