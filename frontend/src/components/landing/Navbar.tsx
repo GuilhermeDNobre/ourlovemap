@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Menu, Moon, Sun, X } from 'lucide-react';
+import { ArrowRight, Menu, X } from 'lucide-react';
 import { Button } from '../ui/Button';
-import logoSrc from '../../assets/logo.svg';
+import { ThemeToggle } from '../ui/ThemeToggle';
+import { LogoMark } from '../ui/LogoMark';
 
 const NAV_LINKS = [
   { label: 'Home', href: '#home' },
@@ -12,20 +13,8 @@ const NAV_LINKS = [
   { label: 'FAQ', href: '#faq' },
 ];
 
-function getInitialTheme(): 'light' | 'dark' {
-  if (typeof window === 'undefined') return 'light';
-  const stored = localStorage.getItem('olm-theme');
-  if (stored === 'dark' || stored === 'light') return stored;
-  try {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  } catch {
-    return 'light';
-  }
-}
-
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>(getInitialTheme);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('');
   const navigate = useNavigate();
@@ -55,11 +44,6 @@ export function Navbar() {
       clearTimeout(scrollTimer.current);
     };
   }, []);
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('olm-theme', theme);
-  }, [theme]);
 
   useEffect(() => {
     if (mobileOpen) {
@@ -103,8 +87,6 @@ export function Navbar() {
     };
   }, []);
 
-  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
-
   const linkClass = (href: string) => {
     const active = activeSection === href.slice(1);
     return [
@@ -133,7 +115,7 @@ export function Navbar() {
           className="inline-flex items-center gap-2.5 no-underline"
           aria-label="Our Love Map"
         >
-          <img src={logoSrc} alt="" width={22} height={22} />
+          <LogoMark size={22} />
           <span className="font-serif text-[19px] leading-none text-fg-1">
             Our Love <em className="text-olm-primary not-italic">Map</em>
           </span>
@@ -156,27 +138,7 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="relative w-9 h-9 rounded-full flex items-center justify-center text-fg-3 hover:text-fg-1 transition-colors"
-            aria-label={theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
-          >
-            <span
-              className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${
-                theme === 'dark' ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 rotate-90 scale-50'
-              }`}
-            >
-              <Sun size={17} />
-            </span>
-            <span
-              className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${
-                theme === 'light' ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-50'
-              }`}
-            >
-              <Moon size={17} />
-            </span>
-          </button>
+          <ThemeToggle />
 
           <Button
             className="hidden sm:inline-flex"
