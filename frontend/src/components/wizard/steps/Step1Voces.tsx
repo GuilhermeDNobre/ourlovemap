@@ -41,7 +41,7 @@ export function Step1Voces({ onNext }: Step1VocesProps) {
     onNext();
   };
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
       <Controller
         name="names"
         control={control}
@@ -126,8 +126,8 @@ export function Step1Voces({ onNext }: Step1VocesProps) {
           </Field>
         )}
       />
-      <div className="flex justify-end pt-2">
-        <Button type="submit" variant="primary" size="lg">
+      <div className="flex justify-end pt-4">
+        <Button type="submit" variant="primary" size="lg" className="w-full sm:w-auto justify-center">
           Continuar
         </Button>
       </div>
