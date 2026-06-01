@@ -44,7 +44,7 @@ export function Step4Envio({ onBack }: Step4EnvioProps) {
     : null;
 
   return (
-    <form onSubmit={handleSubmit(onFormSubmit)} className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit(onFormSubmit)} className="flex flex-col gap-6">
       <div
         className="rounded-xl p-4 text-sm text-olm-title"
         style={{
@@ -88,7 +88,7 @@ export function Step4Envio({ onBack }: Step4EnvioProps) {
           />
         )}
       />
-      <div className="rounded-xl border border-olm-surface bg-white p-4 flex flex-col gap-2 text-sm">
+      <div className="rounded-xl border border-olm-surface bg-olm-bg-elevated p-4 flex flex-col gap-2 text-sm">
         <p className="font-semibold text-olm-title mb-1">Resumo do pedido</p>
         <div className="flex justify-between text-fg-2">
           <span>Casal</span>
@@ -109,19 +109,19 @@ export function Step4Envio({ onBack }: Step4EnvioProps) {
       </div>
       <div className="flex flex-col gap-3">
         <p className="text-xs font-semibold text-fg-1">Selecione seu plano</p>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             type="button"
             onClick={() => setPlan('basic')}
             className={[
               'flex-1 rounded-xl border p-3 text-sm text-left transition-colors',
               plan === 'basic'
-                ? 'border-olm-primary bg-olm-primary/5 text-olm-title'
+                ? 'border-olm-primary bg-olm-primary/10 text-olm-title'
                 : 'border-olm-surface text-fg-2 hover:border-olm-primary/50',
             ].join(' ')}
           >
             <div className="font-semibold">Basic</div>
-            <div className="text-xs mt-0.5 text-fg-3">Até 3 lugares · R$19,90</div>
+            <div className="text-xs mt-0.5 text-fg-2">Até 3 lugares · R$19,90</div>
           </button>
           <button
             type="button"
@@ -129,12 +129,12 @@ export function Step4Envio({ onBack }: Step4EnvioProps) {
             className={[
               'flex-1 rounded-xl border p-3 text-sm text-left transition-colors',
               plan === 'premium'
-                ? 'border-olm-accent bg-olm-accent/5 text-olm-title'
+                ? 'border-olm-accent bg-olm-accent/10 text-olm-title'
                 : 'border-olm-surface text-fg-2 hover:border-olm-accent/50',
             ].join(' ')}
           >
             <div className="font-semibold">Premium</div>
-            <div className="text-xs mt-0.5 text-fg-3">Até 7 lugares · R$29,90</div>
+            <div className="text-xs mt-0.5 text-fg-2">Até 7 lugares · R$29,90</div>
           </button>
         </div>
       </div>
@@ -143,8 +143,8 @@ export function Step4Envio({ onBack }: Step4EnvioProps) {
           {backendError}
         </p>
       )}
-      <div className="flex justify-between pt-2">
-        <Button variant="ghost" size="md" onClick={onBack} type="button">
+      <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-between pt-4">
+        <Button variant="ghost" size="md" onClick={onBack} type="button" className="w-full sm:w-auto justify-center">
           Voltar
         </Button>
         <Button
@@ -152,8 +152,14 @@ export function Step4Envio({ onBack }: Step4EnvioProps) {
           variant="primary"
           size="lg"
           disabled={!canFinalize || createMap.isPending}
+          className="w-full sm:w-auto justify-center"
         >
-          {createMap.isPending ? 'Enviando...' : 'Finalizar compra'}
+          {createMap.isPending ? (
+            <span className="relative inline-flex items-center overflow-hidden">
+              <span className="absolute inset-0 -translate-x-full animate-[olm-loading_1.2s_ease-in-out_infinite] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.28),transparent)]" />
+              <span className="relative">Enviando pedido...</span>
+            </span>
+          ) : 'Finalizar compra'}
         </Button>
       </div>
     </form>

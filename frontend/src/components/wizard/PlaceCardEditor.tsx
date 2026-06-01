@@ -80,19 +80,19 @@ export function PlaceCardEditor({
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-[16px] border border-olm-surface bg-white p-5"
+      className="rounded-[16px] border border-olm-surface bg-olm-bg-elevated p-2.5 sm:p-5"
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2 sm:gap-3">
         <button
           type="button"
           {...attributes}
           {...listeners}
-          className="mt-1 text-fg-3 hover:text-fg-2 cursor-grab active:cursor-grabbing"
+          className="mt-0.5 sm:mt-1 text-fg-2 hover:text-fg-1 cursor-grab active:cursor-grabbing"
           aria-label="Arrastar para reordenar"
         >
-          <GripVertical size={18} />
+          <GripVertical size={16} />
         </button>
-        <div className="flex-1 flex flex-col gap-4">
+        <div className="flex-1 flex flex-col gap-3 sm:gap-4">
           <div className="flex items-center justify-between">
             <span className="w-6 h-6 rounded-full bg-olm-primary text-white text-xs font-bold flex items-center justify-center">
               {index + 1}
@@ -101,7 +101,7 @@ export function PlaceCardEditor({
               <button
                 type="button"
                 onClick={onRemove}
-                className="text-fg-3 hover:text-red-500 transition-colors"
+                className="text-fg-2 hover:text-red-500 transition-colors"
                 aria-label="Remover lugar"
               >
                 <Trash2 size={16} />
@@ -164,7 +164,7 @@ export function PlaceCardEditor({
                   'flex items-center gap-2 px-4 py-2.5 rounded-lg border border-dashed text-sm transition-colors w-full',
                   isDragOver
                     ? 'border-olm-primary bg-olm-primary-100 text-olm-primary'
-                    : 'border-olm-surface text-fg-3 hover:border-olm-primary hover:text-olm-primary',
+                    : 'border-olm-surface text-fg-2 hover:border-olm-primary hover:text-olm-primary',
                 ].join(' ')}
               >
                 <ImagePlus size={16} />

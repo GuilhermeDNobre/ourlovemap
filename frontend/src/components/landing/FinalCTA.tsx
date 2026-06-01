@@ -12,7 +12,7 @@ export function FinalCTA() {
   return (
     <section
       className="border-b border-[rgba(251,245,240,0.08)] py-24 md:py-28 relative overflow-hidden"
-      style={{ background: 'linear-gradient(180deg, var(--olm-title), var(--olm-dark))' }}
+      style={{ background: 'linear-gradient(180deg, var(--olm-dark-800), var(--olm-dark))' }}
     >
       <svg
         viewBox="0 0 78 78"
@@ -73,13 +73,13 @@ export function FinalCTA() {
         >
           Crie o <em className="text-olm-primary">mapa do amor</em> de vocês.
         </h2>
-        <p className="text-[18px] text-[rgba(251,245,240,0.7)] leading-[1.5] mx-auto mb-9 max-w-[480px]">
+        <p className="text-[18px] text-dfg-2 leading-[1.5] mx-auto mb-9 max-w-[480px]">
           Alguns minutos agora. Uma memória que vocês vão querer ver pra sempre.
         </p>
         <Button size="lg" onClick={() => navigate('/criar')}>
           Começar agora <ArrowRight size={16} strokeWidth={1.75} />
         </Button>
-        <div className="mt-[18px] text-xs text-[rgba(251,245,240,0.5)] tracking-[0.08em]">
+        <div className="mt-[18px] text-xs text-dfg-3 tracking-[0.08em]">
           PAGAMENTO ÚNICO · SEM ASSINATURA
         </div>
       </div>

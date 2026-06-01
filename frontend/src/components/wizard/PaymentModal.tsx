@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { CheckCircle, Copy, CreditCard, RefreshCw } from 'lucide-react';
+import { Copy, CreditCard, RefreshCw } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -212,10 +212,33 @@ export function PaymentModal({ isOpen, onClose, mapId }: PaymentModalProps) {
       )}
 
       {view === 'success' && (
-        <div className="flex flex-col items-center gap-4 py-6 text-center">
-          <CheckCircle size={48} className="text-green-500" />
-          <h3 className="font-semibold text-olm-title text-base">Pagamento confirmado!</h3>
-          <p className="text-sm text-fg-2">
+        <div className="payment-success-panel flex flex-col items-center gap-4 py-6 text-center rounded-xl border border-olm-surface bg-olm-bg p-5">
+          <svg
+            viewBox="0 0 64 64"
+            aria-hidden="true"
+            className="w-14 h-14 payment-success-svg"
+          >
+            <circle
+              cx="32"
+              cy="32"
+              r="24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              className="payment-success-ring"
+            />
+            <path
+              d="M20 33 L29 42 L45 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="payment-success-check"
+            />
+          </svg>
+          <h3 className="payment-success-title font-semibold text-base">Pagamento confirmado!</h3>
+          <p className="payment-success-copy text-sm">
             Seu QR Code está a caminho do seu email. Guarde-o com carinho.
           </p>
           <Button variant="primary" size="md" onClick={onClose}>
@@ -236,6 +259,51 @@ export function PaymentModal({ isOpen, onClose, mapId }: PaymentModalProps) {
           </Button>
         </div>
       )}
+
+      <style>{`
+        .payment-success-panel { color: #2E2A4A; }
+        .payment-success-title { color: #2E2A4A; }
+        .payment-success-copy { color: #3F3A5A; }
+        .payment-success-svg { color: #22c55e; }
+        .payment-success-ring {
+          stroke-dasharray: 151;
+          stroke-dashoffset: 151;
+          animation: payment-ring-draw 0.45s cubic-bezier(0.4,0,0.2,1) forwards;
+        }
+        .payment-success-check {
+          stroke-dasharray: 34;
+          stroke-dashoffset: 34;
+          animation: payment-check-draw 0.32s cubic-bezier(0.4,0,0.2,1) 0.22s forwards;
+        }
+        @keyframes payment-ring-draw {
+          from { stroke-dashoffset: 151; opacity: 0.8; transform: scale(0.92); transform-origin: center; }
+          to { stroke-dashoffset: 0; opacity: 1; transform: scale(1); transform-origin: center; }
+        }
+        @keyframes payment-check-draw {
+          from { stroke-dashoffset: 34; opacity: 0; }
+          to { stroke-dashoffset: 0; opacity: 1; }
+        }
+        [data-theme="dark"] .payment-success-panel,
+        :root:not([data-theme="light"]) .payment-success-panel {
+          background: #1F1B24;
+          border-color: #555063;
+          color: #F5F1FA;
+        }
+        [data-theme="dark"] .payment-success-title,
+        [data-theme="dark"] .payment-success-copy,
+        :root:not([data-theme="light"]) .payment-success-title,
+        :root:not([data-theme="light"]) .payment-success-copy {
+          color: #F5F1FA !important;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .payment-success-ring,
+          .payment-success-check {
+            animation: none !important;
+            stroke-dashoffset: 0;
+            opacity: 1;
+          }
+        }
+      `}</style>
     </Modal>
   );
 }
