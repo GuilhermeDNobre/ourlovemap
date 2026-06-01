@@ -47,7 +47,6 @@ interface PlaceDetailsResponse {
 async function fetchPredictions(input: string, bias: LocationBias | null): Promise<Prediction[]> {
   const body: Record<string, unknown> = {
     input,
-    includedRegionCodes: ['br'],
     languageCode: 'pt-BR',
   };
   if (bias) {
