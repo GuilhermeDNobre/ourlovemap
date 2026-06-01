@@ -11,54 +11,107 @@ interface FinalMapScreenProps {
   coupleName: string;
 }
 
-interface PixelOffset {
-  x: number;
-  y: number;
+interface ClusterGroup {
+  position: [number, number];
+  locations: ApiLocation[];
+  side: 'center' | 'left' | 'right';
+  index: number;
 }
 
-const PIN_ROTATIONS = [-4, 3, -2, 5, -3, 4];
 const PIXEL_RATIO = 2;
 const ICON_W = 74;
 const ICON_H = 94;
 const ICON_PADDING = 8;
 const SPREAD_SETTLE_MS = 600;
 const CAPTURE_SETTLE_MS = 500;
+const PIN_SCALE_SAME_COUNTRY = 0.8;
+const PIN_SCALE_MIXED_COUNTRIES = 0.5;
+const STACK_TILT_ANGLE = 4;
+const STACK_STEP_RATIO = 1.05;
 
-function resolveOverlaps(points: { x: number; y: number }[]): PixelOffset[] {
-  const n = points.length;
-  const offsets: PixelOffset[] = Array.from({ length: n }, () => ({ x: 0, y: 0 }));
-  if (n < 2) return offsets;
-  const fullW = ICON_W + ICON_PADDING;
-  const fullH = ICON_H + ICON_PADDING;
-  for (let pass = 0; pass < 20; pass++) {
-    let anyOverlap = false;
-    for (let i = 0; i < n; i++) {
-      for (let j = i + 1; j < n; j++) {
-        const ax = points[i].x + offsets[i].x;
-        const ay = points[i].y + offsets[i].y;
-        const bx = points[j].x + offsets[j].x;
-        const by = points[j].y + offsets[j].y;
-        const overlapX = fullW - Math.abs(bx - ax);
-        const overlapY = fullH - Math.abs(by - ay);
-        if (overlapX > 0 && overlapY > 0) {
-          anyOverlap = true;
-          if (overlapX <= overlapY) {
-            const push = overlapX / 2 + 1;
-            const sign = (bx - ax) >= 0 ? 1 : -1;
-            offsets[i].x -= sign * push;
-            offsets[j].x += sign * push;
-          } else {
-            const push = overlapY / 2 + 1;
-            const sign = (by - ay) >= 0 ? 1 : -1;
-            offsets[i].y -= sign * push;
-            offsets[j].y += sign * push;
-          }
+function getStackTilt(clusterIndex: number, posInStack: number): number {
+  const startLeft = clusterIndex % 2 === 0;
+  const isLeft = posInStack % 2 === 0;
+  return (startLeft === isLeft ? -1 : 1) * STACK_TILT_ANGLE;
+}
+
+function extractCountry(address: string | null | undefined): string | null {
+  if (!address) return null;
+  const parts = address.split(',');
+  const country = parts[parts.length - 1].trim().toLowerCase();
+  return country || null;
+}
+
+function computeIsSameCountry(locations: ApiLocation[]): boolean {
+  const countries = locations
+    .map(loc => extractCountry(loc.address))
+    .filter((c): c is string => c !== null);
+  if (countries.length === 0) return true;
+  return new Set(countries).size === 1;
+}
+
+function computeClusters(
+  locations: ApiLocation[],
+  pixelPoints: { x: number; y: number }[],
+  scale: number,
+): ClusterGroup[] {
+  const n = locations.length;
+  const fullW = Math.round(ICON_W * scale) + ICON_PADDING;
+  const fullH = Math.round(ICON_H * scale) + ICON_PADDING;
+  const groupOf = new Array<number>(n).fill(-1);
+  const groups: number[][] = [];
+
+  for (let i = 0; i < n; i++) {
+    if (groupOf[i] >= 0) continue;
+    const gIdx = groups.length;
+    groups.push([i]);
+    groupOf[i] = gIdx;
+    const queue = [i];
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      for (let j = 0; j < n; j++) {
+        if (groupOf[j] >= 0) continue;
+        const dx = Math.abs(pixelPoints[j].x - pixelPoints[curr].x);
+        const dy = Math.abs(pixelPoints[j].y - pixelPoints[curr].y);
+        if (dx < fullW && dy < fullH) {
+          groups[gIdx].push(j);
+          groupOf[j] = gIdx;
+          queue.push(j);
         }
       }
     }
-    if (!anyOverlap) break;
   }
-  return offsets;
+
+  const result: ClusterGroup[] = [];
+  for (const group of groups) {
+    const groupLocs = group.map(i => locations[i]);
+    if (groupLocs.length <= 3) {
+      const idx = result.length;
+      result.push({
+        position: [groupLocs[0].latitude, groupLocs[0].longitude],
+        locations: groupLocs,
+        side: groupLocs.length === 1 ? 'center' : (idx % 2 === 0 ? 'left' : 'right'),
+        index: idx,
+      });
+    } else {
+      const first = groupLocs.slice(0, 3);
+      const second = groupLocs.slice(3, 6);
+      result.push({
+        position: [first[0].latitude, first[0].longitude],
+        locations: first,
+        side: 'left',
+        index: result.length,
+      });
+      result.push({
+        position: [first[0].latitude, first[0].longitude],
+        locations: second,
+        side: 'right',
+        index: result.length,
+      });
+    }
+  }
+
+  return result;
 }
 
 function triggerDownload(blob: Blob) {
@@ -137,18 +190,23 @@ function drawHeartOnCanvas(
   ctx.restore();
 }
 
-async function drawPolaroidOnCanvas(
+async function drawPolaroidFrame(
   ctx: CanvasRenderingContext2D,
   ix: number,
   iy: number,
   rotationDeg: number,
   photoUrl: string | undefined,
   title: string,
+  scale: number,
 ): Promise<void> {
-  const FW = 72;
-  const FH = 82;
+  const FW = Math.round(72 * scale);
+  const FH = Math.round(82 * scale);
+  const photoSize = FW - 8;
+  const photoPad = 4;
   const pivotX = ix + FW / 2;
   const pivotY = iy + FH;
+  const photoMidX = ix + photoPad + photoSize / 2;
+  const photoMidY = iy + photoPad + photoSize / 2;
 
   ctx.save();
   ctx.translate(pivotX, pivotY);
@@ -156,7 +214,7 @@ async function drawPolaroidOnCanvas(
   ctx.translate(-pivotX, -pivotY);
 
   ctx.shadowColor = 'rgba(0,0,0,0.55)';
-  ctx.shadowBlur = 20;
+  ctx.shadowBlur = Math.round(20 * scale);
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 6;
   ctx.fillStyle = '#ffffff';
@@ -169,66 +227,143 @@ async function drawPolaroidOnCanvas(
       const img = await loadImageFromUrl(photoUrl);
       ctx.save();
       ctx.beginPath();
-      ctx.rect(ix + 4, iy + 4, 64, 64);
+      ctx.rect(ix + photoPad, iy + photoPad, photoSize, photoSize);
       ctx.clip();
-      ctx.drawImage(img, ix + 4, iy + 4, 64, 64);
+      ctx.drawImage(img, ix + photoPad, iy + photoPad, photoSize, photoSize);
       ctx.restore();
     } catch {
-      const grad = ctx.createLinearGradient(ix + 4, iy + 4, ix + 68, iy + 68);
+      const grad = ctx.createLinearGradient(
+        ix + photoPad, iy + photoPad,
+        ix + photoPad + photoSize, iy + photoPad + photoSize,
+      );
       grad.addColorStop(0, 'rgba(232,119,90,0.25)');
       grad.addColorStop(1, 'rgba(37,33,42,0.5)');
       ctx.fillStyle = grad;
-      ctx.fillRect(ix + 4, iy + 4, 64, 64);
+      ctx.fillRect(ix + photoPad, iy + photoPad, photoSize, photoSize);
     }
   } else {
-    const grad = ctx.createLinearGradient(ix + 4, iy + 4, ix + 68, iy + 68);
+    const grad = ctx.createLinearGradient(
+      ix + photoPad, iy + photoPad,
+      ix + photoPad + photoSize, iy + photoPad + photoSize,
+    );
     grad.addColorStop(0, 'rgba(232,119,90,0.25)');
     grad.addColorStop(1, 'rgba(37,33,42,0.5)');
     ctx.fillStyle = grad;
-    ctx.fillRect(ix + 4, iy + 4, 64, 64);
+    ctx.fillRect(ix + photoPad, iy + photoPad, photoSize, photoSize);
     ctx.fillStyle = 'rgba(251,245,240,0.5)';
-    ctx.font = '9px Georgia, serif';
+    ctx.font = `${Math.round(9 * scale)}px Georgia, serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(title.slice(0, 14), ix + 36, iy + 36);
+    ctx.fillText(title.slice(0, 14), photoMidX, photoMidY);
   }
 
   ctx.restore();
+}
 
+function drawPinDot(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  scale: number,
+): void {
+  const dotRadius = 4.5 * scale;
   ctx.fillStyle = '#E8775A';
   ctx.shadowColor = 'rgba(232,119,90,0.85)';
   ctx.shadowBlur = 8;
   ctx.beginPath();
-  ctx.arc(pivotX, iy + FH + 3 + 4.5, 4.5, 0, Math.PI * 2);
+  ctx.arc(cx, cy + dotRadius, dotRadius, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
 }
 
-function createPolaroidIcon(
-  location: ApiLocation,
-  rotation: number,
-  offset: PixelOffset,
-  resolvedPhotoSrc?: string,
+async function drawStackOnCanvas(
+  ctx: CanvasRenderingContext2D,
+  ix: number,
+  iy: number,
+  locations: ApiLocation[],
+  clusterIndex: number,
+  side: 'center' | 'left' | 'right',
+  scale: number,
+  photoDataUrls: Record<string, string>,
+): Promise<void> {
+  const FW = Math.round(72 * scale);
+  const FH = Math.round(82 * scale);
+  const stepY = Math.round(FH * STACK_STEP_RATIO);
+  const n = locations.length;
+  const sideMargin = Math.round(8 * scale);
+  const sideGap = side !== 'center' ? Math.round(16 * scale) : 0;
+  const iconW = FW + 2 * sideMargin + sideGap;
+  const dotRadius = 4.5 * scale;
+  const photoLeft = side === 'right' ? sideMargin + sideGap : sideMargin;
+  const pinCx = side === 'center'
+    ? ix + Math.round(iconW / 2)
+    : side === 'left'
+      ? ix + sideMargin + FW + sideGap
+      : ix + sideMargin;
+
+  for (let j = n - 1; j >= 0; j--) {
+    const loc = locations[j];
+    const tilt = getStackTilt(clusterIndex, j);
+    const photoUrl = loc.photoUrl ? photoDataUrls[loc.photoUrl] : undefined;
+    await drawPolaroidFrame(ctx, ix + photoLeft, iy + j * stepY, tilt, photoUrl, loc.title, scale);
+  }
+
+  const pinDotTopY = n === 1 ? iy + FH + 3 : iy + stepY - dotRadius;
+  drawPinDot(ctx, pinCx, pinDotTopY, scale);
+}
+
+function createStackIcon(
+  locations: ApiLocation[],
+  clusterIndex: number,
+  side: 'center' | 'left' | 'right',
+  scale: number,
+  resolvedPhotos: Record<string, string>,
 ): L.DivIcon {
-  const tilt = offset.x !== 0 ? Math.sign(offset.x) * 5 : 0;
-  const finalRotation = rotation + tilt;
-  const src = resolvedPhotoSrc ?? location.photoUrl;
-  const photoHtml = src
-    ? `<img src="${src}" alt="${location.title}" style="width:64px;height:64px;object-fit:cover;display:block;" />`
-    : `<div style="width:64px;height:64px;background:linear-gradient(135deg,rgba(232,119,90,0.25),rgba(37,33,42,0.5));display:flex;align-items:center;justify-content:center;">
-        <span style="font-size:9px;color:rgba(251,245,240,0.5);font-family:Georgia,serif;text-align:center;padding:4px;">${location.title}</span>
-       </div>`;
+  const FW = Math.round(72 * scale);
+  const FH = Math.round(82 * scale);
+  const stepY = Math.round(FH * STACK_STEP_RATIO);
+  const n = locations.length;
+  const photoSize = FW - 8;
+  const bottomPad = Math.round(14 * scale);
+  const dotDiam = Math.max(5, Math.round(9 * scale));
+  const sideMargin = Math.round(8 * scale);
+  const sideGap = side !== 'center' ? Math.round(16 * scale) : 0;
+  const iconW = FW + 2 * sideMargin + sideGap;
+  const stackH = FH + (n - 1) * stepY;
+  const iconH = n === 1 ? FH + 3 + dotDiam : stackH + 3;
+  const photoLeft = side === 'right' ? sideMargin + sideGap : sideMargin;
+
+  const pinCenterX = side === 'center'
+    ? Math.round(iconW / 2)
+    : side === 'left'
+      ? sideMargin + FW + sideGap
+      : sideMargin;
+  const anchorX = pinCenterX;
+  const anchorY = n === 1 ? iconH : stepY;
+
+  const photosHtml = locations.map((loc, j) => {
+    const tilt = getStackTilt(clusterIndex, j);
+    const src = loc.photoUrl ? (resolvedPhotos[loc.photoUrl] ?? loc.photoUrl) : null;
+    const photoHtml = src
+      ? `<img src="${src}" alt="" style="width:${photoSize}px;height:${photoSize}px;object-fit:cover;display:block;" />`
+      : `<div style="width:${photoSize}px;height:${photoSize}px;background:linear-gradient(135deg,rgba(232,119,90,0.25),rgba(37,33,42,0.5));"></div>`;
+    return `<div style="position:absolute;top:${j * stepY}px;left:${photoLeft}px;background:white;padding:4px 4px ${bottomPad}px;box-shadow:0 6px 20px rgba(0,0,0,0.55),0 1px 4px rgba(0,0,0,0.3);transform:rotate(${tilt}deg);transform-origin:bottom center;z-index:${n - j};">
+      ${photoHtml}
+    </div>`;
+  }).join('');
+
+  const pinLeft = pinCenterX - Math.round(dotDiam / 2);
+  const pinTop = n === 1 ? FH + 3 : stepY - Math.round(dotDiam / 2);
+
   return L.divIcon({
     html: `
-      <div style="display:flex;flex-direction:column;align-items:center;cursor:default;">
-        <div style="background:white;padding:4px 4px 14px;box-shadow:0 6px 20px rgba(0,0,0,0.55),0 1px 4px rgba(0,0,0,0.3);transform:rotate(${finalRotation}deg);transform-origin:bottom center;">
-          ${photoHtml}
-        </div>
-        <div style="width:9px;height:9px;border-radius:50%;background:#E8775A;box-shadow:0 0 8px rgba(232,119,90,0.85);margin-top:3px;flex-shrink:0;"></div>
+      <div style="position:relative;width:${iconW}px;height:${iconH}px;overflow:visible;">
+        ${photosHtml}
+        <div style="position:absolute;left:${pinLeft}px;top:${pinTop}px;width:${dotDiam}px;height:${dotDiam}px;border-radius:50%;background:#E8775A;box-shadow:0 0 8px rgba(232,119,90,0.85);"></div>
       </div>`,
     className: '',
-    iconSize: [ICON_W, 87],
-    iconAnchor: [37 - Math.round(offset.x), 87 - Math.round(offset.y)],
+    iconSize: [iconW, iconH],
+    iconAnchor: [anchorX, anchorY],
   });
 }
 
@@ -242,20 +377,22 @@ function FitBoundsOnLoad({ positions }: { positions: [number, number][] }) {
   return null;
 }
 
-function MarkerSpreader({
+function ClusterComputer({
   locations,
-  onOffsetsReady,
+  pinScale,
+  onClustersReady,
 }: {
   locations: ApiLocation[];
-  onOffsetsReady: (offsets: PixelOffset[]) => void;
+  pinScale: number;
+  onClustersReady: (clusters: ClusterGroup[]) => void;
 }) {
   const map = useMap();
   useEffect(() => {
     const timer = setTimeout(() => {
-      const points = locations.map((loc) =>
+      const pixelPoints = locations.map(loc =>
         map.latLngToContainerPoint([loc.latitude, loc.longitude]),
       );
-      onOffsetsReady(resolveOverlaps(points));
+      onClustersReady(computeClusters(locations, pixelPoints, pinScale));
     }, SPREAD_SETTLE_MS);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -277,32 +414,35 @@ function MapRefCapture({
 
 export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
   const isMobile = useIsMobile();
-  const captureRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const photoDataUrlsRef = useRef<Record<string, string>>({});
   const locationsRef = useRef(locations);
   const coupleNameRef = useRef(coupleName);
-  const markerOffsetsRef = useRef<PixelOffset[]>([]);
+  const clustersRef = useRef<ClusterGroup[]>([]);
   const positionsRef = useRef<[number, number][]>([]);
+  const pinScaleRef = useRef(0);
+
+  const isSameCountry = computeIsSameCountry(locations);
+  const pinScale = isSameCountry ? PIN_SCALE_SAME_COUNTRY : PIN_SCALE_MIXED_COUNTRIES;
 
   const [isCapturing, setIsCapturing] = useState(false);
   const [captureError, setCaptureError] = useState(false);
   const [prebuiltFile, setPrebuiltFile] = useState<File | null>(null);
   const [showInstagramTip, setShowInstagramTip] = useState(false);
-  const [pixelOffsets, setPixelOffsets] = useState<PixelOffset[] | null>(null);
+  const [clusters, setClusters] = useState<ClusterGroup[] | null>(null);
   const [photoDataUrls, setPhotoDataUrls] = useState<Record<string, string>>({});
   const [tilesLoaded, setTilesLoaded] = useState(false);
   const [photosAttempted, setPhotosAttempted] = useState(false);
 
   const positions: [number, number][] = locations.map((l) => [l.latitude, l.longitude]);
   const initialCenter: [number, number] = positions.length > 0 ? positions[0] : [-14.235, -51.925];
-  const markerOffsets: PixelOffset[] = pixelOffsets ?? locations.map(() => ({ x: 0, y: 0 }));
 
   useEffect(() => { locationsRef.current = locations; }, [locations]);
   useEffect(() => { coupleNameRef.current = coupleName; }, [coupleName]);
-  useEffect(() => { markerOffsetsRef.current = markerOffsets; }, [markerOffsets]);
+  useEffect(() => { clustersRef.current = clusters ?? []; }, [clusters]);
   useEffect(() => { positionsRef.current = positions; }, [positions]);
   useEffect(() => { photoDataUrlsRef.current = photoDataUrls; }, [photoDataUrls]);
+  useEffect(() => { pinScaleRef.current = pinScale; }, [pinScale]);
 
   useEffect(() => {
     const photoUrls = locations.map((l) => l.photoUrl).filter(Boolean) as string[];
@@ -379,18 +519,39 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
       ctx.restore();
     }
 
-    const locs = locationsRef.current;
-    const offsets = markerOffsetsRef.current;
-    for (let i = 0; i < locs.length; i++) {
-      const loc = locs[i];
-      const offset = offsets[i] ?? { x: 0, y: 0 };
-      const pt = map.latLngToContainerPoint(L.latLng(loc.latitude, loc.longitude));
-      const ix = pt.x - 37 + offset.x;
-      const iy = pt.y - 87 + offset.y;
-      const tilt = offset.x !== 0 ? Math.sign(offset.x) * 5 : 0;
-      const rotation = PIN_ROTATIONS[i % PIN_ROTATIONS.length] + tilt;
-      const photoUrl = loc.photoUrl ? photoDataUrlsRef.current[loc.photoUrl] : undefined;
-      await drawPolaroidOnCanvas(ctx, ix, iy, rotation, photoUrl, loc.title);
+    const scale = pinScaleRef.current;
+    const clusterList = clustersRef.current;
+    const FW = Math.round(72 * scale);
+    const FH = Math.round(82 * scale);
+    const stepY = Math.round(FH * STACK_STEP_RATIO);
+    const sideMargin = Math.round(8 * scale);
+    const dotDiam = Math.max(5, Math.round(9 * scale));
+    const dotRadius = dotDiam / 2;
+
+    for (const cluster of clusterList) {
+      const [lat, lng] = cluster.position;
+      const pt = map.latLngToContainerPoint(L.latLng(lat, lng));
+      const n = cluster.locations.length;
+      const stackH = FH + (n - 1) * stepY;
+      const sideGap = cluster.side !== 'center' ? Math.round(16 * scale) : 0;
+      const iconW = FW + 2 * sideMargin + sideGap;
+      const anchorY = n === 1 ? Math.round(FH + 3 + dotRadius) : Math.round(stepY);
+      const anchorX = cluster.side === 'center'
+        ? Math.round(iconW / 2)
+        : cluster.side === 'left'
+          ? sideMargin + FW + sideGap
+          : sideMargin;
+
+      await drawStackOnCanvas(
+        ctx,
+        pt.x - anchorX,
+        pt.y - anchorY,
+        cluster.locations,
+        cluster.index,
+        cluster.side,
+        scale,
+        photoDataUrlsRef.current,
+      );
     }
 
     const topGrad = ctx.createLinearGradient(0, 0, 0, 112);
@@ -431,7 +592,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
   }, []);
 
   useEffect(() => {
-    if (pixelOffsets === null || !tilesLoaded || !photosAttempted) return;
+    if (clusters === null || !tilesLoaded || !photosAttempted) return;
     const timer = setTimeout(async () => {
       try {
         const file = await captureImage();
@@ -441,7 +602,7 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
       }
     }, CAPTURE_SETTLE_MS);
     return () => clearTimeout(timer);
-  }, [pixelOffsets, captureImage, tilesLoaded, photosAttempted]);
+  }, [clusters, captureImage, tilesLoaded, photosAttempted]);
 
   useEffect(() => {
     if (!showInstagramTip) return;
@@ -524,7 +685,6 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
       </div>
 
       <div
-        ref={captureRef}
         className="relative overflow-hidden rounded-2xl"
         style={{
           aspectRatio: '9/16',
@@ -558,20 +718,25 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
               positions={positions}
               pathOptions={{ color: '#E8775A', weight: 1.5, dashArray: '5 8', opacity: 0.65 }}
             />
-            {locations.map((loc, i) => (
+            {clusters !== null && clusters.map((cluster) => (
               <Marker
-                key={loc.order}
-                position={[loc.latitude, loc.longitude]}
-                icon={createPolaroidIcon(
-                  loc,
-                  PIN_ROTATIONS[i % PIN_ROTATIONS.length],
-                  markerOffsets[i],
-                  loc.photoUrl ? photoDataUrls[loc.photoUrl] : undefined,
+                key={`${cluster.index}-${cluster.side}`}
+                position={cluster.position}
+                icon={createStackIcon(
+                  cluster.locations,
+                  cluster.index,
+                  cluster.side,
+                  pinScale,
+                  photoDataUrls,
                 )}
               />
             ))}
             <FitBoundsOnLoad positions={positions} />
-            <MarkerSpreader locations={locations} onOffsetsReady={setPixelOffsets} />
+            <ClusterComputer
+              locations={locations}
+              pinScale={pinScale}
+              onClustersReady={setClusters}
+            />
             <MapRefCapture mapRef={mapRef} />
           </MapContainer>
         )}
