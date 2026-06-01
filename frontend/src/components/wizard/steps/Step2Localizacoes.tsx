@@ -67,10 +67,10 @@ export function Step2Localizacoes({ onNext, onBack, canProceed = true }: Step2Lo
     addPlace(createPlace());
   };
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5 sm:gap-6">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={places.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:gap-4">
             {places.map((place, index) => (
               <PlaceCardEditor
                 key={place.id}
@@ -85,7 +85,7 @@ export function Step2Localizacoes({ onNext, onBack, canProceed = true }: Step2Lo
         </SortableContext>
       </DndContext>
       {places.length === 0 && (
-        <div className="rounded-[var(--r-lg)] border-2 border-dashed border-olm-surface py-14 px-6 text-center flex flex-col items-center gap-4">
+        <div className="rounded-[var(--r-lg)] border-2 border-dashed border-olm-surface py-8 px-3 sm:py-14 sm:px-6 text-center flex flex-col items-center gap-4">
           <div className="w-14 h-14 rounded-[var(--r-md)] bg-olm-primary-100 text-olm-primary flex items-center justify-center">
             <MapPin size={24} strokeWidth={1.5} />
           </div>
@@ -93,7 +93,7 @@ export function Step2Localizacoes({ onNext, onBack, canProceed = true }: Step2Lo
             <p className="font-serif text-[20px] text-olm-title leading-snug">
               Onde tudo <em className="text-olm-primary">começou</em>?
             </p>
-            <p className="text-sm text-fg-3 mt-1.5 max-w-[260px] mx-auto">
+            <p className="text-sm text-fg-2 mt-1.5 max-w-[260px] mx-auto">
               Adicionem o primeiro lugar da história de vocês — o primeiro encontro, a primeira viagem, o pedido...
             </p>
           </div>
@@ -103,20 +103,25 @@ export function Step2Localizacoes({ onNext, onBack, canProceed = true }: Step2Lo
         <button
           type="button"
           onClick={handleAddPlace}
-          className="flex items-center gap-2 self-start px-4 py-2.5 rounded-lg border border-dashed border-olm-primary text-olm-primary text-sm font-medium hover:bg-olm-primary-100 transition-colors"
+          className="flex items-center gap-2 self-start px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-dashed border-olm-primary text-olm-primary text-sm font-medium bg-[color-mix(in_srgb,var(--olm-primary)_8%,transparent)] hover:bg-olm-primary-100 transition-colors"
         >
           <Plus size={16} />
           Adicionar lugar
         </button>
       )}
-      <div className="text-xs text-fg-3 mt-1">
+      <div className="text-xs text-fg-2">
         {places.length} de {limit} lugares ({plan === 'premium' ? 'Premium' : 'Basic'})
       </div>
-      <div className="flex justify-between pt-2">
-        <Button variant="ghost" size="md" onClick={onBack}>
+      {plan === 'basic' && places.length >= BASIC_LIMIT && (
+        <div className="rounded-lg border border-olm-accent/35 bg-olm-accent/10 px-3 py-2 text-xs text-fg-2 transition-all duration-200 ease-emphasized">
+          Você atingiu o limite do Basic. Faça upgrade para adicionar mais lugares.
+        </div>
+      )}
+      <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-between pt-4">
+        <Button variant="ghost" size="md" onClick={onBack} className="w-full sm:w-auto justify-center">
           Voltar
         </Button>
-        <Button variant="primary" size="lg" onClick={onNext} disabled={!canProceed}>
+        <Button variant="primary" size="lg" onClick={onNext} disabled={!canProceed} className="w-full sm:w-auto justify-center">
           Continuar
         </Button>
       </div>
