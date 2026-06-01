@@ -220,6 +220,10 @@
   to   { opacity: 1; transform: scale(1); }
 }
 
+@keyframes olm-loading {
+  to { transform: translateX(200%); }
+}
+
 @keyframes olm-hero-reveal {
   from {
     opacity: 0;
@@ -454,4 +458,20 @@ h1.olm {
     transition-duration: 0.001ms !important;
     transition-delay: 0.001ms !important;
   }
+}
+
+/* Dark-mode hard fallback for legacy confirmation container */
+[data-theme="dark"] .bg-white.rounded-2xl.border.border-olm-surface.shadow-sm.p-6.text-left.flex.flex-col.gap-5,
+:root:not([data-theme="light"]) .bg-white.rounded-2xl.border.border-olm-surface.shadow-sm.p-6.text-left.flex.flex-col.gap-5 {
+  background: #1F1B24 !important;
+  border-color: #555063 !important;
+  color: #F5F1FA !important;
+}
+[data-theme="dark"] .bg-white.rounded-2xl.border.border-olm-surface.shadow-sm.p-6.text-left.flex.flex-col.gap-5 *,
+:root:not([data-theme="light"]) .bg-white.rounded-2xl.border.border-olm-surface.shadow-sm.p-6.text-left.flex.flex-col.gap-5 * {
+  color: #F5F1FA !important;
+}
+[data-theme="dark"] .bg-white.rounded-2xl.border.border-olm-surface.shadow-sm.p-6.text-left.flex.flex-col.gap-5 a,
+:root:not([data-theme="light"]) .bg-white.rounded-2xl.border.border-olm-surface.shadow-sm.p-6.text-left.flex.flex-col.gap-5 a {
+  color: #FAA2A7 !important;
 }
