@@ -532,7 +532,6 @@ export function FinalMapScreen({ locations, coupleName }: FinalMapScreenProps) {
       const [lat, lng] = cluster.position;
       const pt = map.latLngToContainerPoint(L.latLng(lat, lng));
       const n = cluster.locations.length;
-      const stackH = FH + (n - 1) * stepY;
       const sideGap = cluster.side !== 'center' ? Math.round(16 * scale) : 0;
       const iconW = FW + 2 * sideMargin + sideGap;
       const anchorY = n === 1 ? Math.round(FH + 3 + dotRadius) : Math.round(stepY);
