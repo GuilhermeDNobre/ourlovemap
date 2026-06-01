@@ -15,11 +15,11 @@ export function Input({ label, error, help, onChange, className = '', ...rest }:
         {...rest}
         onChange={(e) => onChange?.(e.target.value)}
         className={[
-          'font-sans text-sm px-[14px] py-[11px] rounded-md bg-white text-fg-2',
-          'outline-none transition-colors duration-150',
+          'w-full font-sans text-sm px-[14px] py-[11px] rounded-md bg-olm-bg-elevated text-fg-2',
+          'outline-none transition-all duration-150 shadow-[var(--sh-xs)]',
           error
             ? 'border-[1.5px] border-solid border-olm-error'
-            : 'border-[1.5px] border-solid border-olm-surface focus:border-olm-accent',
+            : 'border-[1.5px] border-solid border-olm-surface focus:border-olm-accent focus:shadow-[var(--sh-sm)]',
           className,
         ].join(' ')}
       />
