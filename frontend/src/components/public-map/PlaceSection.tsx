@@ -3,7 +3,6 @@ import gsap from 'gsap';
 import { useInView } from 'react-intersection-observer';
 import maplibregl from 'maplibre-gl';
 import { MapPin } from 'lucide-react';
-import { Polaroid } from '../ui/Polaroid';
 import { MAPTILER_API_KEY } from '../../lib/client-env';
 import type { ApiLocation } from '../../types/map';
 
@@ -87,7 +86,11 @@ export function PlaceSection({
       <div ref={mapContainerRef} className="absolute inset-0" />
       <div
         className="absolute inset-0 flex items-center justify-center"
-        style={{ background: 'linear-gradient(to bottom, color-mix(in srgb, var(--olm-dark) 15%, transparent) 0%, color-mix(in srgb, var(--olm-dark) 45%, transparent) 100%)' }}
+        style={{
+          paddingTop: '17%',
+          paddingBottom: '22%',
+          background: 'linear-gradient(to bottom, color-mix(in srgb, var(--olm-dark) 15%, transparent) 0%, color-mix(in srgb, var(--olm-dark) 45%, transparent) 100%)',
+        }}
       >
         <div
           ref={cardRef}
@@ -115,11 +118,14 @@ export function PlaceSection({
               </div>
             )}
             {location.photoUrl ? (
-              <Polaroid
-                src={location.photoUrl}
-                alt={location.title}
-                className="w-full"
-              />
+              <div className="bg-white p-3 pb-8 shadow-md">
+                <img
+                  src={location.photoUrl}
+                  alt={location.title}
+                  className="w-full object-cover block"
+                  style={{ maxHeight: 280 }}
+                />
+              </div>
             ) : (
               <div
                 className="w-full rounded-lg"
@@ -137,12 +143,12 @@ export function PlaceSection({
       <div
         className="absolute top-0 left-0 right-0 pointer-events-none"
         aria-hidden="true"
-        style={{ height: '22%', background: 'linear-gradient(to bottom, var(--olm-dark) 0%, transparent 100%)' }}
+        style={{ height: '15%', background: 'linear-gradient(to bottom, var(--olm-dark) 0%, transparent 100%)' }}
       />
       <div
         className="absolute bottom-0 left-0 right-0 pointer-events-none"
         aria-hidden="true"
-        style={{ height: '28%', background: 'linear-gradient(to bottom, transparent 0%, var(--olm-dark) 100%)' }}
+        style={{ height: '20%', background: 'linear-gradient(to bottom, transparent 0%, var(--olm-dark) 100%)' }}
       />
       {isActive && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center" aria-hidden="true">
