@@ -42,16 +42,19 @@ const swaggerPlugin: FastifyPluginAsync = async (fastify) => {
     $id: 'https://ourlovemap.com/schemas/AbacatePayWebhookEvent',
     type: 'object',
     title: 'AbacatePayWebhookEvent',
-    description: 'Webhook event from AbacatePay. Covers billing.paid (card) and pix.paid events.',
+    description: 'Webhook event from AbacatePay v2. Covers checkout.completed (card) and transparent.completed (PIX) events.',
     properties: {
-      event: { type: 'string', description: 'Event type: billing.paid or pix.paid' },
+      id: { type: 'string', description: 'Webhook log ID' },
+      event: { type: 'string', description: 'Event type: checkout.completed or transparent.completed' },
+      apiVersion: { type: 'number', description: 'AbacatePay API version' },
+      devMode: { type: 'boolean', description: 'Whether the transaction was in dev mode' },
       data: {
         type: 'object',
         properties: {
-          id: { type: 'string', description: 'AbacatePay payment ID (bill_xxx or pix_char_xxx) — correlates the webhook to the map via paymentId field' },
+          id: { type: 'string', description: 'AbacatePay payment ID — correlates the webhook to the map via paymentId field' },
+          externalId: { type: 'string', description: 'Map ID set at payment creation' },
           amount: { type: 'number', description: 'Total amount in centavos' },
           status: { type: 'string', description: 'Payment status (PAID, PENDING, EXPIRED)' },
-          devMode: { type: 'boolean', description: 'Whether the transaction was in dev mode' },
         },
       },
     },

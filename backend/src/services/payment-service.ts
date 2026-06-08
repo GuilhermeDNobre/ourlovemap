@@ -11,7 +11,7 @@ import {
 import { generateQrCode } from './qr-code-service.js';
 import { sendDeliveryEmail } from './email-service.js';
 
-const ABACATEPAY_API_URL = 'https://api.abacatepay.com';
+const ABACATEPAY_API_URL = 'https://api.abacatepay.com/v2';
 const PIX_EXPIRY_SECONDS = 10 * 60;
 
 const PLAN_PRICES_CENTS: Record<Plan, number> = {
@@ -24,6 +24,53 @@ function buildAuthHeaders() {
     Authorization: `Bearer ${process.env.ABACATEPAY_API_KEY}`,
     'Content-Type': 'application/json',
   };
+}
+
+const productIdCache = new Map<string, string>();
+
+async function getOrCreateProductId(plan: Plan): Promise<string> {
+  if (productIdCache.has(plan)) {
+    return productIdCache.get(plan)!;
+  }
+  const headers = buildAuthHeaders();
+  const price = PLAN_PRICES_CENTS[plan];
+  try {
+    const listResponse = await axios.get<{ data: Array<{ id: string; externalId: string }> }>(
+      `${ABACATEPAY_API_URL}/products/list`,
+      { params: { externalId: plan }, headers },
+    );
+    const existing = listResponse.data.data?.[0];
+    if (existing?.id) {
+      productIdCache.set(plan, existing.id);
+      return existing.id;
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(`AbacatePay product lookup failed: ${error.response?.status ?? 'network error'} — ${JSON.stringify(error.response?.data)}`);
+    }
+    throw error;
+  }
+  try {
+    const createResponse = await axios.post<{ data: { id: string } }>(
+      `${ABACATEPAY_API_URL}/products/create`,
+      {
+        externalId: plan,
+        name: `Our Love Map — plano ${plan}`,
+        description: `Mapa interativo para o casal — plano ${plan}`,
+        price,
+        currency: 'BRL',
+      },
+      { headers },
+    );
+    const productId = createResponse.data.data.id;
+    productIdCache.set(plan, productId);
+    return productId;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(`AbacatePay product creation failed: ${error.response?.status ?? 'network error'} — ${JSON.stringify(error.response?.data)}`);
+    }
+    throw error;
+  }
 }
 
 export interface CreatePixPaymentParams {
@@ -50,23 +97,14 @@ export interface CardPaymentResult {
   checkoutUrl: string;
 }
 
-export interface AbacatePayBillingProduct {
-  id: string;
-  externalId: string;
-  quantity: number;
-}
-
-export interface AbacatePayBillingData {
-  id: string;
-  externalId?: string;
-  products?: AbacatePayBillingProduct[];
-}
-
 export interface AbacatePayWebhookEvent {
+  id?: string;
   event: string;
+  apiVersion?: number;
+  devMode?: boolean;
   data: {
     id?: string;
-    billing?: AbacatePayBillingData;
+    externalId?: string;
   };
 }
 
@@ -75,11 +113,15 @@ export async function createPixPayment(params: CreatePixPaymentParams): Promise<
   let response: { data: { data: { id: string; brCode: string; brCodeBase64: string; expiresAt: string }; error: string | null } };
   try {
     response = await axios.post<{ data: { id: string; brCode: string; brCodeBase64: string; expiresAt: string }; error: string | null }>(
-      `${ABACATEPAY_API_URL}/v1/pixQrCode/create`,
+      `${ABACATEPAY_API_URL}/transparents/create`,
       {
-        amount: price,
-        expiresIn: PIX_EXPIRY_SECONDS,
-        description: `Our Love Map — plano ${params.plan}`,
+        method: 'PIX',
+        data: {
+          amount: price,
+          expiresIn: PIX_EXPIRY_SECONDS,
+          description: `Our Love Map — plano ${params.plan}`,
+          externalId: params.mapId,
+        },
       },
       { headers: buildAuthHeaders() },
     );
@@ -95,12 +137,11 @@ export async function createPixPayment(params: CreatePixPaymentParams): Promise<
 }
 
 export async function createCardPayment(params: CreateCardPaymentParams): Promise<CardPaymentResult> {
-  const price = PLAN_PRICES_CENTS[params.plan];
   const headers = buildAuthHeaders();
   let customerId: string;
   try {
     const customerResponse = await axios.post<{ data: { id: string }; error: string | null }>(
-      `${ABACATEPAY_API_URL}/v1/customer/create`,
+      `${ABACATEPAY_API_URL}/customers/create`,
       {
         name: params.buyerName,
         cellphone: params.buyerPhone,
@@ -116,36 +157,28 @@ export async function createCardPayment(params: CreateCardPaymentParams): Promis
     }
     throw error;
   }
-  let billingResponse: { data: { data: { id: string; url: string }; error: string | null } };
+  const productId = await getOrCreateProductId(params.plan);
+  let checkoutResponse: { data: { data: { id: string; url: string }; error: string | null } };
   try {
-    billingResponse = await axios.post<{ data: { id: string; url: string }; error: string | null }>(
-      `${ABACATEPAY_API_URL}/v1/billing/create`,
+    checkoutResponse = await axios.post<{ data: { id: string; url: string }; error: string | null }>(
+      `${ABACATEPAY_API_URL}/checkouts/create`,
       {
-        frequency: 'ONE_TIME',
+        items: [{ id: productId, quantity: 1 }],
         methods: ['CARD'],
+        customerId,
         externalId: params.mapId,
-        products: [
-          {
-            externalId: params.plan,
-            name: `Our Love Map — plano ${params.plan}`,
-            description: `Mapa interativo para o casal — plano ${params.plan}`,
-            quantity: 1,
-            price,
-          },
-        ],
         returnUrl: process.env.OURLOVEMAP_BASE_URL,
         completionUrl: `${process.env.OURLOVEMAP_BASE_URL}/pagamento-confirmado`,
-        customerId,
       },
       { headers },
     );
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      throw new Error(`AbacatePay billing creation failed: ${error.response?.status ?? 'network error'} — ${JSON.stringify(error.response?.data)}`);
+      throw new Error(`AbacatePay checkout creation failed: ${error.response?.status ?? 'network error'} — ${JSON.stringify(error.response?.data)}`);
     }
     throw error;
   }
-  const { id: paymentId, url: checkoutUrl } = billingResponse.data.data;
+  const { id: paymentId, url: checkoutUrl } = checkoutResponse.data.data;
   await updatePaymentData(params.mapId, { paymentId, checkoutUrl });
   return { checkoutUrl };
 }
@@ -163,35 +196,24 @@ async function resolveMapFromEvent(
   const paymentId = event.data?.id;
   if (paymentId) {
     const map = await getMapByPaymentId(paymentId);
-    if (!map) log.warn({ paymentId }, 'Map not found for webhook event');
-    return map;
+    if (map) return map;
+    log.warn({ paymentId }, 'Map not found by paymentId, trying externalId');
   }
-  if (event.event === 'billing.paid') {
-    const billing = event.data?.billing;
-    const billingId = billing?.id;
-    if (billingId) {
-      const map = await getMapByPaymentId(billingId);
-      if (!map) log.warn({ billingId }, 'Map not found for webhook event');
-      return map;
-    }
-    const mapId = billing?.externalId;
-    if (!mapId) {
-      log.warn({ event: event.event, data: event.data }, 'Webhook billing.paid has no billing id or externalId');
-      return null;
-    }
-    const map = await getMapById(mapId);
-    if (!map) log.warn({ mapId }, 'Map not found for webhook event via billing externalId');
-    return map;
+  const mapId = event.data?.externalId;
+  if (!mapId) {
+    log.warn({ event: event.event, data: event.data }, 'Webhook event has no paymentId or externalId');
+    return null;
   }
-  log.warn({ event: event.event, data: event.data }, 'Webhook event has no payment id');
-  return null;
+  const map = await getMapById(mapId);
+  if (!map) log.warn({ mapId }, 'Map not found for webhook event via externalId');
+  return map;
 }
 
 export async function processWebhookEvent(
   event: AbacatePayWebhookEvent,
   log: FastifyBaseLogger,
 ): Promise<WebhookProcessResult> {
-  const isPaidEvent = event.event === 'pix.paid' || event.event === 'billing.paid';
+  const isPaidEvent = event.event === 'transparent.completed' || event.event === 'checkout.completed';
   if (!isPaidEvent) {
     log.info({ event: event.event }, 'Webhook event ignored: not a paid event');
     return { wasActivated: false };
