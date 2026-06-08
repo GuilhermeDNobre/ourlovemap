@@ -53,7 +53,8 @@ export default async function paymentRoutes(fastify: FastifyInstance): Promise<v
         request.log.warn({ error: error instanceof Error ? error.message : error }, 'PostHog capture failed');
       }
     }
-    request.log.info({ paymentId: event.data?.id, event: event.event }, 'Webhook event processed');
+    const paymentId = event.data?.checkout?.id ?? event.data?.transparent?.id;
+    request.log.info({ paymentId, event: event.event }, 'Webhook event processed');
     return reply.send({ received: true });
   });
 }

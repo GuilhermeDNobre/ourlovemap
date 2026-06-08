@@ -51,10 +51,26 @@ const swaggerPlugin: FastifyPluginAsync = async (fastify) => {
       data: {
         type: 'object',
         properties: {
-          id: { type: 'string', description: 'AbacatePay payment ID — correlates the webhook to the map via paymentId field' },
-          externalId: { type: 'string', description: 'Map ID set at payment creation' },
-          amount: { type: 'number', description: 'Total amount in centavos' },
-          status: { type: 'string', description: 'Payment status (PAID, PENDING, EXPIRED)' },
+          checkout: {
+            type: 'object',
+            description: 'Present on checkout.completed events',
+            properties: {
+              id: { type: 'string', description: 'AbacatePay checkout ID' },
+              externalId: { type: 'string', description: 'Map ID set at payment creation' },
+              amount: { type: 'number', description: 'Total amount in centavos' },
+              status: { type: 'string', description: 'Payment status (PAID, PENDING, EXPIRED)' },
+            },
+          },
+          transparent: {
+            type: 'object',
+            description: 'Present on transparent.completed events',
+            properties: {
+              id: { type: 'string', description: 'AbacatePay transparent ID' },
+              externalId: { type: 'string', description: 'Map ID set at payment creation' },
+              amount: { type: 'number', description: 'Total amount in centavos' },
+              status: { type: 'string', description: 'Payment status (PAID, PENDING, EXPIRED)' },
+            },
+          },
         },
       },
     },

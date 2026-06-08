@@ -97,14 +97,19 @@ export interface CardPaymentResult {
   checkoutUrl: string;
 }
 
+interface AbacatePayPaymentData {
+  id?: string;
+  externalId?: string;
+}
+
 export interface AbacatePayWebhookEvent {
   id?: string;
   event: string;
   apiVersion?: number;
   devMode?: boolean;
   data: {
-    id?: string;
-    externalId?: string;
+    checkout?: AbacatePayPaymentData;
+    transparent?: AbacatePayPaymentData;
   };
 }
 
@@ -193,13 +198,14 @@ async function resolveMapFromEvent(
   event: AbacatePayWebhookEvent,
   log: FastifyBaseLogger,
 ): Promise<MapRecord | null> {
-  const paymentId = event.data?.id;
+  const paymentData = event.data?.checkout ?? event.data?.transparent;
+  const paymentId = paymentData?.id;
   if (paymentId) {
     const map = await getMapByPaymentId(paymentId);
     if (map) return map;
     log.warn({ paymentId }, 'Map not found by paymentId, trying externalId');
   }
-  const mapId = event.data?.externalId;
+  const mapId = paymentData?.externalId;
   if (!mapId) {
     log.warn({ event: event.event, data: event.data }, 'Webhook event has no paymentId or externalId');
     return null;
