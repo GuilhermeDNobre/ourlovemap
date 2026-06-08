@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, X, Repeat } from 'lucide-react';
+import { Search, X, Repeat, Check } from 'lucide-react';
 import { useWizardStore } from '../../../stores/wizard-store';
 import type { MusicData } from '../../../stores/wizard-store';
 import type { YouTubeResult } from '../../../lib/youtube-api';
@@ -165,7 +165,7 @@ export function Step3Musica({ onNext, onBack }: Step3MusicaProps) {
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       {!hasTrack && (
         <div className="flex flex-col gap-3">
           <div className="relative">
@@ -175,7 +175,7 @@ export function Step3Musica({ onNext, onBack }: Step3MusicaProps) {
               value={query}
               onChange={(e) => handleQueryChange(e.target.value)}
               placeholder="Buscar música ou colar link do YouTube..."
-              className="w-full pl-9 pr-4 py-[11px] rounded-md border border-[1.5px] border-[#E0DCE5] focus:border-olm-accent outline-none text-sm text-fg-2 font-sans"
+              className="w-full pl-9 pr-4 py-[11px] rounded-md border border-[1.5px] border-olm-surface focus:border-olm-accent outline-none text-sm text-fg-2 font-sans bg-olm-bg-elevated"
             />
           </div>
           {urlError && (
@@ -188,9 +188,21 @@ export function Step3Musica({ onNext, onBack }: Step3MusicaProps) {
               Busca indisponível. Cole o link direto do YouTube.
             </p>
           )}
-          {isSearching && <p className="text-fg-3 text-xs">Buscando...</p>}
+          {isSearching && (
+            <div className="flex flex-col gap-2 rounded-xl border border-olm-surface bg-olm-bg-elevated p-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-3 animate-pulse">
+                  <div className="w-16 h-12 rounded bg-olm-surface-soft" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 rounded bg-olm-surface-soft w-4/5" />
+                    <div className="h-3 rounded bg-olm-surface-soft w-3/5" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {results.length > 0 && !isSearching && (
-            <div className="flex flex-col gap-1 rounded-xl border border-olm-surface bg-white p-2">
+            <div className="flex flex-col gap-1 rounded-xl border border-olm-surface bg-olm-bg-elevated p-2">
               {results.map((result) => (
                 <button
                   key={result.videoId}
@@ -212,7 +224,7 @@ export function Step3Musica({ onNext, onBack }: Step3MusicaProps) {
       )}
       {hasTrack && (
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3 rounded-xl border border-olm-surface bg-white p-3">
+          <div className="flex items-center gap-3 rounded-xl border border-olm-surface bg-olm-bg-elevated p-3">
             <img
               src={`https://img.youtube.com/vi/${music.videoId}/default.jpg`}
               alt={music.query || 'Música selecionada'}
@@ -232,8 +244,8 @@ export function Step3Musica({ onNext, onBack }: Step3MusicaProps) {
               <X size={18} />
             </button>
           </div>
-          <div className="flex flex-col gap-3 bg-white rounded-xl border border-olm-surface p-4">
-            <div className="flex justify-between text-xs text-fg-3">
+          <div className="flex flex-col gap-3 bg-olm-bg-elevated rounded-xl border border-olm-surface p-4">
+            <div className="flex justify-between text-xs text-fg-2">
               <span>Início <span className="font-mono text-olm-primary font-semibold">{formatTime(music.startTime)}</span></span>
               <span>Fim <span className="font-mono text-olm-primary font-semibold">{formatTime(music.endTime)}</span></span>
             </div>
@@ -246,15 +258,25 @@ export function Step3Musica({ onNext, onBack }: Step3MusicaProps) {
               onStartChange={handleStartChange}
               onEndChange={handleEndChange}
             />
-            <label className="flex items-center gap-3 cursor-pointer select-none">
+            <label className="flex items-center gap-3 cursor-pointer select-none rounded-lg border border-olm-surface bg-[color-mix(in_srgb,var(--olm-primary)_6%,transparent)] px-3 py-2">
+              <span
+                className={[
+                  'w-5 h-5 rounded-md border flex items-center justify-center transition-all',
+                  music.loop
+                    ? 'bg-olm-primary border-olm-primary text-white'
+                    : 'bg-olm-bg-elevated border-olm-surface text-transparent',
+                ].join(' ')}
+              >
+                <Check size={13} strokeWidth={3} />
+              </span>
               <input
                 type="checkbox"
                 checked={music.loop}
                 onChange={(e) => updateMusic({ loop: e.target.checked })}
-                className="w-4 h-4 accent-olm-primary"
+                className="sr-only"
                 aria-label="Repetir em loop"
               />
-              <span className="flex items-center gap-1.5 text-sm text-fg-2">
+              <span className="flex items-center gap-1.5 text-sm text-fg-1">
                 <Repeat size={14} />
                 Repetir em loop
               </span>
@@ -262,11 +284,11 @@ export function Step3Musica({ onNext, onBack }: Step3MusicaProps) {
           </div>
         </div>
       )}
-      <div className="flex justify-between pt-2">
-        <Button variant="ghost" size="md" onClick={onBack}>
+      <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-between pt-4">
+        <Button variant="ghost" size="md" onClick={onBack} className="w-full sm:w-auto justify-center">
           Voltar
         </Button>
-        <Button variant="primary" size="lg" onClick={onNext}>
+        <Button variant="primary" size="lg" onClick={onNext} className="w-full sm:w-auto justify-center">
           Continuar
         </Button>
       </div>

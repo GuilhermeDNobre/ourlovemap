@@ -7,7 +7,7 @@ interface SlugCardProps {
 export function SlugCard({ names }: SlugCardProps) {
   const slug = slugify(names);
   return (
-    <div className="rounded-[14px] border border-olm-surface bg-white p-4">
+    <div className="w-full max-w-[380px] rounded-[14px] border border-olm-surface bg-olm-bg-elevated p-4">
       <div className="text-[10px] text-fg-3 tracking-[0.1em] uppercase font-semibold mb-1">
         Seu link
       </div>

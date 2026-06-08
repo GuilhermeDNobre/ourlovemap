@@ -154,7 +154,7 @@ export function AddressInput({ onPick, initialValue = '' }: AddressInputProps) {
         onChange={(e) => handleQueryChange(e.target.value)}
         onBlur={() => setTimeout(() => setPredictions([]), 150)}
         placeholder="Restaurante, shopping, parque..."
-        className="w-full pl-9 pr-10 py-[11px] rounded-md border-[1.5px] border-[#E0DCE5] focus:border-olm-accent outline-none text-sm text-fg-2 font-sans bg-white"
+        className="w-full pl-9 pr-10 py-[11px] rounded-md border-[1.5px] border-olm-surface focus:border-olm-accent outline-none text-sm text-fg-2 font-sans bg-olm-bg-elevated"
       />
       <button
         type="button"
@@ -173,20 +173,20 @@ export function AddressInput({ onPick, initialValue = '' }: AddressInputProps) {
         )}
       </button>
       {(predictions.length > 0 || isLoading) && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-[99999] rounded-xl border border-[#E0DCE5] bg-white shadow-[0_8px_24px_rgba(65,60,123,0.1)] overflow-hidden">
+        <div className="absolute left-0 right-0 top-full mt-1 z-[99999] rounded-xl border border-olm-surface bg-olm-bg-elevated shadow-[0_8px_24px_rgba(65,60,123,0.18)] overflow-hidden">
           {isLoading && (
-            <div className="px-4 py-3 text-xs text-fg-3">Buscando...</div>
+            <div className="px-4 py-3 text-xs text-fg-2">Buscando...</div>
           )}
           {predictions.map((p) => (
             <button
               key={p.placeId}
               type="button"
               onMouseDown={(e) => { e.preventDefault(); void handleSelectPrediction(p); }}
-              className="w-full flex flex-col items-start px-4 py-2.5 text-left hover:bg-[#F8F5FF] border-t border-[#F0ECF5] first:border-t-0 transition-colors"
+              className="w-full flex flex-col items-start px-4 py-2.5 text-left hover:bg-olm-surface-soft border-t border-olm-surface first:border-t-0 transition-colors"
             >
-              <span className="text-[13px] font-medium text-[#1E1A2E]">{p.mainText}</span>
+              <span className="text-[13px] font-medium text-fg-1">{p.mainText}</span>
               {p.secondaryText && (
-                <span className="text-[11px] text-fg-3">{p.secondaryText}</span>
+                <span className="text-[11px] text-fg-2">{p.secondaryText}</span>
               )}
             </button>
           ))}
