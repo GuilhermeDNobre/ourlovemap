@@ -217,7 +217,11 @@ export function Hero() {
             <Button size="lg" onClick={() => navigate('/criar?plano=basic')}>
               Criar nosso mapa <ArrowRight size={16} strokeWidth={1.75} />
             </Button>
-            <Button variant="secondary" size="lg">
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() => window.open('https://ourlovemap.com.br/bruno-e-leticia?token=JJXyq', '_blank', 'noopener,noreferrer')}
+            >
               Ver exemplo
             </Button>
           </div>
