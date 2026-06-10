@@ -36,3 +36,8 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# AGENTS
+.agents/
+.claude/skills
+.playwright-mcp/

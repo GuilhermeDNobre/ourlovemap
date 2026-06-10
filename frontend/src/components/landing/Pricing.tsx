@@ -33,6 +33,9 @@ export function Pricing() {
           >
             Escolha o plano de <em className="text-olm-primary">vocês</em>.
           </h2>
+          <div className="inline-flex items-center gap-2 mt-5 bg-olm-primary/10 text-olm-primary text-sm font-semibold px-4 py-2 rounded-full">
+            ❤️ Preço especial de Dia dos Namorados — só até 12/06
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 max-w-[820px] mx-auto">
@@ -42,6 +45,7 @@ export function Pricing() {
               Básico
             </div>
               <div className="mt-5">
+                <div className="text-[15px] text-fg-3 line-through opacity-50 mb-1">R$29,90</div>
                 <div className="font-serif text-olm-title leading-none">
                   <span style={{ fontSize: 'var(--fs-h1)' }}>R$19</span><span className="text-[22px]" style={{ verticalAlign: 'super', lineHeight: 1 }}>,90</span>
                 </div>
@@ -75,6 +79,7 @@ export function Pricing() {
               Premium
             </div>
               <div className="mt-5">
+                <div className="text-[15px] text-fg-3 line-through opacity-50 mb-1">R$39,90</div>
                 <div className="font-serif text-olm-title leading-none">
                   <span style={{ fontSize: 'var(--fs-h1)' }}>R$29</span><span className="text-[22px]" style={{ verticalAlign: 'super', lineHeight: 1 }}>,90</span>
                 </div>
